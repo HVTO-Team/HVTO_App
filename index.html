@@ -184,7 +184,7 @@ const mk=(id,en,km,sex,b,c,st,sp,dr)=>({id,en,km,sex,bday:b,center:c,status:st,s
    Replace the two values below with your real Supabase project settings
 */
 const SUPABASE_URL = 'https://ksdmhnlkbsztcorqcfwb.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZG1obmxrYnN6dGNvcnFjZndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0OTc0NTIsImV4cCI6MjEwOTA3MzQ1Mn0.cutZy5aiaCcvFexIqZcm7xvxhC0zVFtVHy4G4qNFDVs';
 const sb = (typeof supabase !== 'undefined')
   ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
