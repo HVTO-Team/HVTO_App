@@ -546,6 +546,40 @@ F.onsubmit=e=>{
   save();$('#dlg').close();render();
 };
 render();
+<script>
+  // 1. Initialize Supabase with your project details
+  const SUPABASE_URL = "https://supabase.co";
+  const SUPABASE_KEY = "YOUR_sb_publishable_KEY_HERE"; // Replace this text with your copied publishable key string
+
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // 2. Add an event listener to your form submission or save button
+  // Update "save-btn-id" with the actual ID attribute of your save button
+  document.getElementById("save-btn-id")?.addEventListener("click", async (e) => {
+    e.preventDefault();
+
+    // Grab the values your team inputs into the text boxes
+    const englishName = document.querySelector('[placeholder="Full name (English)"]')?.value || "";
+    const studentIdInput = document.getElementById("student-id-input")?.value || "0"; 
+    const currentStatus = "Active";
+
+    // Insert the record straight into your live Supabase 'students' table
+    const { data, error } = await supabase
+      .from('students')
+      .insert([
+        { 
+          full_name_english: englishName, 
+          student_id: parseInt(studentIdInput) || 0,
+          status: currentStatus 
+        }
+      ]);
+
+    if (error) {
+      alert("Error saving student record: " + error.message);
+    } else {
+      alert("🎉 Student successfully saved to your shared cloud database!");
+    }
+  });
 </script>
 </body>
 </html>
