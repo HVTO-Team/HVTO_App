@@ -185,7 +185,7 @@ const mk=(id,en,km,sex,b,c,st,sp,dr)=>({id,en,km,sex,bday:b,center:c,status:st,s
    Put your real anon key below
 */
 const SUPABASE_URL = 'https://ksdmhnlkbsztcorqcfwb.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZG1obmxrYnN6dGNvcnFjZndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0OTc0NTIsImV4cCI6MjEwOTA3MzQ1Mn0.cutZy5aiaCcvFexIqZcm7xvxhC0zVFtVHy4G4qNFDVs';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE';
 const sb = (typeof supabase !== 'undefined')
   ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
@@ -247,8 +247,7 @@ const age=b=>{if(!b)return'';const d=new Date(b),n=new Date();let a=n.getFullYea
 const dur=(a,b)=>{if(!a)return'';const s=new Date(a),e=b?new Date(b):new Date();let m=(e.getFullYear()-s.getFullYear())*12+e.getMonth()-s.getMonth();if(e.getDate()<s.getDate())m--;if(m<0)return'Not started yet';const y=Math.floor(m/12),r=m%12;return[y&&y+(y>1?' years':' year'),r&&r+(r>1?' months':' month')].filter(Boolean).join(' ')||'Less than 1 month'};
 const inR=(d,f,x)=>(!f||(d||'')>=f)&&(!x||(d||'')<=x);
 const vis=()=>S.students.filter(s=>(campus=='All'||s.center==campus)&&inR(s.enroll,DF.from,DF.to)&&(!q||(s.en+s.km+s.id).toLowerCase().includes(q.toLowerCase())));
-const f={enroll:s=>s.enroll||'',name:s=>s.en.toLowerCase(),age:s=>+age(s.bday)||0,center:s=>s.center,
-  id:s=>+((/(\d+)\s*$/.exec(s.id||'')||[])[1]||0)}[sstu],r=v.slice().sort((a,b)=>{const x=f(a),y=f(b);return x<y?-1:x>y?1:0});return ord=='asc'?r:r.reverse()};
+const sorted=v=>{const f={enroll:s=>s.enroll||'',name:s=>s.en.toLowerCase(),age:s=>+age(s.bday)||0,center:s=>s.center,id:s=>+((/(\d+)\s*$/.exec(s.id||'')||[])[1]||0)}[sstu],r=v.slice().sort((a,b)=>{const x=f(a),y=f(b);return x<y?-1:x>y?1:0});return ord=='asc'?r:r.reverse()};
 const av=s=>`<span class="av">${s.photo?`<img src="${s.photo}" alt="">`:esc((s.en||'?')[0])}</span>`;
 const num=n=>Number(n||0).toLocaleString('en-US');
 
@@ -292,7 +291,7 @@ dash(){const v=vis(),T=S.teachers.filter(t=>campus=='All'||t.center==campus),all
 students(){return `<h1><span class="ic" aria-hidden="true">🎓</span>Students</h1><p class="sub" style="margin:0 0 4px">Manage records and add new students.</p><p class="sub" style="margin:0 0 14px;font-size:13px">${storLine()}</p>${datebar()}
  <div class="card"><div class="bar"><input id="q" type="search" placeholder="Search by name or ID" value="${esc(q)}" aria-label="Search students"><span class="tl" style="margin:0;flex-wrap:wrap"><label>Sort by <select id="ssort">${[['enroll','Enrollment date'],['id','Student ID'],['name','Name'],['age','Age'],['center','Center']].map(([v,l])=>`<option value="${v}"${sstu==v?' selected':''}>${l}</option>`).join('')}</select></label>${ordSel()}</span></div>
  <div class="bar"><span></span><span>${xbtns('stu')} <button class="btn" data-act="add"><span class="ic" aria-hidden="true">➕</span>Add student</button></span></div>
- <div class="scroll"><table><thead><tr><th>Student</th><th>ID</th><th>Sex</th><th>Age</th><th>Center</th><th>Class</th><th>Status</th><th></th></tr></thead><tbody id="tb">${stRows()}</tbody></table></div></div>`},
+ <div class="scroll"><table><thead><tr><th>Student</th><th><button class="link" data-act="sid" style="color:var(--muted);font-weight:500" title="Sort">ID<span aria-hidden="true">${sstu=='id'?(ord=='asc'?' ▲':' ▼'):' ⇅'}</span></button></th><th>Sex</th><th>Age</th><th>Center</th><th>Class</th><th>Status</th><th></th></tr></thead><tbody id="tb">${stRows()}</tbody></table></div></div>`},
 teachers(){return `<h1><span class="ic" aria-hidden="true">👩‍🏫</span>Teachers</h1><p class="sub" style="margin:0 0 14px">Manage teachers: profiles, daily attendance and KPI evaluation.</p>
  <div class="tl" style="margin:0 0 14px;flex-wrap:wrap">${[['dir','Directory','👥'],['att','Attendance','🗓️'],['kpi','KPI','🎯']].map(([k,l,i])=>`<button class="ghost${ttab==k?' on':''}" data-act="tt" data-t="${k}"><span class="ic" aria-hidden="true">${i}</span>${l}</button>`).join('')}</div>${ttab=='dir'?tDir():ttab=='att'?tAttView():tKpi()}`},
 grades(){return `<h1><span class="ic" aria-hidden="true">📝</span>Gradebook</h1><p class="sub" style="margin:0 0 14px">Search a student, filter by class, then update scores and attendance.</p>${datebar()}
@@ -503,6 +502,7 @@ document.addEventListener('click',e=>{
   if(a=='add')openForm(-1);
   if(a=='upd')openUpd(i);if(a=='hist')showHist(i);
   if(a=='hdel'&&confirm(TT('Delete')+' '+b.dataset.d+'?')){S.projects[hi].entries=S.projects[hi].entries.filter(x=>x.id!=b.dataset.id);save();showHist(hi);render()}
+  if(a=='sid'){if(sstu=='id')ord=ord=='asc'?'desc':'asc';else{sstu='id';ord='asc'}render()}
   if(a=='tt'){ttab=b.dataset.t;render()}
   if(a=='tadd')openT(-1);
   if(a=='tedit')openT(i);
