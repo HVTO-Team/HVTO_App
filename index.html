@@ -309,11 +309,11 @@ sponsor(){
   }).join(''):`<tr><td colspan="8" class="muted" style="text-align:center;padding:24px">${TT('No sponsored students yet.')}</td></tr>`;
   return `<h1><span class="ic" aria-hidden="true">🤝</span>${TT('Sponsorship Program')}</h1>
   <p class="sub" style="margin:0 0 14px">${TT('Students who have a sponsor. Data is linked to the Students page.')}</p>
-  <div class="grid" style="margin-bottom:16px">
-    <div class="card"><span class="sub">${TT('Sponsored')}</span><span class="n">${num(list.length)}</span></div>
-    <div class="card"><span class="sub">${TT('Active')}</span><span class="n">${num(active)}</span></div>
-    <div class="card"><span class="sub">${TT('Dropped')}</span><span class="n">${num(dropped)}</span></div>
-    <div class="card"><span class="sub">${TT('Graduated')}</span><span class="n">${num(graduated)}</span></div>
+  <div class="cards" style="margin-bottom:16px">
+    <div class="card"><span class="sub"><span class="ic" aria-hidden="true">🤝</span>${TT('Sponsored')}</span><span class="n">${num(list.length)}</span></div>
+    <div class="card"><span class="sub"><span class="ic" aria-hidden="true">✅</span>${TT('Active')}</span><span class="n">${num(active)}</span></div>
+    <div class="card"><span class="sub"><span class="ic" aria-hidden="true">⚠️</span>${TT('Dropped')}</span><span class="n">${num(dropped)}</span></div>
+    <div class="card"><span class="sub"><span class="ic" aria-hidden="true">✔️</span>${TT('Graduated')}</span><span class="n">${num(graduated)}</span></div>
   </div>
   <div class="card" style="margin-bottom:16px">
     <h2 style="margin:0 0 8px">${TT('Import from spreadsheet')}</h2>
@@ -588,49 +588,144 @@ document.addEventListener('change',e=>{
     msg.textContent='Reading…';
     f.arrayBuffer().then(buf=>{
       const wb=XLSX.read(buf,{type:'array'});
-      const sheet=wb.Sheets[wb.SheetNames[0]];
+      const sheetName=wb.SheetNames.find(n=>/sponsor/i.test(n))||wb.SheetNames[0];
+      const sheet=wb.Sheets[sheetName];
       const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
-      // Try to find header row and map columns
-      let headerIdx=0, headers=[];
-      for(let i=0;i<Math.min(15,rows.length);i++){
-        const r=rows[i].map(x=>String(x).toLowerCase());
-        if(r.some(x=>x.includes('sponsor')||x.includes('family')||x.includes('given')||x.includes('s#'))){headerIdx=i;headers=r;break}
+      // Find the real header row (contains Family / Given / S# etc.)
+      let headerIdx=-1, headers=[];
+      for(let i=0;i<Math.min(20,rows.length);i++){
+        const r=rows[i].map(x=>String(x||'').toLowerCase().trim());
+        const hasFamily=r.some(x=>x==='family'||x.includes('family'));
+        const hasGiven=r.some(x=>x==='given'||x.includes('given'));
+        const hasS=r.some(x=>x==='s#'||x==='s #'||x.startsWith('s#'));
+        if((hasFamily&&hasGiven)||hasS){headerIdx=i;headers=r;break}
       }
-      const col=name=>{
-        const n=name.toLowerCase();
-        for(let i=0;i<headers.length;i++){if(headers[i].includes(n))return i}
+      if(headerIdx<0){
+        // fallback: look for any row with "sex" and a name-like column
+        for(let i=0;i<Math.min(20,rows.length);i++){
+          const r=rows[i].map(x=>String(x||'').toLowerCase().trim());
+          if(r.includes('sex')&&r.includes('birthday')){headerIdx=i;headers=r;break}
+        }
+      }
+      if(headerIdx<0){msg.textContent=TT('Could not find header row in this file.');return}
+      const col=(...names)=>{
+        for(const n of names){
+          const nn=n.toLowerCase();
+          for(let i=0;i<headers.length;i++){
+            if(headers[i]===nn||headers[i].includes(nn))return i;
+          }
+        }
         return -1;
       };
-      // Common column guesses from the attached spreadsheet
-      const iFam=col('family'), iGiven=col('given'), iSex=col('sex'), iSponsor=col('sponsor')>=0?col('sponsor'):col('name');
-      const iSnum=col('s#')>=0?col('s#'):col('no');
-      const iStatus=col('goal')>=0?col('goal'):col('status');
-      let updated=0, created=0;
+      const iS=col('s#','s #','no/year');
+      const iFam=col('family');
+      const iGiven=col('given');
+      const iSex=col('sex');
+      const iBday=col('birthday');
+      const iVillage=col('home village','village');
+      const iCommune=col('commune');
+      const iAddr=col('current address','address');
+      const iLevel=col('level','english');
+      const iSchool=col('school','hvto');
+      const iGoal=col('goal');
+      const iSponsor=col('name'); // sponsor name column often just "Name" under Sponsor group
+      // Better: find sponsor name - often near email
+      let iSpName=iSponsor;
+      // Prefer column that is under Sponsor section - try common positions
+      const iEmail=col('e-mail','email','primary');
+      const iAffil=col('affiliation');
+      const iComments=col('comments');
+      const iCareer=col('student careers','~current employment','current employment');
+
+      let updated=0, created=0, skipped=0;
       for(let r=headerIdx+1;r<rows.length;r++){
         const row=rows[r];
-        if(!row||row.every(x=>!x))continue;
-        const fam=iFam>=0?String(row[iFam]||'').trim():'';
-        const given=iGiven>=0?String(row[iGiven]||'').trim():'';
-        const en=(fam+' '+given).trim() || String(row[1]||row[2]||'').trim();
-        if(!en||en.length<2)continue;
-        const sponsorName=iSponsor>=0?String(row[iSponsor]||'').trim():'';
-        const sid=iSnum>=0?String(row[iSnum]||'').trim():'';
-        // Match existing student by English name (fuzzy)
-        const enLow=en.toLowerCase().replace(/\s+/g,' ');
-        let stu=S.students.find(s=>(s.en||'').toLowerCase().replace(/\s+/g,' ')===enLow
-          || (s.en||'').toLowerCase().includes(given.toLowerCase()) && given.length>2);
+        if(!row||row.every(x=>!String(x||'').trim()))continue;
+        const fam=iFam>=0?String(row[iFam]||'').trim().replace(/\*$/,''):'';
+        const given=iGiven>=0?String(row[iGiven]||'').trim().replace(/\*$/,''):'';
+        let en=(fam+' '+given).trim();
+        if(!en||en.length<2){
+          // try first non-empty text cells
+          skipped++;continue;
+        }
+        en=en.replace(/\s+/g,' ');
+        const sexRaw=iSex>=0?String(row[iSex]||'').trim().toUpperCase():'';
+        const sex=sexRaw.startsWith('F')?'Female':sexRaw.startsWith('M')?'Male':'';
+        const bday=iBday>=0?String(row[iBday]||'').trim().slice(0,10):'';
+        const village=iVillage>=0?String(row[iVillage]||'').trim():'';
+        const commune=iCommune>=0?String(row[iCommune]||'').trim():'';
+        const addr=iAddr>=0?String(row[iAddr]||'').trim():'';
+        const level=iLevel>=0?String(row[iLevel]||'').trim():'';
+        const school=iSchool>=0?String(row[iSchool]||'').trim():'';
+        const goal=iGoal>=0?String(row[iGoal]||'').trim().toUpperCase():'';
+        const snum=iS>=0?String(row[iS]||'').trim():'';
+        // Sponsor name: try the "Name" column that is NOT family/given - often after Goal
+        let sponsorName='';
+        if(iEmail>=0){
+          // walk left from email to find sponsor name
+          for(let c=iEmail-1;c>=0;c--){
+            const v=String(row[c]||'').trim();
+            if(v&&v.length>2&&!/^\d+$/.test(v)&&v!==goal){sponsorName=v;break}
+          }
+        }
+        if(!sponsorName&&iSpName>=0&&iSpName!==iFam&&iSpName!==iGiven){
+          sponsorName=String(row[iSpName]||'').trim();
+        }
+        // Map school to center
+        let center='';
+        if(/II|2/.test(school))center='HVTO Free Education Center II';
+        else if(/III|3/.test(school))center='HVTO Free Education Center III';
+        else if(/I|1/.test(school))center='HVTO Free Education Center I';
+
+        // Status from Goal
+        let status='Active';
+        if(goal.includes('GRAD'))status='Graduated';
+        else if(goal.includes('DROP'))status='Dropped';
+        else if(goal.includes('PST'))status='Active';
+
+        // Match existing student
+        const enLow=en.toLowerCase();
+        const givenLow=given.toLowerCase();
+        let stu=S.students.find(s=>{
+          const se=(s.en||'').toLowerCase().replace(/\s+/g,' ');
+          if(se===enLow)return true;
+          if(givenLow.length>2&&se.includes(givenLow)&&fam&&se.includes(fam.toLowerCase()))return true;
+          return false;
+        });
         if(stu){
           stu.sponsored=true;
           if(sponsorName)stu.sponsor=sponsorName;
-          if(sid)stu.sponsorid=sid;
+          if(snum)stu.sponsorid=snum;
+          if(sex&&!stu.sex)stu.sex=sex;
+          if(bday&&!stu.bday)stu.bday=bday;
+          if(village&&!stu.village)stu.village=village;
+          if(commune&&!stu.commune)stu.commune=commune;
+          if(addr&&!stu.addr)stu.addr=addr;
+          if(level&&!stu.level)stu.level=level;
+          if(center&&(!stu.center||stu.center==='All'))stu.center=center;
+          if(status)stu.status=status;
+          if(status==='Dropped')stu.dropout=true;
           updated++;
+        }else{
+          // Create new sponsored student
+          const id=nextId(S.students,'HVTO-');
+          S.students.push({
+            id, en, km:'', sex:sex||'Female', bday, enroll:'',
+            village, commune, district:'', province:'', addr,
+            level, cls:'', center:center||Object.keys(CENTERS)[0],
+            sponsored:true, sponsor:sponsorName, sponsorid:snum,
+            status, dropout:status==='Dropped', dropdate:'',
+            father:'', mother:'', phone:'', kschool:'', notes:'',
+            photo:'', pstat:''
+          });
+          created++;
         }
       }
       save();
-      msg.textContent=TT('Import complete')+': '+updated+' '+TT('students updated');
+      msg.textContent=TT('Import complete')+': '+updated+' updated, '+created+' created'+(skipped?', '+skipped+' skipped':'');
       t.value='';
       render();
-    }).catch(e=>{console.warn(e);msg.textContent=TT('Could not read this file.');});
+    }).catch(e=>{console.warn(e);msg.textContent=TT('Could not read this file.')+': '+(e.message||e);});
   }
   if(t.id=='gsort'){gsort=t.value;render()}
   if(t.id=='gord'){gord=t.value;render()}
