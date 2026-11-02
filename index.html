@@ -332,7 +332,7 @@ sponsor(){
     </div>
   </div>
   <div class="card"><div class="bar"><input id="q" type="search" placeholder="${TT('Search by name, ID or sponsor')}" value="${esc(q)}" aria-label="Search">
-  <span class="tl" style="margin:0"><label>${TT('Sort by')} <select id="ssort">${[['enroll','Enrollment date'],['id','Student ID'],['name','Name'],['center','Center']].map(([v,l])=>`<option value="${v}"${sstu==v?' selected':''}>${l}</option>`).join('')}</select></label></span></div>
+  <span class="tl" style="margin:0;flex-wrap:wrap"><label>${TT('Sort by')} <select id="ssort">${[['enroll','Enrollment date'],['id','Student ID'],['name','Name'],['center','Center']].map(([v,l])=>`<option value="${v}"${sstu==v?' selected':''}>${l}</option>`).join('')}</select></label> ${ordSel()}</span></div>
   <div class="scroll"><table class="data"><thead><tr><th>${TT('Name')}</th><th>${TT('Student ID')}</th><th>${TT('Sponsor')}</th><th>${TT('Sponsor ID')}</th><th>${TT('Center')}</th><th>${TT('Class')}</th><th>${TT('Status')}</th><th></th></tr></thead>
   <tbody id="tb">${rows}</tbody></table></div></div>`},
 teachers(){return `<h1><span class="ic" aria-hidden="true">👩‍🏫</span>Teachers</h1><p class="sub" style="margin:0 0 14px">Manage teachers: profiles, daily attendance and KPI evaluation.</p>
@@ -585,7 +585,7 @@ document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id=='camp'){campus=t.value;render()}
   if(t.id=='dfrom'||t.id=='dto'){DF[t.id=='dfrom'?'from':'to']=t.value;render()}
-  if(t.id=='ssort'){sstu=t.value;render()}
+  if(t.id=='ssort'){sstu=t.value;if(sstu=='id')ord='asc';render()}
   if(t.id=='psort'){sproj=t.value;render()}
   if(t.id=='ord'){ord=t.value;render()}
   if(t.id=='gcls'){gcls=t.value;render()}
