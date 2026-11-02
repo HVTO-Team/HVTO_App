@@ -226,7 +226,7 @@ let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp=
 const $=s=>document.querySelector(s);
 const SALT='hvto.v1.k9q2',AUTH='4cc26f7b837c3a7be51c25ba6b916f92e2e4e71171f2fcdc0fc34cd963f9f711';let fails=0,lockUntil=0;
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
-const KM={'Sponsor ID':'លេខសម្គាល់អ្នកឧបត្ថម្ភ','Auto':'ស្វ័យប្រវត្តិ','Photo quality':'គុណភាពរូបថត','Small':'តូច','Medium':'មធ្យម','Large':'ធំ','Original':'ឯកសារដើម','Saved size':'ទំហំដែលរក្សាទុក','Photo is too large. Choose a photo under 30 MB.':'រូបថតធំពេក។ សូមជ្រើសរើសរូបថតក្រោម ៣០ MB។','Browser storage used':'ទំហំផ្ទុកក្នុងកម្មវិធីរុករកដែលបានប្រើ','Crop photo':'កាត់រូបថត','Square':'ការ៉េ','Portrait':'បញ្ឈរ','Landscape':'ផ្ដេក','Zoom':'ពង្រីក','Rotate left':'បង្វិលឆ្វេង','Rotate right':'បង្វិលស្តាំ','Reset':'កំណត់ឡើងវិញ','Use photo':'ប្រើរូបថតនេះ','Drag the photo to move it. Use the slider to zoom.':'អូសរូបថតដើម្បីផ្លាស់ទី។ ប្រើគ្រាប់រំកិលដើម្បីពង្រីក។','Village':'ភូមិ','Commune':'ឃុំ/សង្កាត់','District':'ស្រុក/ខណ្ឌ','Province':'ខេត្ត/រាជធានី','Country':'ប្រទេស','Nationality':'សញ្ជាតិ','Previous address':'អាសយដ្ឋានមុន','e.g. Cambodian':'ឧ. ខ្មែរ','Banteay Meanchey':'បន្ទាយមានជ័យ','Battambang':'បាត់ដំបង','Kampong Cham':'កំពង់ចាម','Kampong Chhnang':'កំពង់ឆ្នាំង','Kampong Speu':'កំពង់ស្ពឺ','Kampong Thom':'កំពង់ធំ','Kampot':'កំពត','Kandal':'កណ្តាល','Kep':'កែប','Koh Kong':'កោះកុង','Kratie':'ក្រចេះ','Mondulkiri':'មណ្ឌលគិរី','Oddar Meanchey':'ឧត្តរមានជ័យ','Pailin':'ប៉ៃលិន','Phnom Penh':'ភ្នំពេញ','Preah Sihanouk':'ព្រះសីហនុ','Preah Vihear':'ព្រះវិហារ','Prey Veng':'ព្រៃវែង','Pursat':'ពោធិ៍សាត់','Ratanakiri':'រតនគិរី','Siem Reap':'សៀមរាប','Stung Treng':'ស្ទឹងត្រែង','Svay Rieng':'ស្វាយរៀង','Takeo':'តាកែវ','Tboung Khmum':'ត្បូងឃ្មុំ','Workshop':'សិក្ខាសាលា','Library':'បណ្ណាល័យ','Teachers':'គ្រូបង្រៀន','Teacher':'គ្រូបង្រៀន','Directory':'បញ្ជីគ្រូ','KPI':'KPI','Manage teachers: profiles, daily attendance and KPI evaluation.':'គ្រប់គ្រងគ្រូ៖ ប្រវត្តិរូប វត្តមានប្រចាំថ្ងៃ និងការវាយតម្លៃ KPI។','On leave':'ឈប់សម្រាក','Left':'បានចាកចេញ','Avg. service':'រយៈពេលបម្រើការជាមធ្យម','Add teacher':'បន្ថែមគ្រូ','Edit teacher':'កែប្រែគ្រូ','Save teacher':'រក្សាទុកគ្រូ','Teacher ID':'លេខសម្គាល់គ្រូ','Start date':'កាលបរិច្ឆេទចាប់ផ្តើមការងារ','Time in service':'រយៈពេលបម្រើការ','Position':'តួនាទី','Subjects':'មុខវិជ្ជា','Classes taught':'ថ្នាក់ដែលបង្រៀន','Hours per week':'ម៉ោងក្នុងមួយសប្តាហ៍','e.g. Teacher':'ឧ. គ្រូបង្រៀន','e.g. English, Computer':'ឧ. អង់គ្លេស កុំព្យូទ័រ','That ID is already in use. Enter a different ID.':'លេខសម្គាល់នេះត្រូវបានប្រើរួចហើយ។ សូមបញ្ចូលលេខផ្សេង។','Search teachers':'ស្វែងរកគ្រូ','Leave':'ច្បាប់','Mark all present':'កត់ត្រាមកគ្រប់គ្នា','Monthly summary':'សង្ខេបប្រចាំខែ','No active teachers yet. Add teachers in the Directory.':'មិនទាន់មានគ្រូសកម្មទេ។ សូមបន្ថែមគ្រូក្នុងបញ្ជីគ្រូ។','No teachers yet.':'មិនទាន់មានគ្រូទេ។','KPI criteria':'លក្ខណៈវិនិច្ឆ័យ KPI','Total weight':'ទម្ងន់សរុប','Add criterion':'បន្ថែមលក្ខណៈវិនិច្ឆ័យ','Evaluation':'ការវាយតម្លៃ','Rating':'ការវាយតម្លៃ','Excellent':'ល្អប្រសើរ','Good':'ល្អ','Satisfactory':'ពេញចិត្ត','Needs improvement':'ត្រូវកែលម្អ','Scores are 0–100. The total is the weighted average, so weights do not have to add up to 100.':'ពិន្ទុពី ០–១០០។ ពិន្ទុសរុបជាមធ្យមភាគថ្លឹងទម្ងន់ ដូច្នេះទម្ងន់មិនចាំបាច់បូកស្មើ ១០០ ទេ។','Attendance & punctuality':'វត្តមាន និងភាពទៀងទាត់','Lesson preparation':'ការរៀបចំមេរៀន','Teaching quality':'គុណភាពបង្រៀន','Student progress':'ដំណើរការរបស់សិស្ស','Teamwork & conduct':'ការងារជាក្រុម និងសីលធម៌','Students by center':'សិស្សតាមមជ្ឈមណ្ឌល','Student status':'ស្ថានភាពសិស្ស','Enrollment by month':'ការចុះឈ្មោះតាមខែ','Average score by subject':'ពិន្ទុមធ្យមតាមមុខវិជ្ជា','Top projects by beneficiaries':'គម្រោងដែលមានអ្នកទទួលផលច្រើនជាងគេ','No data yet.':'មិនទាន់មានទិន្នន័យទេ។','Course Outlines':'កម្មវិធីសិក្សា','Upload the lessons each class is teaching (Excel or CSV). Click any cell to edit; changes save automatically.':'ផ្ទុកឡើងមេរៀនដែលថ្នាក់នីមួយៗកំពុងបង្រៀន (Excel ឬ CSV)។ ចុចលើក្រឡាណាមួយដើម្បីកែប្រែ ហើយការផ្លាស់ប្តូរនឹងរក្សាទុកដោយស្វ័យប្រវត្តិ។','Outline name':'ឈ្មោះកម្មវិធី','e.g. Term 1 lessons':'ឧ. មេរៀនឆមាសទី១','Choose Excel or CSV file':'ជ្រើសរើសឯកសារ Excel ឬ CSV','Search lessons':'ស្វែងរកមេរៀន','No outlines yet. Upload an Excel or CSV file to start.':'មិនទាន់មានកម្មវិធីសិក្សាទេ។ សូមផ្ទុកឡើងឯកសារ Excel ឬ CSV ដើម្បីចាប់ផ្តើម។','No rows match your search.':'គ្មានជួរដែលត្រូវនឹងការស្វែងរកទេ។','Select an outline above to view it.':'សូមជ្រើសរើសកម្មវិធីសិក្សាខាងលើដើម្បីមើល។','Add row':'បន្ថែមជួរ','Add column':'បន្ថែមជួរឈរ','Delete outline':'លុបកម្មវិធី','Updated':'កែប្រែនៅ','Group link':'តំណក្រុម','Open in Telegram':'បើកក្នុង Telegram','Link not set':'មិនទាន់កំណត់តំណ','Enter a link that starts with https://t.me/':'សូមបញ្ចូលតំណដែលចាប់ផ្តើមដោយ https://t.me/','Paste the invite link of each parent group (starts with https://t.me/). Replies are sent inside Telegram.':'បិទភ្ជាប់តំណអញ្ជើញនៃក្រុមមាតាបិតានីមួយៗ (ចាប់ផ្តើមដោយ https://t.me/)។ ការឆ្លើយតបធ្វើនៅក្នុង Telegram។','Reading and replying to parents inside this app needs a small server that keeps the Telegram bot key safe. It is not set up yet.':'ការអាន និងឆ្លើយតបមាតាបិតាក្នុងកម្មវិធីនេះ ត្រូវការម៉ាស៊ីនមេតូចមួយដើម្បីរក្សាសោ bot របស់ Telegram ឱ្យមានសុវត្ថិភាព។ មិនទាន់រៀបចំនៅឡើយទេ។','The file has no data.':'ឯកសារគ្មានទិន្នន័យទេ។','This file is too large. Keep it under about 3 MB.':'ឯកសារនេះធំពេក។ សូមរក្សាក្រោមប្រហែល ៣ MB។','Could not read this file.':'មិនអាចអានឯកសារនេះបានទេ។','Could not save: browser storage is full. Remove old outlines or photos.':'មិនអាចរក្សាទុកបានទេ៖ ទំហំផ្ទុកក្នុងកម្មវិធីរុករកពេញ។ សូមលុបកម្មវិធីសិក្សា ឬរូបថតចាស់។','The spreadsheet reader could not load. Check your internet connection.':'មិនអាចផ្ទុកកម្មវិធីអានតារាងបានទេ។ សូមពិនិត្យអ៊ីនធឺណិត។','No class':'គ្មានថ្នាក់','e.g. Class A':'ឧ. ថ្នាក់ A','Search a student, filter by class, then update scores and attendance.':'ស្វែងរកសិស្ស ត្រង់តាមថ្នាក់ រួចអាប់ដេតពិន្ទុ និងវត្តមាន។','Class':'ថ្នាក់','All classes':'គ្រប់ថ្នាក់','Average':'មធ្យមភាគ','GPA':'GPA','GPA last year':'GPA ឆ្នាំមុន','GPA by year':'GPA តាមឆ្នាំ','Attendance':'វត្តមាន','Scores':'ពិន្ទុ','Add score':'បន្ថែមពិន្ទុ','Test type':'ប្រភេទប្រឡង','Subject':'មុខវិជ្ជា','Score':'ពិន្ទុ','Out of':'ពីសរុប','Note':'កំណត់ចំណាំ','Type':'ប្រភេទ','Percent':'ភាគរយ','Rate':'អត្រា','Scores & attendance':'ពិន្ទុ និងវត្តមាន','Mark present today':'កត់ត្រាមកសិក្សាថ្ងៃនេះ','Add attendance':'បន្ថែមវត្តមាន','No scores yet. Add the first score above.':'មិនទាន់មានពិន្ទុទេ។ សូមបន្ថែមពិន្ទុដំបូងខាងលើ។','No attendance recorded yet.':'មិនទាន់មានកំណត់ត្រាវត្តមានទេ។','No students match. Try another name or class.':'រកមិនឃើញសិស្សទេ។ សូមសាកល្បងឈ្មោះ ឬថ្នាក់ផ្សេង។','GPA scale: A 90–100 = 4, B 80–89 = 3, C 70–79 = 2, D 60–69 = 1, below 60 = 0. GPA is based on the average score. “GPA last year” uses the previous calendar year.':'មាត្រដ្ឋាន GPA៖ A 90–100 = 4, B 80–89 = 3, C 70–79 = 2, D 60–69 = 1, ក្រោម 60 = 0។ GPA គណនាពីមធ្យមភាគពិន្ទុ។ «GPA ឆ្នាំមុន» ប្រើឆ្នាំប្រតិទិនមុន។','Monthly test':'ប្រឡងប្រចាំខែ','Mid-term test':'ប្រឡងពាក់កណ្តាលឆមាស','Final exam':'ប្រឡងចុងឆមាស','Quiz':'កម្រងសំណួរខ្លី','Homework':'កិច្ចការផ្ទះ','Present':'មកសិក្សា','Absent':'អវត្តមាន','Late':'យឺត','Excused':'សុំច្បាប់','English':'ភាសាអង់គ្លេស','Computer':'កុំព្យូទ័រ','Mathematics':'គណិតវិទ្យា','Khmer':'ភាសាខ្មែរ','Science':'វិទ្យាសាស្ត្រ','Incorrect username or password.':'ឈ្មោះអ្នកប្រើ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ។','Too many attempts. Try again in a few seconds.':'ព្យាយាមច្រើនពេក។ សូមរង់ចាំបន្តិចហើយសាកល្បងម្តងទៀត។','From':'ចាប់ពី','To':'ដល់','All time':'គ្រប់ពេល','Today':'ថ្ងៃនេះ','This month':'ខែនេះ','This year':'ឆ្នាំនេះ','Sort by':'តម្រៀបតាម','Order':'លំដាប់','Descending':'ចុះ','Ascending':'ឡើង','Name':'ឈ្មោះ','Project order':'លំដាប់គម្រោង','Period type':'ប្រភេទរយៈពេល','Current total':'សរុបបច្ចុប្បន្ន','New total after saving':'សរុបថ្មីបន្ទាប់ពីរក្សាទុក','Running total':'សរុបបូកបន្តបន្ទាប់','All-time beneficiaries':'អ្នកទទួលផលសរុបគ្រប់ពេល','Enrollment date':'កាលបរិច្ឆេទចុះឈ្មោះ','Numbers you enter are added to the current totals. Use a negative number to correct a mistake.':'លេខដែលអ្នកបញ្ចូលនឹងត្រូវបន្ថែមទៅលើចំនួនសរុបបច្ចុប្បន្ន។ ប្រើលេខអវិជ្ជមានដើម្បីកែតម្រូវកំហុស។','Add an update by day, month or year. Each update is added to the totals you already have.':'បន្ថែមការអាប់ដេតតាមថ្ងៃ ខែ ឬឆ្នាំ។ ការអាប់ដេតនីមួយៗត្រូវបានបូកបន្ថែមទៅលើចំនួនសរុបដែលមានស្រាប់។','Totals across all 14 projects for the date range you choose. Leave the dates empty to see all time.':'ចំនួនសរុបនៃគម្រោងទាំង ១៤ សម្រាប់ចន្លោះកាលបរិច្ឆេទដែលអ្នកជ្រើស។ ទុកទទេដើម្បីមើលគ្រប់ពេល។','Homestay Volunteer Teachers Organization':'អង្គការស្នាក់នៅស្ម័គ្រចិត្តជួយបង្រៀន','Username':'ឈ្មោះអ្នកប្រើ','Password':'ពាក្យសម្ងាត់','Sign in':'ចូលគណនី','Sign out':'ចាកចេញ','Department':'នាយកដ្ឋាន','Teaching':'បង្រៀន','Assistant to Director':'ជំនួយការនាយក','HR and Administration':'ធនធានមនុស្ស និងរដ្ឋបាល','Accountant and Finance':'គណនេយ្យ និងហិរញ្ញវត្ថុ','Other':'ផ្សេងៗ','Enter your username and password.':'សូមបញ្ចូលឈ្មោះអ្នកប្រើ និងពាក្យសម្ងាត់។','Dashboard':'ផ្ទាំងគ្រប់គ្រង','Students':'សិស្ស','Gradebook':'សៀវភៅពិន្ទុ','Roster':'បញ្ជីឈ្មោះ','Messages':'សារ','Reports':'របាយការណ៍','Sponsorship Program':'កម្មវិធីឧបត្ថម្ភ','No sponsored students yet.':'មិនទាន់មានសិស្សដែលមានអ្នកឧបត្ថម្ភទេ។','Students who have a sponsor. Data is linked to the Students page.':'សិស្សដែលមានអ្នកឧបត្ថម្ភ។ ទិន្នន័យភ្ជាប់ជាមួយទំព័រសិស្ស។','Search by name, ID or sponsor':'ស្វែងរកតាមឈ្មោះ លេខសម្គាល់ ឬអ្នកឧបត្ថម្ភ','Sponsor':'អ្នកឧបត្ថម្ភ','HVTO Projects Tracker':'ការតាមដានគម្រោង HVTO','Free Education Center':'មជ្ឈមណ្ឌលអប់រំឥតគិតថ្លៃ','Campus':'ទីតាំង','All campuses':'គ្រប់ទីតាំង','Day mode':'ម៉ូដថ្ងៃ','Night mode':'ម៉ូដយប់','School dashboard':'ផ្ទាំងគ្រប់គ្រងសាលា','Students, grades, and family contact for the three Siem Reap campuses.':'សិស្ស ពិន្ទុ និងទំនាក់ទំនងគ្រួសារ សម្រាប់មជ្ឈមណ្ឌលទាំងបីក្នុងខេត្តសៀមរាប។','Active':'សកម្ម','Sponsored':'មានអ្នកឧបត្ថម្ភ','Drop out':'បោះបង់ការសិក្សា','Latest students':'សិស្សថ្មីៗ','Open records':'បើកកំណត់ត្រា','No students at this campus yet. Add one from the Students page.':'មិនទាន់មានសិស្សនៅទីតាំងនេះទេ។ សូមបន្ថែមពីទំព័រសិស្ស។','Manage records and add new students.':'គ្រប់គ្រងកំណត់ត្រា និងបន្ថែមសិស្សថ្មី។','Search by name or ID':'ស្វែងរកតាមឈ្មោះ ឬលេខសម្គាល់','Search students':'ស្វែងរកសិស្ស','Add student':'បន្ថែមសិស្ស','Edit student':'កែប្រែសិស្ស','Student':'សិស្ស','ID':'លេខសម្គាល់','Sex':'ភេទ','Age':'អាយុ','Center':'មជ្ឈមណ្ឌល','Status':'ស្ថានភាព','Edit':'កែប្រែ','Delete':'លុប','No students found. Add a student to get started.':'រកមិនឃើញសិស្សទេ។ សូមបន្ថែមសិស្សដើម្បីចាប់ផ្តើម។','Export Excel':'នាំចេញ Excel','Export CSV':'នាំចេញ CSV','Grades aren’t tracked yet. Student records come first; a gradebook can be added next.':'មិនទាន់តាមដានពិន្ទុនៅឡើយទេ។ កំណត់ត្រាសិស្សមកមុន ហើយសៀវភៅពិន្ទុអាចបន្ថែមបន្ទាប់។','No messages yet. Family contact numbers are saved on each student record.':'មិនទាន់មានសារទេ។ លេខទំនាក់ទំនងគ្រួសារត្រូវបានរក្សាទុកក្នុងកំណត់ត្រាសិស្សនីមួយៗ។','Students grouped by center.':'សិស្សដែលបានចាត់ក្រុមតាមមជ្ឈមណ្ឌល។','No students enrolled.':'មិនមានសិស្សចុះឈ្មោះទេ។','Add a dated update for each project. Totals use each project’s latest update.':'បន្ថែមការអាប់ដេតតាមកាលបរិច្ឆេទសម្រាប់គម្រោងនីមួយៗ។ ចំនួនសរុបប្រើការអាប់ដេតចុងក្រោយ។','14 projects':'គម្រោងទាំង ១៤','Project':'គម្រោង','Completed':'បានបញ្ចប់','Beneficiaries':'អ្នកទទួលផល','Funds (USD)':'ថវិកា (ដុល្លារ)','Last update':'អាប់ដេតចុងក្រោយ','No update yet':'មិនទាន់មានការអាប់ដេត','Update':'អាប់ដេត','Institutional and Human Resource Development':'ការអភិវឌ្ឍស្ថាប័ន និងធនធានមនុស្ស','HVTO FINANCE':'ហិរញ្ញវត្ថុ HVTO','Eco-Tourism':'ទេសចរណ៍អេកូ','Homestay Volunteers':'អ្នកស្ម័គ្រចិត្តស្នាក់នៅផ្ទះគ្រួសារ','HVTO Education Center':'មជ្ឈមណ្ឌលអប់រំ HVTO','Free Classes for English and Computer Trainings':'ថ្នាក់ភាសាអង់គ្លេស និងបណ្តុះបណ្តាលកុំព្យូទ័រឥតគិតថ្លៃ','Sponsorship for Education Program':'កម្មវិធីឧបត្ថម្ភការអប់រំ','Vocational Training':'ការបណ្តុះបណ្តាលវិជ្ជាជីវៈ','Clean Water Pump Project':'គម្រោងស្នប់ទឹកស្អាត','Bio Sand Filter Program':'កម្មវិធីតម្រងទឹកខ្សាច់ជីវសាស្ត្រ','HVTO Toilet for Household':'បង្គន់ HVTO សម្រាប់គ្រួសារ','Community and Development':'សហគមន៍ និងការអភិវឌ្ឍ','HVTO House Charity Project':'គម្រោងសប្បុរសធម៌ផ្ទះ HVTO','Food Relief Program':'កម្មវិធីសង្គ្រោះស្បៀងអាហារ','Update date':'កាលបរិច្ឆេទអាប់ដេត','Completed projects':'គម្រោងបានបញ្ចប់','Project data / notes':'ទិន្នន័យគម្រោង / កំណត់ចំណាំ','What changed today?':'តើមានអ្វីផ្លាស់ប្តូរថ្ងៃនេះ?','Cancel':'បោះបង់','Save update':'រក្សាទុកការអាប់ដេត','An update for this date already exists. Saving will replace it.':'មានការអាប់ដេតសម្រាប់កាលបរិច្ឆេទនេះរួចហើយ។ ការរក្សាទុកនឹងជំនួសវា។','Update history':'ប្រវត្តិអាប់ដេត','Date':'កាលបរិច្ឆេទ','Funds':'ថវិកា','Notes':'កំណត់ចំណាំ','Close':'បិទ','No updates yet. Use Update to add the first one.':'មិនទាន់មានការអាប់ដេតទេ។ ប្រើ «អាប់ដេត» ដើម្បីបន្ថែមលើកដំបូង។','Totals across all 14 projects, using each project’s latest update on or before the date you pick.':'ចំនួនសរុបនៃគម្រោងទាំង ១៤ ដោយប្រើការអាប់ដេតចុងក្រោយនៅត្រឹម ឬមុនកាលបរិច្ឆេទដែលអ្នកជ្រើស។','As of':'គិតត្រឹម','Structural setups':'សំណង់ដែលបានបញ្ចប់','Clean water pumps':'ស្នប់ទឹកស្អាត','Bio sand filters':'តម្រងទឹកខ្សាច់ជីវសាស្ត្រ','Household toilets':'បង្គន់គ្រួសារ','Charity houses':'ផ្ទះសប្បុរសធម៌','Beneficiaries by project':'អ្នកទទួលផលតាមគម្រោង','No beneficiaries recorded for this date. Add updates in the Projects Tracker.':'មិនមានអ្នកទទួលផលក្នុងកាលបរិច្ឆេទនេះទេ។ សូមបន្ថែមការអាប់ដេតក្នុងការតាមដានគម្រោង។','Students by center':'សិស្សតាមមជ្ឈមណ្ឌល','Totals by period':'ចំនួនសរុបតាមរយៈពេល','Group by':'ចាត់ក្រុមតាម','Day':'ថ្ងៃ','Month':'ខែ','Year':'ឆ្នាំ','Period':'រយៈពេល','Updates':'ការអាប់ដេត','New students':'សិស្សថ្មី','Change':'ការផ្លាស់ប្តូរ','Total':'សរុប','No data yet. Add project updates or students.':'មិនទាន់មានទិន្នន័យទេ។ សូមបន្ថែមការអាប់ដេតគម្រោង ឬសិស្ស។','Student ID':'លេខសម្គាល់សិស្ស','Enrollment date':'កាលបរិច្ឆេទចុះឈ្មោះ','Photo':'រូបថត','New':'ថ្មី','Confirmed':'បានបញ្ជាក់','Full name (Khmer)':'ឈ្មោះពេញ (ខ្មែរ)','Full name (English)':'ឈ្មោះពេញ (អង់គ្លេស)','Male':'ប្រុស','Female':'ស្រី','Other':'ផ្សេងៗ','Birthday':'ថ្ងៃកំណើត','Father’s name':'ឈ្មោះឪពុក','Mother’s name':'ឈ្មោះម្តាយ','Phone number':'លេខទូរស័ព្ទ','Phone':'ទូរស័ព្ទ','Khmer school':'សាលារដ្ឋ (ខ្មែរ)','Address':'អាសយដ្ឋាន','Village, commune, district, province':'ភូមិ ឃុំ ស្រុក ខេត្ត','English level':'កម្រិតភាសាអង់គ្លេស','Beginner levels':'កម្រិតចាប់ផ្តើម','Beginner':'ចាប់ផ្តើម','Elementary':'បឋម','Pre-intermediate':'មុនមធ្យម','Intermediate':'មធ្យម','Upper-intermediate':'មធ្យមខ្ពស់','Advanced':'ខ្ពស់','Sponsor name':'ឈ្មោះអ្នកឧបត្ថម្ភ','Drop-out date':'កាលបរិច្ឆេទបោះបង់','How long':'រយៈពេល','How long (counted from enrollment date)':'រយៈពេល (រាប់ពីកាលបរិច្ឆេទចុះឈ្មោះ)','Dropped':'បោះបង់','Graduated':'បានបញ្ចប់ការសិក្សា','Save student':'រក្សាទុកសិស្ស','That student ID is already in use. Enter a different ID.':'លេខសម្គាល់សិស្សនេះត្រូវបានប្រើរួចហើយ។ សូមបញ្ចូលលេខផ្សេង។','Photo status':'ស្ថានភាពរូបថត','Yes':'មាន','No':'គ្មាន','Not set':'មិនទាន់កំណត់','Not started yet':'មិនទាន់ចាប់ផ្តើម','Less than 1 month':'តិចជាង ១ ខែ','Saving files isn’t available in this view. Open the page in claude.ai to export.':'មិនអាចរក្សាទុកឯកសារក្នុងទិដ្ឋភាពនេះទេ។ សូមបើកទំព័រក្នុង claude.ai ដើម្បីនាំចេញ។','Could not save the file.':'មិនអាចរក្សាទុកឯកសារបានទេ។','Excel export could not load. Try CSV instead.':'មិនអាចផ្ទុកការនាំចេញ Excel បានទេ។ សូមសាកល្បង CSV។'};
+const KM={'Sponsor ID':'លេខសម្គាល់អ្នកឧបត្ថម្ភ','Auto':'ស្វ័យប្រវត្តិ','Photo quality':'គុណភាពរូបថត','Small':'តូច','Medium':'មធ្យម','Large':'ធំ','Original':'ឯកសារដើម','Saved size':'ទំហំដែលរក្សាទុក','Photo is too large. Choose a photo under 30 MB.':'រូបថតធំពេក។ សូមជ្រើសរើសរូបថតក្រោម ៣០ MB។','Browser storage used':'ទំហំផ្ទុកក្នុងកម្មវិធីរុករកដែលបានប្រើ','Crop photo':'កាត់រូបថត','Square':'ការ៉េ','Portrait':'បញ្ឈរ','Landscape':'ផ្ដេក','Zoom':'ពង្រីក','Rotate left':'បង្វិលឆ្វេង','Rotate right':'បង្វិលស្តាំ','Reset':'កំណត់ឡើងវិញ','Use photo':'ប្រើរូបថតនេះ','Drag the photo to move it. Use the slider to zoom.':'អូសរូបថតដើម្បីផ្លាស់ទី។ ប្រើគ្រាប់រំកិលដើម្បីពង្រីក។','Village':'ភូមិ','Commune':'ឃុំ/សង្កាត់','District':'ស្រុក/ខណ្ឌ','Province':'ខេត្ត/រាជធានី','Country':'ប្រទេស','Nationality':'សញ្ជាតិ','Previous address':'អាសយដ្ឋានមុន','e.g. Cambodian':'ឧ. ខ្មែរ','Banteay Meanchey':'បន្ទាយមានជ័យ','Battambang':'បាត់ដំបង','Kampong Cham':'កំពង់ចាម','Kampong Chhnang':'កំពង់ឆ្នាំង','Kampong Speu':'កំពង់ស្ពឺ','Kampong Thom':'កំពង់ធំ','Kampot':'កំពត','Kandal':'កណ្តាល','Kep':'កែប','Koh Kong':'កោះកុង','Kratie':'ក្រចេះ','Mondulkiri':'មណ្ឌលគិរី','Oddar Meanchey':'ឧត្តរមានជ័យ','Pailin':'ប៉ៃលិន','Phnom Penh':'ភ្នំពេញ','Preah Sihanouk':'ព្រះសីហនុ','Preah Vihear':'ព្រះវិហារ','Prey Veng':'ព្រៃវែង','Pursat':'ពោធិ៍សាត់','Ratanakiri':'រតនគិរី','Siem Reap':'សៀមរាប','Stung Treng':'ស្ទឹងត្រែង','Svay Rieng':'ស្វាយរៀង','Takeo':'តាកែវ','Tboung Khmum':'ត្បូងឃ្មុំ','Workshop':'សិក្ខាសាលា','Library':'បណ្ណាល័យ','Teachers':'គ្រូបង្រៀន','Teacher':'គ្រូបង្រៀន','Directory':'បញ្ជីគ្រូ','KPI':'KPI','Manage teachers: profiles, daily attendance and KPI evaluation.':'គ្រប់គ្រងគ្រូ៖ ប្រវត្តិរូប វត្តមានប្រចាំថ្ងៃ និងការវាយតម្លៃ KPI។','On leave':'ឈប់សម្រាក','Left':'បានចាកចេញ','Avg. service':'រយៈពេលបម្រើការជាមធ្យម','Add teacher':'បន្ថែមគ្រូ','Edit teacher':'កែប្រែគ្រូ','Save teacher':'រក្សាទុកគ្រូ','Teacher ID':'លេខសម្គាល់គ្រូ','Start date':'កាលបរិច្ឆេទចាប់ផ្តើមការងារ','Time in service':'រយៈពេលបម្រើការ','Position':'តួនាទី','Subjects':'មុខវិជ្ជា','Classes taught':'ថ្នាក់ដែលបង្រៀន','Hours per week':'ម៉ោងក្នុងមួយសប្តាហ៍','e.g. Teacher':'ឧ. គ្រូបង្រៀន','e.g. English, Computer':'ឧ. អង់គ្លេស កុំព្យូទ័រ','That ID is already in use. Enter a different ID.':'លេខសម្គាល់នេះត្រូវបានប្រើរួចហើយ។ សូមបញ្ចូលលេខផ្សេង។','Search teachers':'ស្វែងរកគ្រូ','Leave':'ច្បាប់','Mark all present':'កត់ត្រាមកគ្រប់គ្នា','Monthly summary':'សង្ខេបប្រចាំខែ','No active teachers yet. Add teachers in the Directory.':'មិនទាន់មានគ្រូសកម្មទេ។ សូមបន្ថែមគ្រូក្នុងបញ្ជីគ្រូ។','No teachers yet.':'មិនទាន់មានគ្រូទេ។','KPI criteria':'លក្ខណៈវិនិច្ឆ័យ KPI','Total weight':'ទម្ងន់សរុប','Add criterion':'បន្ថែមលក្ខណៈវិនិច្ឆ័យ','Evaluation':'ការវាយតម្លៃ','Rating':'ការវាយតម្លៃ','Excellent':'ល្អប្រសើរ','Good':'ល្អ','Satisfactory':'ពេញចិត្ត','Needs improvement':'ត្រូវកែលម្អ','Scores are 0–100. The total is the weighted average, so weights do not have to add up to 100.':'ពិន្ទុពី ០–១០០។ ពិន្ទុសរុបជាមធ្យមភាគថ្លឹងទម្ងន់ ដូច្នេះទម្ងន់មិនចាំបាច់បូកស្មើ ១០០ ទេ។','Attendance & punctuality':'វត្តមាន និងភាពទៀងទាត់','Lesson preparation':'ការរៀបចំមេរៀន','Teaching quality':'គុណភាពបង្រៀន','Student progress':'ដំណើរការរបស់សិស្ស','Teamwork & conduct':'ការងារជាក្រុម និងសីលធម៌','Students by center':'សិស្សតាមមជ្ឈមណ្ឌល','Student status':'ស្ថានភាពសិស្ស','Enrollment by month':'ការចុះឈ្មោះតាមខែ','Average score by subject':'ពិន្ទុមធ្យមតាមមុខវិជ្ជា','Top projects by beneficiaries':'គម្រោងដែលមានអ្នកទទួលផលច្រើនជាងគេ','No data yet.':'មិនទាន់មានទិន្នន័យទេ។','Course Outlines':'កម្មវិធីសិក្សា','Upload the lessons each class is teaching (Excel or CSV). Click any cell to edit; changes save automatically.':'ផ្ទុកឡើងមេរៀនដែលថ្នាក់នីមួយៗកំពុងបង្រៀន (Excel ឬ CSV)។ ចុចលើក្រឡាណាមួយដើម្បីកែប្រែ ហើយការផ្លាស់ប្តូរនឹងរក្សាទុកដោយស្វ័យប្រវត្តិ។','Outline name':'ឈ្មោះកម្មវិធី','e.g. Term 1 lessons':'ឧ. មេរៀនឆមាសទី១','Choose Excel or CSV file':'ជ្រើសរើសឯកសារ Excel ឬ CSV','Search lessons':'ស្វែងរកមេរៀន','No outlines yet. Upload an Excel or CSV file to start.':'មិនទាន់មានកម្មវិធីសិក្សាទេ។ សូមផ្ទុកឡើងឯកសារ Excel ឬ CSV ដើម្បីចាប់ផ្តើម។','No rows match your search.':'គ្មានជួរដែលត្រូវនឹងការស្វែងរកទេ។','Select an outline above to view it.':'សូមជ្រើសរើសកម្មវិធីសិក្សាខាងលើដើម្បីមើល។','Add row':'បន្ថែមជួរ','Add column':'បន្ថែមជួរឈរ','Delete outline':'លុបកម្មវិធី','Updated':'កែប្រែនៅ','Group link':'តំណក្រុម','Open in Telegram':'បើកក្នុង Telegram','Link not set':'មិនទាន់កំណត់តំណ','Enter a link that starts with https://t.me/':'សូមបញ្ចូលតំណដែលចាប់ផ្តើមដោយ https://t.me/','Paste the invite link of each parent group (starts with https://t.me/). Replies are sent inside Telegram.':'បិទភ្ជាប់តំណអញ្ជើញនៃក្រុមមាតាបិតានីមួយៗ (ចាប់ផ្តើមដោយ https://t.me/)។ ការឆ្លើយតបធ្វើនៅក្នុង Telegram។','Reading and replying to parents inside this app needs a small server that keeps the Telegram bot key safe. It is not set up yet.':'ការអាន និងឆ្លើយតបមាតាបិតាក្នុងកម្មវិធីនេះ ត្រូវការម៉ាស៊ីនមេតូចមួយដើម្បីរក្សាសោ bot របស់ Telegram ឱ្យមានសុវត្ថិភាព។ មិនទាន់រៀបចំនៅឡើយទេ។','The file has no data.':'ឯកសារគ្មានទិន្នន័យទេ។','This file is too large. Keep it under about 3 MB.':'ឯកសារនេះធំពេក។ សូមរក្សាក្រោមប្រហែល ៣ MB។','Could not read this file.':'មិនអាចអានឯកសារនេះបានទេ។','Could not save: browser storage is full. Remove old outlines or photos.':'មិនអាចរក្សាទុកបានទេ៖ ទំហំផ្ទុកក្នុងកម្មវិធីរុករកពេញ។ សូមលុបកម្មវិធីសិក្សា ឬរូបថតចាស់។','The spreadsheet reader could not load. Check your internet connection.':'មិនអាចផ្ទុកកម្មវិធីអានតារាងបានទេ។ សូមពិនិត្យអ៊ីនធឺណិត។','No class':'គ្មានថ្នាក់','e.g. Class A':'ឧ. ថ្នាក់ A','Search a student, filter by class, then update scores and attendance.':'ស្វែងរកសិស្ស ត្រង់តាមថ្នាក់ រួចអាប់ដេតពិន្ទុ និងវត្តមាន។','Class':'ថ្នាក់','All classes':'គ្រប់ថ្នាក់','Average':'មធ្យមភាគ','GPA':'GPA','GPA last year':'GPA ឆ្នាំមុន','GPA by year':'GPA តាមឆ្នាំ','Attendance':'វត្តមាន','Scores':'ពិន្ទុ','Add score':'បន្ថែមពិន្ទុ','Test type':'ប្រភេទប្រឡង','Subject':'មុខវិជ្ជា','Score':'ពិន្ទុ','Out of':'ពីសរុប','Note':'កំណត់ចំណាំ','Type':'ប្រភេទ','Percent':'ភាគរយ','Rate':'អត្រា','Scores & attendance':'ពិន្ទុ និងវត្តមាន','Mark present today':'កត់ត្រាមកសិក្សាថ្ងៃនេះ','Add attendance':'បន្ថែមវត្តមាន','No scores yet. Add the first score above.':'មិនទាន់មានពិន្ទុទេ។ សូមបន្ថែមពិន្ទុដំបូងខាងលើ។','No attendance recorded yet.':'មិនទាន់មានកំណត់ត្រាវត្តមានទេ។','No students match. Try another name or class.':'រកមិនឃើញសិស្សទេ។ សូមសាកល្បងឈ្មោះ ឬថ្នាក់ផ្សេង។','GPA scale: A 90–100 = 4, B 80–89 = 3, C 70–79 = 2, D 60–69 = 1, below 60 = 0. GPA is based on the average score. “GPA last year” uses the previous calendar year.':'មាត្រដ្ឋាន GPA៖ A 90–100 = 4, B 80–89 = 3, C 70–79 = 2, D 60–69 = 1, ក្រោម 60 = 0។ GPA គណនាពីមធ្យមភាគពិន្ទុ។ «GPA ឆ្នាំមុន» ប្រើឆ្នាំប្រតិទិនមុន។','Monthly test':'ប្រឡងប្រចាំខែ','Mid-term test':'ប្រឡងពាក់កណ្តាលឆមាស','Final exam':'ប្រឡងចុងឆមាស','Quiz':'កម្រងសំណួរខ្លី','Homework':'កិច្ចការផ្ទះ','Present':'មកសិក្សា','Absent':'អវត្តមាន','Late':'យឺត','Excused':'សុំច្បាប់','English':'ភាសាអង់គ្លេស','Computer':'កុំព្យូទ័រ','Mathematics':'គណិតវិទ្យា','Khmer':'ភាសាខ្មែរ','Science':'វិទ្យាសាស្ត្រ','Incorrect username or password.':'ឈ្មោះអ្នកប្រើ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ។','Too many attempts. Try again in a few seconds.':'ព្យាយាមច្រើនពេក។ សូមរង់ចាំបន្តិចហើយសាកល្បងម្តងទៀត។','From':'ចាប់ពី','To':'ដល់','All time':'គ្រប់ពេល','Today':'ថ្ងៃនេះ','This month':'ខែនេះ','This year':'ឆ្នាំនេះ','Sort by':'តម្រៀបតាម','Order':'លំដាប់','Descending':'ចុះ','Ascending':'ឡើង','Name':'ឈ្មោះ','Project order':'លំដាប់គម្រោង','Period type':'ប្រភេទរយៈពេល','Current total':'សរុបបច្ចុប្បន្ន','New total after saving':'សរុបថ្មីបន្ទាប់ពីរក្សាទុក','Running total':'សរុបបូកបន្តបន្ទាប់','All-time beneficiaries':'អ្នកទទួលផលសរុបគ្រប់ពេល','Enrollment date':'កាលបរិច្ឆេទចុះឈ្មោះ','Numbers you enter are added to the current totals. Use a negative number to correct a mistake.':'លេខដែលអ្នកបញ្ចូលនឹងត្រូវបន្ថែមទៅលើចំនួនសរុបបច្ចុប្បន្ន។ ប្រើលេខអវិជ្ជមានដើម្បីកែតម្រូវកំហុស។','Add an update by day, month or year. Each update is added to the totals you already have.':'បន្ថែមការអាប់ដេតតាមថ្ងៃ ខែ ឬឆ្នាំ។ ការអាប់ដេតនីមួយៗត្រូវបានបូកបន្ថែមទៅលើចំនួនសរុបដែលមានស្រាប់។','Totals across all 14 projects for the date range you choose. Leave the dates empty to see all time.':'ចំនួនសរុបនៃគម្រោងទាំង ១៤ សម្រាប់ចន្លោះកាលបរិច្ឆេទដែលអ្នកជ្រើស។ ទុកទទេដើម្បីមើលគ្រប់ពេល។','Homestay Volunteer Teachers Organization':'អង្គការស្នាក់នៅស្ម័គ្រចិត្តជួយបង្រៀន','Username':'ឈ្មោះអ្នកប្រើ','Password':'ពាក្យសម្ងាត់','Sign in':'ចូលគណនី','Sign out':'ចាកចេញ','Department':'នាយកដ្ឋាន','Teaching':'បង្រៀន','Assistant to Director':'ជំនួយការនាយក','HR and Administration':'ធនធានមនុស្ស និងរដ្ឋបាល','Accountant and Finance':'គណនេយ្យ និងហិរញ្ញវត្ថុ','Other':'ផ្សេងៗ','Enter your username and password.':'សូមបញ្ចូលឈ្មោះអ្នកប្រើ និងពាក្យសម្ងាត់។','Dashboard':'ផ្ទាំងគ្រប់គ្រង','Students':'សិស្ស','Gradebook':'សៀវភៅពិន្ទុ','Roster':'បញ្ជីឈ្មោះ','Messages':'សារ','Reports':'របាយការណ៍','Sponsorship Program':'កម្មវិធីឧបត្ថម្ភ','Delete all sponsored students':'លុបសិស្សឧបត្ថម្ភទាំងអស់','This permanently deletes every student marked as sponsored.':'នេះនឹងលុបសិស្សដែលសម្គាល់ថាមានអ្នកឧបត្ថម្ភទាំងអស់ជាអចិន្ត្រៃយ៍។','No sponsored students to delete.':'មិនមានសិស្សឧបត្ថម្ភឱ្យលុបទេ។','This cannot be undone.':'មិនអាចត្រឡប់វិញបានទេ។','No sponsored students yet.':'មិនទាន់មានសិស្សដែលមានអ្នកឧបត្ថម្ភទេ។','Students who have a sponsor. Data is linked to the Students page.':'សិស្សដែលមានអ្នកឧបត្ថម្ភ។ ទិន្នន័យភ្ជាប់ជាមួយទំព័រសិស្ស។','Search by name, ID or sponsor':'ស្វែងរកតាមឈ្មោះ លេខសម្គាល់ ឬអ្នកឧបត្ថម្ភ','Sponsor':'អ្នកឧបត្ថម្ភ','HVTO Projects Tracker':'ការតាមដានគម្រោង HVTO','Free Education Center':'មជ្ឈមណ្ឌលអប់រំឥតគិតថ្លៃ','Campus':'ទីតាំង','All campuses':'គ្រប់ទីតាំង','Day mode':'ម៉ូដថ្ងៃ','Night mode':'ម៉ូដយប់','School dashboard':'ផ្ទាំងគ្រប់គ្រងសាលា','Students, grades, and family contact for the three Siem Reap campuses.':'សិស្ស ពិន្ទុ និងទំនាក់ទំនងគ្រួសារ សម្រាប់មជ្ឈមណ្ឌលទាំងបីក្នុងខេត្តសៀមរាប។','Active':'សកម្ម','Sponsored':'មានអ្នកឧបត្ថម្ភ','Drop out':'បោះបង់ការសិក្សា','Latest students':'សិស្សថ្មីៗ','Open records':'បើកកំណត់ត្រា','No students at this campus yet. Add one from the Students page.':'មិនទាន់មានសិស្សនៅទីតាំងនេះទេ។ សូមបន្ថែមពីទំព័រសិស្ស។','Manage records and add new students.':'គ្រប់គ្រងកំណត់ត្រា និងបន្ថែមសិស្សថ្មី។','Search by name or ID':'ស្វែងរកតាមឈ្មោះ ឬលេខសម្គាល់','Search students':'ស្វែងរកសិស្ស','Add student':'បន្ថែមសិស្ស','Edit student':'កែប្រែសិស្ស','Student':'សិស្ស','ID':'លេខសម្គាល់','Sex':'ភេទ','Age':'អាយុ','Center':'មជ្ឈមណ្ឌល','Status':'ស្ថានភាព','Edit':'កែប្រែ','Delete':'លុប','No students found. Add a student to get started.':'រកមិនឃើញសិស្សទេ។ សូមបន្ថែមសិស្សដើម្បីចាប់ផ្តើម។','Export Excel':'នាំចេញ Excel','Export CSV':'នាំចេញ CSV','Grades aren’t tracked yet. Student records come first; a gradebook can be added next.':'មិនទាន់តាមដានពិន្ទុនៅឡើយទេ។ កំណត់ត្រាសិស្សមកមុន ហើយសៀវភៅពិន្ទុអាចបន្ថែមបន្ទាប់។','No messages yet. Family contact numbers are saved on each student record.':'មិនទាន់មានសារទេ។ លេខទំនាក់ទំនងគ្រួសារត្រូវបានរក្សាទុកក្នុងកំណត់ត្រាសិស្សនីមួយៗ។','Students grouped by center.':'សិស្សដែលបានចាត់ក្រុមតាមមជ្ឈមណ្ឌល។','No students enrolled.':'មិនមានសិស្សចុះឈ្មោះទេ។','Add a dated update for each project. Totals use each project’s latest update.':'បន្ថែមការអាប់ដេតតាមកាលបរិច្ឆេទសម្រាប់គម្រោងនីមួយៗ។ ចំនួនសរុបប្រើការអាប់ដេតចុងក្រោយ។','14 projects':'គម្រោងទាំង ១៤','Project':'គម្រោង','Completed':'បានបញ្ចប់','Beneficiaries':'អ្នកទទួលផល','Funds (USD)':'ថវិកា (ដុល្លារ)','Last update':'អាប់ដេតចុងក្រោយ','No update yet':'មិនទាន់មានការអាប់ដេត','Update':'អាប់ដេត','Institutional and Human Resource Development':'ការអភិវឌ្ឍស្ថាប័ន និងធនធានមនុស្ស','HVTO FINANCE':'ហិរញ្ញវត្ថុ HVTO','Eco-Tourism':'ទេសចរណ៍អេកូ','Homestay Volunteers':'អ្នកស្ម័គ្រចិត្តស្នាក់នៅផ្ទះគ្រួសារ','HVTO Education Center':'មជ្ឈមណ្ឌលអប់រំ HVTO','Free Classes for English and Computer Trainings':'ថ្នាក់ភាសាអង់គ្លេស និងបណ្តុះបណ្តាលកុំព្យូទ័រឥតគិតថ្លៃ','Sponsorship for Education Program':'កម្មវិធីឧបត្ថម្ភការអប់រំ','Vocational Training':'ការបណ្តុះបណ្តាលវិជ្ជាជីវៈ','Clean Water Pump Project':'គម្រោងស្នប់ទឹកស្អាត','Bio Sand Filter Program':'កម្មវិធីតម្រងទឹកខ្សាច់ជីវសាស្ត្រ','HVTO Toilet for Household':'បង្គន់ HVTO សម្រាប់គ្រួសារ','Community and Development':'សហគមន៍ និងការអភិវឌ្ឍ','HVTO House Charity Project':'គម្រោងសប្បុរសធម៌ផ្ទះ HVTO','Food Relief Program':'កម្មវិធីសង្គ្រោះស្បៀងអាហារ','Update date':'កាលបរិច្ឆេទអាប់ដេត','Completed projects':'គម្រោងបានបញ្ចប់','Project data / notes':'ទិន្នន័យគម្រោង / កំណត់ចំណាំ','What changed today?':'តើមានអ្វីផ្លាស់ប្តូរថ្ងៃនេះ?','Cancel':'បោះបង់','Save update':'រក្សាទុកការអាប់ដេត','An update for this date already exists. Saving will replace it.':'មានការអាប់ដេតសម្រាប់កាលបរិច្ឆេទនេះរួចហើយ។ ការរក្សាទុកនឹងជំនួសវា។','Update history':'ប្រវត្តិអាប់ដេត','Date':'កាលបរិច្ឆេទ','Funds':'ថវិកា','Notes':'កំណត់ចំណាំ','Close':'បិទ','No updates yet. Use Update to add the first one.':'មិនទាន់មានការអាប់ដេតទេ។ ប្រើ «អាប់ដេត» ដើម្បីបន្ថែមលើកដំបូង។','Totals across all 14 projects, using each project’s latest update on or before the date you pick.':'ចំនួនសរុបនៃគម្រោងទាំង ១៤ ដោយប្រើការអាប់ដេតចុងក្រោយនៅត្រឹម ឬមុនកាលបរិច្ឆេទដែលអ្នកជ្រើស។','As of':'គិតត្រឹម','Structural setups':'សំណង់ដែលបានបញ្ចប់','Clean water pumps':'ស្នប់ទឹកស្អាត','Bio sand filters':'តម្រងទឹកខ្សាច់ជីវសាស្ត្រ','Household toilets':'បង្គន់គ្រួសារ','Charity houses':'ផ្ទះសប្បុរសធម៌','Beneficiaries by project':'អ្នកទទួលផលតាមគម្រោង','No beneficiaries recorded for this date. Add updates in the Projects Tracker.':'មិនមានអ្នកទទួលផលក្នុងកាលបរិច្ឆេទនេះទេ។ សូមបន្ថែមការអាប់ដេតក្នុងការតាមដានគម្រោង។','Students by center':'សិស្សតាមមជ្ឈមណ្ឌល','Totals by period':'ចំនួនសរុបតាមរយៈពេល','Group by':'ចាត់ក្រុមតាម','Day':'ថ្ងៃ','Month':'ខែ','Year':'ឆ្នាំ','Period':'រយៈពេល','Updates':'ការអាប់ដេត','New students':'សិស្សថ្មី','Change':'ការផ្លាស់ប្តូរ','Total':'សរុប','No data yet. Add project updates or students.':'មិនទាន់មានទិន្នន័យទេ។ សូមបន្ថែមការអាប់ដេតគម្រោង ឬសិស្ស។','Student ID':'លេខសម្គាល់សិស្ស','Enrollment date':'កាលបរិច្ឆេទចុះឈ្មោះ','Photo':'រូបថត','New':'ថ្មី','Confirmed':'បានបញ្ជាក់','Full name (Khmer)':'ឈ្មោះពេញ (ខ្មែរ)','Full name (English)':'ឈ្មោះពេញ (អង់គ្លេស)','Male':'ប្រុស','Female':'ស្រី','Other':'ផ្សេងៗ','Birthday':'ថ្ងៃកំណើត','Father’s name':'ឈ្មោះឪពុក','Mother’s name':'ឈ្មោះម្តាយ','Phone number':'លេខទូរស័ព្ទ','Phone':'ទូរស័ព្ទ','Khmer school':'សាលារដ្ឋ (ខ្មែរ)','Address':'អាសយដ្ឋាន','Village, commune, district, province':'ភូមិ ឃុំ ស្រុក ខេត្ត','English level':'កម្រិតភាសាអង់គ្លេស','Beginner levels':'កម្រិតចាប់ផ្តើម','Beginner':'ចាប់ផ្តើម','Elementary':'បឋម','Pre-intermediate':'មុនមធ្យម','Intermediate':'មធ្យម','Upper-intermediate':'មធ្យមខ្ពស់','Advanced':'ខ្ពស់','Sponsor name':'ឈ្មោះអ្នកឧបត្ថម្ភ','Drop-out date':'កាលបរិច្ឆេទបោះបង់','How long':'រយៈពេល','How long (counted from enrollment date)':'រយៈពេល (រាប់ពីកាលបរិច្ឆេទចុះឈ្មោះ)','Dropped':'បោះបង់','Graduated':'បានបញ្ចប់ការសិក្សា','Save student':'រក្សាទុកសិស្ស','That student ID is already in use. Enter a different ID.':'លេខសម្គាល់សិស្សនេះត្រូវបានប្រើរួចហើយ។ សូមបញ្ចូលលេខផ្សេង។','Photo status':'ស្ថានភាពរូបថត','Yes':'មាន','No':'គ្មាន','Not set':'មិនទាន់កំណត់','Not started yet':'មិនទាន់ចាប់ផ្តើម','Less than 1 month':'តិចជាង ១ ខែ','Saving files isn’t available in this view. Open the page in claude.ai to export.':'មិនអាចរក្សាទុកឯកសារក្នុងទិដ្ឋភាពនេះទេ។ សូមបើកទំព័រក្នុង claude.ai ដើម្បីនាំចេញ។','Could not save the file.':'មិនអាចរក្សាទុកឯកសារបានទេ។','Excel export could not load. Try CSV instead.':'មិនអាចផ្ទុកការនាំចេញ Excel បានទេ។ សូមសាកល្បង CSV។'};
 let UI={};try{UI=JSON.parse(localStorage.getItem('hvto-ui')||'{}')}catch(e){}
 let lang=UI.lang||'en';
 document.documentElement.dataset.theme=UI.theme||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
@@ -291,6 +291,12 @@ dash(){const v=vis(),T=S.teachers.filter(t=>campus=='All'||t.center==campus),all
  <div class="card"><div class="bar"><h2><span class="ic" aria-hidden="true">🆕</span>Latest students</h2><span><button class="link" data-v="students" style="color:var(--green);font-weight:500">Open records</button> ${xbtns('stu')}</span></div>
  ${v.length?v.slice().reverse().slice(0,5).map(s=>`<div class="row" data-det="${S.students.indexOf(s)}">${av(s)}${who(s)}<span class="sub">${s.bday?age(s.bday)+' yrs':''}</span></div>`).join(''):'<div class="empty">No students at this campus yet. Add one from the Students page.</div>'}</div></div>`},
 students(){return `<h1><span class="ic" aria-hidden="true">🎓</span>Students</h1><p class="sub" style="margin:0 0 4px">Manage records and add new students.</p><p class="sub" style="margin:0 0 14px;font-size:13px">${storLine()}</p>${datebar()}
+ <div class="card" style="margin-bottom:14px">
+   <h2 style="margin:0 0 8px">${TT('Import from spreadsheet')}</h2>
+   <p class="sub" style="margin:0 0 10px">${TT('Upload the template Excel file. Existing students are updated; new ones are created.')}</p>
+   <input type="file" id="stufile" accept=".xlsx,.xls,.csv" style="width:auto">
+   <p class="sub" id="stumsg" style="margin-top:8px"></p>
+ </div>
  <div class="card"><div class="bar"><input id="q" type="search" placeholder="Search by name or ID" value="${esc(q)}" aria-label="Search students"><span class="tl" style="margin:0;flex-wrap:wrap"><label>Sort by <select id="ssort">${[['enroll','Enrollment date'],['id','Student ID'],['name','Name'],['age','Age'],['center','Center']].map(([v,l])=>`<option value="${v}"${sstu==v?' selected':''}>${l}</option>`).join('')}</select></label>${ordSel()}</span></div>
  <div class="bar"><span></span><span>${xbtns('stu')} <button class="btn" data-act="add"><span class="ic" aria-hidden="true">➕</span>Add student</button></span></div>
  <div class="scroll"><table><thead><tr><th>Student</th><th><button class="link" data-act="sid" style="color:var(--muted);font-weight:500" title="Sort">ID<span aria-hidden="true">${sstu=='id'?(ord=='asc'?' ▲':' ▼'):' ⇅'}</span></button></th><th>Sex</th><th>Age</th><th>Center</th><th>Class</th><th>Status</th><th></th></tr></thead><tbody id="tb">${stRows()}</tbody></table></div></div>`},
@@ -320,6 +326,10 @@ sponsor(){
     <p class="sub" style="margin:0 0 10px">${TT('Upload your Sponsorship Program Excel file. Matching students will be marked as sponsored and sponsor details updated.')}</p>
     <input type="file" id="spfile" accept=".xlsx,.xls,.csv" style="width:auto">
     <p class="sub" id="spmsg" style="margin-top:8px"></p>
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--solid,#eee)">
+      <button type="button" class="ghost" data-act="spclear" style="color:#c0392b">${TT('Delete all sponsored students')}</button>
+      <p class="sub" style="margin:6px 0 0">${TT('This permanently deletes every student marked as sponsored.')}</p>
+    </div>
   </div>
   <div class="card"><div class="bar"><input id="q" type="search" placeholder="${TT('Search by name, ID or sponsor')}" value="${esc(q)}" aria-label="Search">
   <span class="tl" style="margin:0"><label>${TT('Sort by')} <select id="ssort">${[['enroll','Enrollment date'],['id','Student ID'],['name','Name'],['center','Center']].map(([v,l])=>`<option value="${v}"${sstu==v?' selected':''}>${l}</option>`).join('')}</select></label></span></div>
@@ -560,6 +570,16 @@ document.addEventListener('click',e=>{
   if(a=='x')doExport(b.dataset.kind,b.dataset.fmt);
   if(a=='edit')openForm(i);
   if(a=='del'&&confirm(TT('Delete')+' '+S.students[i].en+'?')){const sid=S.students[i].id;S.students.splice(i,1);S.grades=S.grades.filter(g=>g.sid!=sid);S.att=S.att.filter(x=>x.sid!=sid);save();render()}
+  if(a=='spclear'){
+    const n=S.students.filter(s=>s.sponsored).length;
+    if(!n){alert(TT('No sponsored students to delete.'));return}
+    if(!confirm(TT('Delete all sponsored students')+' ('+n+')?\n'+TT('This cannot be undone.')))return;
+    const ids=new Set(S.students.filter(s=>s.sponsored).map(s=>s.id));
+    S.students=S.students.filter(s=>!s.sponsored);
+    S.grades=S.grades.filter(g=>!ids.has(g.sid));
+    S.att=S.att.filter(x=>!ids.has(x.sid));
+    save();render();
+  }
 });
 document.addEventListener('change',e=>{
   const t=e.target;
@@ -582,142 +602,141 @@ document.addEventListener('change',e=>{
       if(!sheets.length){alert(TT('The file has no data.'));return}
       const o={id:uid(),name,cls,updated:today(),sheets};if(JSON.stringify(o).length>3e6){alert(TT('This file is too large. Keep it under about 3 MB.'));return}
       S.outlines.push(o);oid=o.id;osheet=0;save();render()}).catch(()=>alert(TT('Could not read this file.')))}
-  if(t.id=='spfile'&&t.files[0]){
-    const f=t.files[0], msg=$('#spmsg');
+  if((t.id=='spfile'||t.id=='stufile')&&t.files[0]){
+    const f=t.files[0], msg=$(t.id=='stufile'?'#stumsg':'#spmsg');
     if(typeof XLSX=='undefined'){alert(TT('The spreadsheet reader could not load. Check your internet connection.'));return}
     msg.textContent='Reading…';
     f.arrayBuffer().then(buf=>{
       const wb=XLSX.read(buf,{type:'array'});
-      const sheetName=wb.SheetNames.find(n=>/sponsor/i.test(n))||wb.SheetNames[0];
-      const sheet=wb.Sheets[sheetName];
+      const sheet=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
-      // Find the real header row (contains Family / Given / S# etc.)
+      // Find header row
       let headerIdx=-1, headers=[];
-      for(let i=0;i<Math.min(20,rows.length);i++){
+      for(let i=0;i<Math.min(10,rows.length);i++){
         const r=rows[i].map(x=>String(x||'').toLowerCase().trim());
-        const hasFamily=r.some(x=>x==='family'||x.includes('family'));
-        const hasGiven=r.some(x=>x==='given'||x.includes('given'));
-        const hasS=r.some(x=>x==='s#'||x==='s #'||x.startsWith('s#'));
-        if((hasFamily&&hasGiven)||hasS){headerIdx=i;headers=r;break}
-      }
-      if(headerIdx<0){
-        // fallback: look for any row with "sex" and a name-like column
-        for(let i=0;i<Math.min(20,rows.length);i++){
-          const r=rows[i].map(x=>String(x||'').toLowerCase().trim());
-          if(r.includes('sex')&&r.includes('birthday')){headerIdx=i;headers=r;break}
+        if(r.some(x=>x.includes('full name')||x==='student id'||x.includes('sponsor name'))){
+          headerIdx=i; headers=r; break;
         }
       }
-      if(headerIdx<0){msg.textContent=TT('Could not find header row in this file.');return}
+      if(headerIdx<0){msg.textContent=TT('Could not find header row. Use the template columns.');return}
       const col=(...names)=>{
         for(const n of names){
           const nn=n.toLowerCase();
           for(let i=0;i<headers.length;i++){
-            if(headers[i]===nn||headers[i].includes(nn))return i;
+            if(headers[i]===nn || headers[i].includes(nn)) return i;
           }
         }
         return -1;
       };
-      const iS=col('s#','s #','no/year');
-      const iFam=col('family');
-      const iGiven=col('given');
+      const iId=col('student id');
+      const iEnroll=col('enrollment date','enrollment');
+      const iKm=col('full name (khmer)','name (khmer)','khmer');
+      const iEn=col('full name (english)','name (english)','english name');
       const iSex=col('sex');
       const iBday=col('birthday');
-      const iVillage=col('home village','village');
+      const iFather=col("father's name",'father');
+      const iMother=col("mother's name",'mother');
+      const iPhone=col('phone number','phone');
+      const iKschool=col('khmer school');
+      const iVillage=col('village');
       const iCommune=col('commune');
-      const iAddr=col('current address','address');
-      const iLevel=col('level','english');
-      const iSchool=col('school','hvto');
-      const iGoal=col('goal');
-      const iSponsor=col('name'); // sponsor name column often just "Name" under Sponsor group
-      // Better: find sponsor name - often near email
-      let iSpName=iSponsor;
-      // Prefer column that is under Sponsor section - try common positions
-      const iEmail=col('e-mail','email','primary');
-      const iAffil=col('affiliation');
-      const iComments=col('comments');
-      const iCareer=col('student careers','~current employment','current employment');
+      const iDistrict=col('district');
+      const iProvince=col('province');
+      const iCountry=col('country');
+      const iLevel=col('english level','level');
+      const iCls=col('class');
+      const iCenter=col('center');
+      const iSponsored=col('sponsored');
+      const iSponsor=col('sponsor name','sponsor');
+      const iSponsorId=col('sponsor id');
+      const iDropout=col('drop out','dropout');
+      const iStatus=col('status');
+      const iNotes=col('notes');
+
+      const yes=v=>{const s=String(v||'').trim().toLowerCase();return s==='yes'||s==='y'||s==='true'||s==='1'};
+      const normDate=v=>{
+        const s=String(v||'').trim();
+        if(!s)return '';
+        // already YYYY-MM-DD
+        if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
+        // DD/MM/YYYY or MM/DD/YYYY
+        const m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+        if(m){
+          const a=+m[1],b=+m[2],y=m[3];
+          // prefer DD/MM if first > 12
+          if(a>12)return y+'-'+String(b).padStart(2,'0')+'-'+String(a).padStart(2,'0');
+          return y+'-'+String(a).padStart(2,'0')+'-'+String(b).padStart(2,'0');
+        }
+        return s.slice(0,10);
+      };
+      const normCenter=v=>{
+        const s=String(v||'').trim();
+        if(!s)return '';
+        if(/III|3/.test(s))return 'HVTO Free Education Center III';
+        if(/II|2/.test(s))return 'HVTO Free Education Center II';
+        if(/I|1/.test(s)||/center/i.test(s))return 'HVTO Free Education Center I';
+        return s;
+      };
 
       let updated=0, created=0, skipped=0;
       for(let r=headerIdx+1;r<rows.length;r++){
         const row=rows[r];
         if(!row||row.every(x=>!String(x||'').trim()))continue;
-        const fam=iFam>=0?String(row[iFam]||'').trim().replace(/\*$/,''):'';
-        const given=iGiven>=0?String(row[iGiven]||'').trim().replace(/\*$/,''):'';
-        let en=(fam+' '+given).trim();
-        if(!en||en.length<2){
-          // try first non-empty text cells
-          skipped++;continue;
-        }
-        en=en.replace(/\s+/g,' ');
-        const sexRaw=iSex>=0?String(row[iSex]||'').trim().toUpperCase():'';
-        const sex=sexRaw.startsWith('F')?'Female':sexRaw.startsWith('M')?'Male':'';
-        const bday=iBday>=0?String(row[iBday]||'').trim().slice(0,10):'';
-        const village=iVillage>=0?String(row[iVillage]||'').trim():'';
-        const commune=iCommune>=0?String(row[iCommune]||'').trim():'';
-        const addr=iAddr>=0?String(row[iAddr]||'').trim():'';
-        const level=iLevel>=0?String(row[iLevel]||'').trim():'';
-        const school=iSchool>=0?String(row[iSchool]||'').trim():'';
-        const goal=iGoal>=0?String(row[iGoal]||'').trim().toUpperCase():'';
-        const snum=iS>=0?String(row[iS]||'').trim():'';
-        // Sponsor name: try the "Name" column that is NOT family/given - often after Goal
-        let sponsorName='';
-        if(iEmail>=0){
-          // walk left from email to find sponsor name
-          for(let c=iEmail-1;c>=0;c--){
-            const v=String(row[c]||'').trim();
-            if(v&&v.length>2&&!/^\d+$/.test(v)&&v!==goal){sponsorName=v;break}
-          }
-        }
-        if(!sponsorName&&iSpName>=0&&iSpName!==iFam&&iSpName!==iGiven){
-          sponsorName=String(row[iSpName]||'').trim();
-        }
-        // Map school to center
-        let center='';
-        if(/II|2/.test(school))center='HVTO Free Education Center II';
-        else if(/III|3/.test(school))center='HVTO Free Education Center III';
-        else if(/I|1/.test(school))center='HVTO Free Education Center I';
+        const en=iEn>=0?String(row[iEn]||'').trim():'';
+        const km=iKm>=0?String(row[iKm]||'').trim():'';
+        const sid=iId>=0?String(row[iId]||'').trim():'';
+        if(!en&&!km&&!sid){skipped++;continue}
 
-        // Status from Goal
-        let status='Active';
-        if(goal.includes('GRAD'))status='Graduated';
-        else if(goal.includes('DROP'))status='Dropped';
-        else if(goal.includes('PST'))status='Active';
+        const sexRaw=iSex>=0?String(row[iSex]||'').trim():'';
+        const sex=/^f/i.test(sexRaw)?'Female':/^m/i.test(sexRaw)?'Male':(sexRaw||'');
+        const sponsored=iSponsored<0?true:yes(row[iSponsored]);
+        const dropout=iDropout>=0&&yes(row[iDropout]);
+        let status=iStatus>=0?String(row[iStatus]||'').trim():'';
+        if(!status)status=dropout?'Dropped':'Active';
+        if(/grad/i.test(status))status='Graduated';
+        else if(/drop/i.test(status))status='Dropped';
+        else if(status)status='Active';
 
-        // Match existing student
-        const enLow=en.toLowerCase();
-        const givenLow=given.toLowerCase();
-        let stu=S.students.find(s=>{
-          const se=(s.en||'').toLowerCase().replace(/\s+/g,' ');
-          if(se===enLow)return true;
-          if(givenLow.length>2&&se.includes(givenLow)&&fam&&se.includes(fam.toLowerCase()))return true;
-          return false;
-        });
+        const data={
+          enroll:iEnroll>=0?normDate(row[iEnroll]):'',
+          km, en:en||km,
+          sex, bday:iBday>=0?normDate(row[iBday]):'',
+          father:iFather>=0?String(row[iFather]||'').trim():'',
+          mother:iMother>=0?String(row[iMother]||'').trim():'',
+          phone:iPhone>=0?String(row[iPhone]||'').trim():'',
+          kschool:iKschool>=0?String(row[iKschool]||'').trim():'',
+          village:iVillage>=0?String(row[iVillage]||'').trim():'',
+          commune:iCommune>=0?String(row[iCommune]||'').trim():'',
+          district:iDistrict>=0?String(row[iDistrict]||'').trim():'',
+          province:iProvince>=0?String(row[iProvince]||'').trim():'',
+          country:iCountry>=0?String(row[iCountry]||'').trim():'Cambodia',
+          level:iLevel>=0?String(row[iLevel]||'').trim():'',
+          cls:iCls>=0?String(row[iCls]||'').trim():'',
+          center:iCenter>=0?normCenter(row[iCenter]):'',
+          sponsored, sponsor:iSponsor>=0?String(row[iSponsor]||'').trim():'',
+          sponsorid:iSponsorId>=0?String(row[iSponsorId]||'').trim():'',
+          dropout, dropdate:'', status,
+          notes:iNotes>=0?String(row[iNotes]||'').trim():''
+        };
+
+        // Match by Student ID first, then by English name
+        let stu=null;
+        if(sid)stu=S.students.find(s=>s.id===sid);
+        if(!stu&&en){
+          const enLow=en.toLowerCase().replace(/\s+/g,' ');
+          stu=S.students.find(s=>(s.en||'').toLowerCase().replace(/\s+/g,' ')===enLow);
+        }
         if(stu){
-          stu.sponsored=true;
-          if(sponsorName)stu.sponsor=sponsorName;
-          if(snum)stu.sponsorid=snum;
-          if(sex&&!stu.sex)stu.sex=sex;
-          if(bday&&!stu.bday)stu.bday=bday;
-          if(village&&!stu.village)stu.village=village;
-          if(commune&&!stu.commune)stu.commune=commune;
-          if(addr&&!stu.addr)stu.addr=addr;
-          if(level&&!stu.level)stu.level=level;
-          if(center&&(!stu.center||stu.center==='All'))stu.center=center;
-          if(status)stu.status=status;
-          if(status==='Dropped')stu.dropout=true;
+          Object.keys(data).forEach(k=>{if(data[k]!==''&&data[k]!==undefined)stu[k]=data[k]});
+          if(sid)stu.id=sid;
+          stu.sponsored=sponsored;
+          if(dropout){stu.dropout=true;stu.status='Dropped'}
           updated++;
         }else{
-          // Create new sponsored student
-          const id=nextId(S.students,'HVTO-');
-          S.students.push({
-            id, en, km:'', sex:sex||'Female', bday, enroll:'',
-            village, commune, district:'', province:'', addr,
-            level, cls:'', center:center||Object.keys(CENTERS)[0],
-            sponsored:true, sponsor:sponsorName, sponsorid:snum,
-            status, dropout:status==='Dropped', dropdate:'',
-            father:'', mother:'', phone:'', kschool:'', notes:'',
-            photo:'', pstat:''
-          });
+          const id=sid||nextId(S.students,'HVTO-');
+          S.students.push(Object.assign({
+            id, photo:'', pstat:'', addr:''
+          }, data, {center:data.center||Object.keys(CENTERS)[0]}));
           created++;
         }
       }
