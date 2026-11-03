@@ -126,6 +126,9 @@ input[readonly]{opacity:.8;cursor:not-allowed}
 .cal-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px}
 .cal-legend span{display:inline-flex;align-items:center;gap:6px}
 .cal-legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+.search-bar{position:sticky;top:0;z-index:5;background:var(--card,#1a1a14);padding:8px 0;margin-bottom:4px}
+.search-bar input[type="search"]{min-width:200px}
 </style>
 </head>
 <body>
@@ -573,7 +576,7 @@ sponsor(){
       <p class="sub" style="margin:6px 0 0">${TT('This permanently deletes every student marked as sponsored.')}</p>
     </div>
   </div>
-  <div class="card"><div class="bar"><input id="q" type="search" placeholder="${TT('Search name, ID, sponsor, sponsor ID')}" value="${esc(q)}" aria-label="Search">
+  <div class="card"><div class="bar search-bar"><input id="spq" type="search" placeholder="${TT('Search name, ID, sponsor, sponsor ID')}" value="${esc(q)}" aria-label="Search" autocomplete="off">
   <span class="tl" style="margin:0;flex-wrap:wrap"><label>${TT('Sort by')} <select id="ssort">${[['enroll','Enrollment date'],['id','Student ID'],['name','Name'],['center','Center']].map(([v,l])=>`<option value="${v}"${sstu==v?' selected':''}>${l}</option>`).join('')}</select></label> ${ordSel()}</span></div>
   <div class="scroll"><table class="data"><thead><tr><th>${TT('Name')}</th><th>${TT('Student ID')}</th><th>${TT('Sponsor')}</th><th>${TT('Sponsor ID')}</th><th>${TT('Center')}</th><th>${TT('Class')}</th><th>${TT('Status')}</th><th></th></tr></thead>
   <tbody id="tb">${rows}</tbody></table></div></div>`},
@@ -1245,15 +1248,30 @@ document.addEventListener('change',e=>{
   if(t.id=='gord'){gord=t.value;render()}
   if(t.id=='grp'){grp=t.value;render()}
 });
-document.addEventListener('input',e=>{if(e.target.id=='q'){
-    q=e.target.value;
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id=='q'||t.id=='spq'){
+    q=t.value;
+    const sy=window.scrollY, sx=window.scrollX;
+    const start=t.selectionStart, end=t.selectionEnd;
     const tb=$('#tb');
-    if(view=='sponsor'&&tb){tb.innerHTML=spRows();tr(tb)}
-    else if(tb){tb.innerHTML=stRows();tr(tb)}
+    if(tb){
+      if(view=='sponsor')tb.innerHTML=spRows();
+      else tb.innerHTML=stRows();
+    }
+    // keep scroll & focus so typing does not jump the page
+    window.scrollTo(sx, sy);
+    requestAnimationFrame(()=>{
+      const n=document.getElementById(t.id)||$('#q')||$('#spq');
+      if(n){n.focus(); try{n.setSelectionRange(start,end)}catch(err){}}
+      window.scrollTo(sx, sy);
+    });
+    return;
   }
-  if(e.target.id=='tq'){tq=e.target.value;$('#ttb').innerHTML=tRows();tr($('#ttb'))}
-  if(e.target.id=='oq'){oq=e.target.value;$('#ores').innerHTML=oRes();trAll()}
-  if(e.target.id=='gq'){gq=e.target.value;$('#gb').innerHTML=gbRows();tr($('#gb'))}});
+  if(t.id=='tq'){tq=t.value;$('#ttb').innerHTML=tRows()}
+  if(t.id=='oq'){oq=t.value;$('#ores').innerHTML=oRes()}
+  if(t.id=='gq'){gq=t.value;$('#gb').innerHTML=gbRows()}
+});
 
 /* student form */
 const F=$('#sf');F.province.innerHTML=PO;
