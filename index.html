@@ -369,8 +369,16 @@ const dur=(a,b)=>{if(!a)return'';const s=new Date(a),e=b?new Date(b):new Date();
 const inR=(d,f,x)=>(!f||(d||'')>=f)&&(!x||(d||'')<=x);
 const matchQ=s=>{
   if(!q||!String(q).trim())return true;
-  const hay=((s.en||'')+' '+(s.km||'')+' '+(s.id||'')+' '+(s.sponsor||'')+' '+(s.sponsorid||'')).toLowerCase();
-  return String(q).toLowerCase().trim().split(/\s+/).every(t=>hay.includes(t));
+  const terms=String(q).toLowerCase().trim().split(/\s+/).filter(Boolean);
+  const en=(s.en||'').toLowerCase(), km=(s.km||'').toLowerCase();
+  const id=(s.id||'').toLowerCase(), sp=(s.sponsor||'').toLowerCase(), spid=(s.sponsorid||'').toLowerCase();
+  const hay=en+' '+km+' '+id+' '+sp+' '+spid;
+  return terms.every(t=>{
+    // Sponsor / student ID: match if id starts with term or equals, or term appears as whole-ish in sponsor id
+    if(spid===t||spid.startsWith(t)||id===t||id.startsWith(t))return true;
+    if(en.includes(t)||km.includes(t)||sp.includes(t)||hay.includes(t))return true;
+    return false;
+  });
 };
 const vis=()=>S.students.filter(s=>(campus=='All'||s.center==campus)&&inR(s.enroll,DF.from,DF.to)&&matchSf(s)&&matchQ(s));
 const visSponsored=()=>vis().filter(s=>s.sponsored);
@@ -957,6 +965,22 @@ $('#pf').onsubmit=e=>{e.preventDefault();const f=e.target,per=f.per.value,date=p
 function showHist(i){hi=i;const p=S.projects[i],L=p.entries.slice().sort((a,b)=>b.date.localeCompare(a.date)),T=sumP(p);
 $('#hc').innerHTML=`<h2>${esc(p.n)}</h2><p class="sub">Update history</p>${L.length?`<div class="scroll"><table style="min-width:560px"><thead><tr><th>Period</th><th>Completed</th><th>Beneficiaries</th><th>Funds</th><th>Notes</th><th></th></tr></thead><tbody>${L.map(e=>`<tr><td>${plab(e)}</td><td>${num(e.count)}</td><td>${num(e.ben)}</td><td>${num(e.funds)}</td><td>${esc(e.note)}</td><td><button class="link" data-act="hdel" data-id="${e.id}" data-d="${plab(e)}">Delete</button></td></tr>`).join('')}<tr><td><b>Total</b></td><td><b>${num(T.count)}</b></td><td><b>${num(T.ben)}</b></td><td><b>${num(T.funds)}</b></td><td></td><td></td></tr></tbody></table></div>`:'<div class="empty">No updates yet. Use Update to add the first one.</div>'}`;trAll();if(!$('#hd').open)$('#hd').showModal()}
 $('#hx').onclick=()=>$('#hd').close();
+
+function spRows(){
+  const listAll=S.students.filter(s=>(campus=='All'||s.center==campus)&&s.sponsored);
+  const list=listAll.filter(s=>matchSf(s)&&matchQ(s));
+  if(!list.length)return `<tr><td colspan="8" class="muted" style="text-align:center;padding:24px">${TT('No sponsored students yet.')}</td></tr>`;
+  return sorted(list).map(s=>{
+    const i=S.students.indexOf(s);
+    const sk=stOf(s);
+    const pillCls=sk==='Dropped'||sk==='Died'?' bad':sk==='Graduated'?'':'';
+    return `<tr data-det="${i}"><td><div class="row" style="border:0;padding:0">${av(s)}<div><button class="link" data-det="${i}" style="color:var(--ink);font-weight:500;text-align:left">${esc(s.en)}</button><br><small>${esc(s.km)}</small></div></div></td>
+    <td>${esc(s.id)}</td><td>${esc(s.sponsor||'–')}</td><td>${esc(s.sponsorid||'–')}</td>
+    <td>${esc(s.center)}</td><td>${esc(s.cls||'–')}</td>
+    <td><span class="pill${pillCls}">${esc(sk)}</span></td>
+    <td style="white-space:nowrap"><button class="link" data-act="edit" data-i="${i}">Edit</button></td></tr>`;
+  }).join('');
+}
 function stRows(){const v=sorted(vis());return v.length?v.map(s=>{const i=S.students.indexOf(s);return `<tr data-det="${i}"><td><div class="row" style="border:0;padding:0">${av(s)}<div><button class="link" data-det="${i}" style="color:var(--ink);font-weight:500;text-align:left">${esc(s.en)}</button><br><small>${esc(s.km)}</small></div></div></td><td>${esc(s.id)}</td><td>${esc(s.sex)}</td><td>${age(s.bday)}</td><td>${esc(s.center)}</td><td>${esc(s.cls||'–')}</td><td><span class="pill${isDrop(s)?' bad':''}">${esc(s.status)}</span>${s.sponsored?' <span class="pill">Sponsored</span>':''}</td><td style="white-space:nowrap"><button class="link" data-act="edit" data-i="${i}">Edit</button> <button class="link" data-act="del" data-i="${i}">Delete</button></td></tr>`}).join(''):`<tr><td colspan="8"><div class="empty">No students found. Add a student to get started.</div></td></tr>`}
 
 /* events */
@@ -1221,7 +1245,12 @@ document.addEventListener('change',e=>{
   if(t.id=='gord'){gord=t.value;render()}
   if(t.id=='grp'){grp=t.value;render()}
 });
-document.addEventListener('input',e=>{if(e.target.id=='q'){q=e.target.value;if(view=='sponsor'){render()}else{$('#tb').innerHTML=stRows();tr($('#tb'))}}
+document.addEventListener('input',e=>{if(e.target.id=='q'){
+    q=e.target.value;
+    const tb=$('#tb');
+    if(view=='sponsor'&&tb){tb.innerHTML=spRows();tr(tb)}
+    else if(tb){tb.innerHTML=stRows();tr(tb)}
+  }
   if(e.target.id=='tq'){tq=e.target.value;$('#ttb').innerHTML=tRows();tr($('#ttb'))}
   if(e.target.id=='oq'){oq=e.target.value;$('#ores').innerHTML=oRes();trAll()}
   if(e.target.id=='gq'){gq=e.target.value;$('#gb').innerHTML=gbRows();tr($('#gb'))}});
