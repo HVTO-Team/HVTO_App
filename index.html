@@ -127,7 +127,7 @@ input[readonly]{opacity:.8;cursor:not-allowed}
 <label>Class<input name="cls" list="clslist" maxlength="30" placeholder="e.g. Class A"></label><datalist id="clslist"></datalist>
 <label>Center<select name="center">${''}</select></label>
 <label class="sw w"><input type="checkbox" name="sponsored"> Sponsored</label>
-<div class="w g" id="spg" hidden><label>Sponsor name<input name="sponsor"></label><label>Sponsor ID<input name="sponsorid" inputmode="numeric" pattern="[0-9]*" maxlength="20" placeholder="e.g. 1024"></label></div>
+<div class="w g" id="spg" hidden><label>Sponsor name<input name="sponsor"></label><label>Sponsor ID<input name="sponsorid" pattern="[A-Za-z0-9]*" maxlength="20" placeholder="e.g. S1024"></label></div>
 <label class="sw w"><input type="checkbox" name="dropout"> Drop out</label>
 <div class="w g" id="dog" hidden><label>Drop-out date<input type="date" name="dropdate"></label></div>
 <label class="w">How long (counted from enrollment date)<div class="ro" id="hl">–</div></label>
@@ -707,11 +707,11 @@ document.addEventListener('change',e=>{
         return s;
       };
 
-      let updated=0, created=0, skipped=0;
+      let updated=0, created=0, skipped=0; const used=new Set();
       for(let r=headerIdx+1;r<rows.length;r++){
         const row=rows[r];
         if(!row||row.every(x=>!String(x||'').trim()))continue;
-        const en=iEn>=0?String(row[iEn]||'').trim():'';
+        const en=iEn>=0?String(row[iEn]||'').replace(/\s+/g,' ').trim():'';
         const km=iKm>=0?String(row[iKm]||'').trim():'';
         const sid=iId>=0?String(row[iId]||'').trim():'';
         if(!en&&!km&&!sid){skipped++;continue}
@@ -749,25 +749,25 @@ document.addEventListener('change',e=>{
           notes:iNotes>=0?String(row[iNotes]||'').trim():''
         };
 
-        // Match by Student ID first, then by English name
+        // Match by Student ID first. Only when the row has no Student ID, match by English name
+        // (and center). A record already matched or created in this import is never reused, so
+        // different students who share the same name stay separate records.
         let stu=null;
-        if(sid)stu=S.students.find(s=>s.id===sid);
-        if(!stu&&en){
+        if(sid)stu=S.students.find(s=>s.id===sid&&!used.has(s));
+        if(!stu&&!sid&&en){
           const enLow=en.toLowerCase().replace(/\s+/g,' ');
-          stu=S.students.find(s=>(s.en||'').toLowerCase().replace(/\s+/g,' ')===enLow);
+          stu=S.students.find(s=>!used.has(s)&&(s.en||'').toLowerCase().replace(/\s+/g,' ')===enLow&&(!data.center||!s.center||s.center===data.center));
         }
         if(stu){
           Object.keys(data).forEach(k=>{if(data[k]!==''&&data[k]!==undefined)stu[k]=data[k]});
           if(sid)stu.id=sid;
           stu.sponsored=sponsored;
           if(dropout){stu.dropout=true;stu.status='Dropped'}
-          updated++;
+          used.add(stu);updated++;
         }else{
-          const id=sid||nextId(S.students,'HVTO-');
-          S.students.push(Object.assign({
-            id, photo:'', pstat:'', addr:''
-          }, data, {center:data.center||Object.keys(CENTERS)[0]}));
-          created++;
+          const id=(sid&&!S.students.some(s=>s.id===sid))?sid:nextId(S.students,'HVTO-');
+          const ns=Object.assign({id, photo:'', pstat:'', addr:''}, data, {center:data.center||Object.keys(CENTERS)[0]});
+          S.students.push(ns);used.add(ns);created++;
         }
       }
       save();
