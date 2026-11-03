@@ -179,7 +179,7 @@ function migrate(p){if(!p.entries){p.entries=(p.count||p.ben||p.funds||p.desc)?[
 if(!S.v3){let c=0,b=0,f=0;p.entries.sort((x,y)=>x.date.localeCompare(y.date)).forEach(e=>{const a=[e.count,e.ben,e.funds];e.count-=c;e.ben-=b;e.funds-=f;[c,b,f]=a})}
 p.entries.forEach(e=>{e.id=e.id||Math.random().toString(36).slice(2,9);e.per=e.per||'day'})}
 const OLD={'West Sreth':CN[0],'Rumdeng':CN[1],'Sophy':CN[2]};
-const NAV=[['dash','Dashboard'],['students','Students'],['sponsor','Sponsorship Program'],['teachers','Teachers'],['grades','Gradebook'],['outlines','Course Outlines'],['roster','Roster'],['msgs','Messages'],['reports','Reports'],['projects','HVTO Projects Tracker']];
+const NAV=[['dash','Dashboard'],['students','Students'],['sponsor','Sponsorship Program'],['teachers','Teachers'],['grades','Gradebook'],['outlines','Course Outlines'],['roster','Roster'],['msgs','Messages'],['reports','Reports'],['projects','HVTO Projects Tracker'],['about','About Us']];
 const PN=['Institutional and Human Resource Development','HVTO FINANCE','Eco-Tourism','Homestay Volunteers','HVTO Education Center','Free Classes for English and Computer Trainings','Sponsorship for Education Program','Vocational Training','Clean Water Pump Project','Bio Sand Filter Program','HVTO Toilet for Household','Community and Development','HVTO House Charity Project','Food Relief Program'];
 const STRUCT=[[8,'Clean water pumps'],[9,'Bio sand filters'],[10,'Household toilets'],[12,'Charity houses']];
 const mk=(id,en,km,sex,b,c,st,sp,dr)=>({id,en,km,sex,bday:b,center:c,status:st,sponsored:sp,sponsor:sp?'Sponsor on file':'',dropout:dr,howlong:dr?'3 months':'',pstat:'New',level:'Beginner',enroll:'2025-09-01'});
@@ -304,7 +304,7 @@ function render(){
   <div><header><span class="tl">${tools()}</span><label>Campus <select id="camp"><option value="All">All campuses</option>${Object.keys(CENTERS).map(c=>`<option ${campus==c?'selected':''}>${c}</option>`).join('')}</select></label></header>
   <div class="who"><span class="av">${esc(user[0].toUpperCase())}</span><b>${esc(user)}</b><button class="link" data-act="out">Sign out</button></div>${VIEWS[view]()}</div></div>`;trAll();if(animDash){animDash=false;countUp()}
 }
-const IC={'Dashboard':'📊','Students':'🎓','Sponsorship Program':'🤝','Teachers':'👩‍🏫','Gradebook':'📝','Course Outlines':'📚','Roster':'📋','Messages':'💬','Reports':'📈','HVTO Projects Tracker':'🌱','Active':'✅','Sponsored':'🤝','Drop out':'⚠️','Beneficiaries':'🙌','All-time beneficiaries':'🙌','Completed':'✔️','Funds (USD)':'💵','Clean water pumps':'🚰','Bio sand filters':'💧','Household toilets':'🚽','Charity houses':'🏠','On leave':'🏖️','Avg. service':'⏳'};
+const IC={'Dashboard':'📊','Students':'🎓','Sponsorship Program':'🤝','Teachers':'👩‍🏫','Gradebook':'📝','Course Outlines':'📚','Roster':'📋','Messages':'💬','Reports':'📈','HVTO Projects Tracker':'🌱','About Us':'🏛️','Projects':'🌱','Teachers':'👩‍🏫','Departments':'🏢','Left':'🚪','Score entries':'📝','Avg score':'📊','Present':'✅','Absent':'⚠️','Late':'⏰','Outlines':'📚','Sheets':'📄','Classes':'🏫','Centers':'🏫','Linked groups':'🔗','Not linked':'💬','Active':'✅','Sponsored':'🤝','Drop out':'⚠️','Beneficiaries':'🙌','All-time beneficiaries':'🙌','Completed':'✔️','Funds (USD)':'💵','Clean water pumps':'🚰','Bio sand filters':'💧','Household toilets':'🚽','Charity houses':'🏠','On leave':'🏖️','Avg. service':'⏳'};
 const kpi=(l,v)=>`<div class="card"><span class="sub"><span class="ic" aria-hidden="true">${IC[l]||''}</span>${l}</span><span class="n">${v}</span></div>`;
 const who=s=>`<div class="grow"><div>${esc(s.en)}</div><small>${esc(s.km)} · ${esc(CENTERS[s.center]||s.center)}</small></div>`;
 const isDrop=s=>s.dropout||s.status=='Dropped';
@@ -536,11 +536,15 @@ projects(){const f=DF.from,x=DF.to,T=tot(f,x),A=tot();
 reports(){
   const P=S.projects||[], f=DF.from, x=DF.to;
   const C=P.map(p=>sumP(p,f,x));
-  const tb=C.reduce((n,c)=>n+(+c.ben||0),0);
+  const projBen=C.reduce((n,c)=>n+(+c.ben||0),0);
   const tf=C.reduce((n,c)=>n+(+c.funds||0),0);
   const tc=C.reduce((n,c)=>n+(+c.count||0),0);
-  const mx=Math.max(1,...C.map(c=>+c.ben||0));
   const v=S.students.filter(s=>(campus=='All'||s.center==campus)&&inR(s.enroll,f,x));
+  const stuBen=v.length; // every student is a beneficiary
+  const tb=projBen+stuBen;
+  const mx=Math.max(1,...C.map(c=>+c.ben||0),stuBen);
+  const projBars=P.map((p,i)=>({l:(p.n||PN[i]||('Project '+(i+1))),v:+C[i].ben||0,c:'#2f9e6e'}));
+  projBars.push({l:TT('Students (education)'),v:stuBen,c:'#3b6fb6'});
   const rows=P.map((p,i)=>{
     const s=C[i];
     return `<tr>
@@ -552,18 +556,24 @@ reports(){
     </tr>`;
   }).join('');
   return `<h1><span class="ic" aria-hidden="true">📈</span>Reports</h1>
-  <p class="sub" style="margin:0 0 8px">${TT('Totals across all 14 projects for the date range you choose. Leave the dates empty to see all time.')}</p>
+  <p class="sub" style="margin:0 0 8px">${TT('Totals across all 14 projects. Students are also counted as beneficiaries.')}</p>
   ${datebar()}
   <div class="${animDash?'anim':''}" style="margin-bottom:14px">
     <div class="cards">
       <div class="card"><span class="sub"><span class="ic">🌱</span>${TT('Projects')}</span><span class="n" data-count="${P.length}">${num(P.length)}</span></div>
-      <div class="card"><span class="sub"><span class="ic">🎓</span>${TT('Students')}</span><span class="n" data-count="${v.length}">${num(v.length)}</span></div>
+      <div class="card"><span class="sub"><span class="ic">🎓</span>${TT('Students')}</span><span class="n" data-count="${stuBen}">${num(stuBen)}</span></div>
       <div class="card"><span class="sub"><span class="ic">🙌</span>${TT('Beneficiaries')}</span><span class="n" data-count="${tb}">${num(tb)}</span></div>
       <div class="card"><span class="sub"><span class="ic">💵</span>${TT('Funds (USD)')}</span><span class="n" data-count="${tf}">${num(tf)}</span></div>
       <div class="card"><span class="sub"><span class="ic">✔️</span>${TT('Completed')}</span><span class="n" data-count="${tc}">${num(tc)}</span></div>
     </div>
+    <p class="sub" style="margin-top:8px">${TT('Beneficiaries')} = ${TT('Project beneficiaries')} (${num(projBen)}) + ${TT('Students')} (${num(stuBen)})</p>
   </div>
   <div class="bar"><span></span><span>${xbtns('proj')}</span></div>
+  <div class="card" style="margin-bottom:14px">
+    <h2 style="margin-bottom:10px">${TT('All 14 projects — graphic summary')}</h2>
+    ${hbars(P.map((p,i)=>({l:(i+1)+'. '+(p.n||PN[i]||''),v:Math.max(+C[i].ben||0, +C[i].count||0),c:i%2?'#3b6fb6':'#2f9e6e'})))}
+    <p class="sub" style="margin-top:8px">${TT('Bar size uses beneficiaries (or completed count if beneficiaries are 0).')}</p>
+  </div>
   <div class="card scroll" style="margin-bottom:14px">
     <h2 style="margin-bottom:10px">${TT('All 14 projects summary')}</h2>
     <table class="data"><thead><tr>
@@ -575,18 +585,31 @@ reports(){
     </tr></thead>
     <tbody>${rows}
       <tr style="font-weight:600;background:var(--soft,#f5f5f0)">
-        <td>${TT('Total')}</td>
+        <td>${TT('Project subtotal')}</td>
+        <td style="text-align:right">${num(projBen)}</td>
+        <td style="text-align:right">${num(tc)}</td>
+        <td style="text-align:right">${num(tf)}</td>
+        <td></td>
+      </tr>
+      <tr style="font-weight:600">
+        <td>${TT('Students (education beneficiaries)')}</td>
+        <td style="text-align:right">${num(stuBen)}</td>
+        <td style="text-align:right">–</td>
+        <td style="text-align:right">–</td>
+        <td></td>
+      </tr>
+      <tr style="font-weight:700;background:var(--soft,#eef6f0)">
+        <td>${TT('Total beneficiaries')}</td>
         <td style="text-align:right">${num(tb)}</td>
         <td style="text-align:right">${num(tc)}</td>
         <td style="text-align:right">${num(tf)}</td>
         <td></td>
       </tr>
     </tbody></table>
-    <p class="sub" style="margin-top:10px">${TT('Numbers come from updates in HVTO Projects Tracker. If values are 0, add project updates there.')}</p>
   </div>
   <div class="card bars" style="margin-bottom:14px">
-    <h2 style="margin-bottom:8px">${TT('Beneficiaries by project')}</h2>
-    ${P.map((p,i)=>`<div class="b"><span>${esc(p.n||PN[i]||'')}</span><i style="width:${Math.max(0,C[i].ben)/mx*100}%"></i><span>${num(C[i].ben)}</span></div>`).join('')||'<div class="empty">'+TT('No projects yet.')+'</div>'}
+    <h2 style="margin-bottom:8px">${TT('Beneficiaries by project + students')}</h2>
+    ${hbars(projBars)}
   </div>
   <div class="card"><h2 style="margin-bottom:6px">${TT('Structural setups')}</h2>
     <div class="cards" style="margin:10px 0 0">${STRUCT.map(([i,l])=>kpi(l,num((C[i]||{}).count||0))).join('')}</div>
@@ -596,6 +619,48 @@ reports(){
     <table><thead><tr><th>${TT('Center')}</th><th>${TT('Students')}</th><th>${TT('Active')}</th><th>${TT('Sponsored')}</th><th>${TT('Drop out')}</th></tr></thead>
     <tbody>${Object.keys(CENTERS).map(c=>{const l=v.filter(s=>s.center==c);return `<tr><td>${esc(c)}</td><td>${l.length}</td><td>${l.filter(s=>stOf(s)=='Active').length}</td><td>${l.filter(s=>s.sponsored).length}</td><td>${l.filter(s=>stOf(s)=='Dropped').length}</td></tr>`}).join('')}</tbody></table>
   </div>`}
+,
+about(){
+  const A=S.about||(S.about={text:'',photos:[],files:[]});
+  const photos=(A.photos||[]).map((p,i)=>`
+    <div class="card" style="padding:8px;position:relative">
+      <img src="${p.data}" alt="${esc(p.name||'Photo')}" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;cursor:pointer" data-act="aboutimg" data-i="${i}">
+      <div class="bar" style="margin-top:6px"><small class="sub">${esc(p.name||'')}</small>
+        <button type="button" class="ghost" data-act="aboutdelphoto" data-i="${i}" style="color:#c0392b">${TT('Delete')}</button>
+      </div>
+    </div>`).join('');
+  const files=(A.files||[]).map((f,i)=>`
+    <div class="row" style="padding:8px 0;border-bottom:1px solid var(--solid,#eee)">
+      <div style="flex:1"><b>${esc(f.name||'File')}</b><br><small class="sub">${esc(f.type||'')} · ${fmtB(f.size||0)}</small></div>
+      <a class="link" href="${f.data}" download="${esc(f.name||'file')}">${TT('Download')}</a>
+      <button type="button" class="ghost" data-act="aboutdelfile" data-i="${i}" style="color:#c0392b">${TT('Delete')}</button>
+    </div>`).join('');
+  return `<h1><span class="ic" aria-hidden="true">🏛️</span>${TT('About Us')}</h1>
+  <p class="sub" style="margin:0 0 14px">${TT('HVTO organization structure and operations. Upload photos and documents for your team.')}</p>
+  <div class="${animDash?'anim':''}" style="margin-bottom:14px"><div class="cards">
+    <div class="card"><span class="sub"><span class="ic">🖼️</span>${TT('Photos')}</span><span class="n" data-count="${(A.photos||[]).length}">${num((A.photos||[]).length)}</span></div>
+    <div class="card"><span class="sub"><span class="ic">📄</span>${TT('Files')}</span><span class="n" data-count="${(A.files||[]).length}">${num((A.files||[]).length)}</span></div>
+  </div></div>
+  <div class="card" style="margin-bottom:14px">
+    <h2 style="margin-bottom:8px">${TT('Organization overview')}</h2>
+    <textarea id="abouttext" rows="8" placeholder="${TT('Write about HVTO structure, mission, departments, and how the organization operates…')}" style="width:100%;min-height:140px">${esc(A.text||'')}</textarea>
+    <div class="bar" style="margin-top:10px"><span></span>
+      <button type="button" class="primary" data-act="aboutsave">${TT('Save text')}</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <h2 style="margin-bottom:8px">${TT('Organization photos')}</h2>
+    <p class="sub" style="margin:0 0 10px">${TT('Upload photos of structure charts, centers, team, or operations.')}</p>
+    <input type="file" id="aboutphoto" accept="image/*" multiple style="width:auto">
+    <div class="gr" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">${photos||'<div class="empty">'+TT('No photos yet.')+'</div>'}</div>
+  </div>
+  <div class="card">
+    <h2 style="margin-bottom:8px">${TT('Documents & files')}</h2>
+    <p class="sub" style="margin:0 0 10px">${TT('Upload PDF or Office files (org chart, handbook, reports).')}</p>
+    <input type="file" id="aboutfile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg" multiple style="width:auto">
+    <div style="margin-top:12px">${files||'<div class="empty">'+TT('No files yet.')+'</div>'}</div>
+  </div>`;
+}
 
 };
 const sumP=(p,f,x)=>{const E=p.entries.filter(e=>inR(e.date,f,x)).sort((a,b)=>a.date.localeCompare(b.date)),l=E[E.length-1]||{},s=k=>E.reduce((n,e)=>n+(+e[k]||0),0);return{count:s('count'),ben:s('ben'),funds:s('funds'),date:l.date||'',note:l.note||''}};
@@ -780,6 +845,21 @@ document.addEventListener('click',e=>{
     animDash=true;render();return;
   }
   if(b.dataset.act==='sfclear'){sf=null;render();return}
+  if(b.dataset.act==='aboutsave'){
+    S.about=S.about||{text:'',photos:[],files:[]};
+    S.about.text=($('#abouttext')||{}).value||'';
+    save();render();return;
+  }
+  if(b.dataset.act==='aboutdelphoto'){
+    const i=+b.dataset.i;if(S.about&&S.about.photos){S.about.photos.splice(i,1);save();render()}return;
+  }
+  if(b.dataset.act==='aboutdelfile'){
+    const i=+b.dataset.i;if(S.about&&S.about.files){S.about.files.splice(i,1);save();render()}return;
+  }
+  if(b.dataset.act==='aboutimg'){
+    const i=+b.dataset.i;const p=S.about&&S.about.photos&&S.about.photos[i];
+    if(p){$('#lbi').src=p.data;$('#lb').showModal()}return;
+  }
   const a=b.dataset.act,i=+b.dataset.i;
   if(a=='out'){user=null;render()}
   if(a=='lang'){lang=lang=='km'?'en':'km';saveUI();render()}
@@ -826,6 +906,23 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id=='camp'){campus=t.value;render()}
+  if(t.id=='aboutphoto'||t.id=='aboutfile'){
+    const files=[...t.files]; t.value='';
+    if(!files.length)return;
+    S.about=S.about||{text:'',photos:[],files:[]};
+    const isPhoto=t.id==='aboutphoto';
+    let left=files.length;
+    files.forEach(file=>{
+      const reader=new FileReader();
+      reader.onload=()=>{
+        const item={name:file.name,type:file.type,size:file.size,data:reader.result};
+        if(isPhoto)S.about.photos.push(item); else S.about.files.push(item);
+        left--; if(left<=0){save();render()}
+      };
+      reader.readAsDataURL(file);
+    });
+    return;
+  }
   if(t.id=='dfrom'||t.id=='dto'){DF[t.id=='dfrom'?'from':'to']=t.value;render()}
   if(t.id=='ssort'){sstu=t.value;if(sstu=='id')ord='asc';render()}
   if(t.id=='psort'){sproj=t.value;render()}
@@ -1051,6 +1148,7 @@ F.onsubmit=e=>{
   S.tatt = S.tatt || [];
   S.kpi = S.kpi || {crit:[{id:'k1',n:'Attendance & punctuality',w:25},{id:'k2',n:'Teaching quality',w:25},{id:'k3',n:'Student progress',w:25},{id:'k4',n:'Teamwork & communication',w:25}],scores:{}};
   S.projects = S.projects || [];
+  S.about = S.about || {text:'', photos:[], files:[]};
 
   const cloud = await loadFromCloud();
   if (cloud && typeof cloud === 'object') {
@@ -1063,6 +1161,7 @@ F.onsubmit=e=>{
     S.tatt = cloud.tatt || S.tatt;
     S.kpi = cloud.kpi || S.kpi;
     S.projects = cloud.projects || S.projects;
+    S.about = cloud.about || S.about || {text:'', photos:[], files:[]};
     try { localStorage.setItem('hvto-v2', JSON.stringify(S)); } catch(e) {}
     console.log('Loaded shared data from Supabase');
   } else if (sb && !SUPABASE_ANON_KEY.includes('YOUR_ANON')) {
