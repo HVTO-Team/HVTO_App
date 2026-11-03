@@ -179,7 +179,7 @@ function migrate(p){if(!p.entries){p.entries=(p.count||p.ben||p.funds||p.desc)?[
 if(!S.v3){let c=0,b=0,f=0;p.entries.sort((x,y)=>x.date.localeCompare(y.date)).forEach(e=>{const a=[e.count,e.ben,e.funds];e.count-=c;e.ben-=b;e.funds-=f;[c,b,f]=a})}
 p.entries.forEach(e=>{e.id=e.id||Math.random().toString(36).slice(2,9);e.per=e.per||'day'})}
 const OLD={'West Sreth':CN[0],'Rumdeng':CN[1],'Sophy':CN[2]};
-const NAV=[['dash','Dashboard'],['students','Students'],['sponsor','Sponsorship Program'],['teachers','Teachers'],['grades','Gradebook'],['outlines','Course Outlines'],['roster','Roster'],['msgs','Messages'],['reports','Reports'],['projects','HVTO Projects Tracker'],['about','About Us']];
+const NAV=[['dash','Dashboard'],['students','Students'],['sponsor','Sponsorship Program'],['teachers','Teachers'],['grades','Gradebook'],['outlines','Course Outlines'],['roster','Staff & schedule'],['msgs','Messages'],['reports','Reports'],['projects','HVTO Projects Tracker'],['about','About Us']];
 const PN=['Institutional and Human Resource Development','HVTO FINANCE','Eco-Tourism','Homestay Volunteers','HVTO Education Center','Free Classes for English and Computer Trainings','Sponsorship for Education Program','Vocational Training','Clean Water Pump Project','Bio Sand Filter Program','HVTO Toilet for Household','Community and Development','HVTO House Charity Project','Food Relief Program'];
 const STRUCT=[[8,'Clean water pumps'],[9,'Bio sand filters'],[10,'Household toilets'],[12,'Charity houses']];
 const mk=(id,en,km,sex,b,c,st,sp,dr)=>({id,en,km,sex,bday:b,center:c,status:st,sponsored:sp,sponsor:sp?'Sponsor on file':'',dropout:dr,howlong:dr?'3 months':'',pstat:'New',level:'Beginner',enroll:'2025-09-01'});
@@ -437,7 +437,57 @@ msgs(){return `<h1><span class="ic" aria-hidden="true">💬</span>Messages</h1><
 outlines(){return `<h1><span class="ic" aria-hidden="true">📚</span>Course Outlines</h1><p class="sub" style="margin:0 0 14px">Upload the lessons each class is teaching (Excel or CSV). Click any cell to edit; changes save automatically.</p>
  <div class="card"><div class="bar fl"><label>Outline name<input id="oname" placeholder="e.g. Term 1 lessons" style="width:220px"></label><label>Class<input id="ocl" list="oclist" style="width:170px"></label><datalist id="oclist">${allCls().map(c=>`<option value="${esc(c)}">`).join('')}</datalist><label class="btn" style="cursor:pointer">Choose Excel or CSV file<input type="file" id="ofile" accept=".xlsx,.xls,.csv" hidden></label></div></div>
  <div class="card"><div class="bar"><input id="oq" type="search" placeholder="Search lessons" value="${esc(oq)}" aria-label="Search lessons"><label>Class <select id="ocls"><option value="">All classes</option>${allCls().map(c=>`<option value="${esc(c)}"${ocls==c?' selected':''}>${esc(c)}</option>`).join('')}</select></label></div><div id="ores">${oRes()}</div></div>`},
-roster(){const v=vis();return `<h1><span class="ic" aria-hidden="true">📋</span>Roster</h1><p class="sub" style="margin:0 0 14px">Students grouped by center.</p>${datebar()}<div class="bar"><span></span><span>${xbtns('stu')}</span></div>`+Object.keys(CENTERS).filter(c=>campus=='All'||c==campus).map(c=>{const l=v.filter(s=>s.center==c);return `<div class="card"><h2>${CENTERS[c]}</h2>${l.length?l.map(s=>`<div class="row" data-det="${S.students.indexOf(s)}">${av(s)}${who(s)}<span class="pill${isDrop(s)?' bad':''}">${esc(s.status)}</span></div>`).join(''):'<p class="sub">No students enrolled.</p>'}</div>`}).join('')},
+roster(){
+  const logs=S.worklog||[], sch=S.schedule||[];
+  const f=DF.from,x=DF.to;
+  const filtered=logs.filter(L=>inR(L.date,f,x)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const done=filtered.filter(L=>L.done).length;
+  const open=filtered.length-done;
+  const byPos={};filtered.forEach(L=>{const p=L.position||'Other';byPos[p]=(byPos[p]||0)+1});
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const schRows=sch.length?sch.map((s,i)=>`<tr>
+    <td>${esc(s.day||'')}</td><td>${esc(s.person||'')}</td><td>${esc(s.position||'')}</td>
+    <td>${esc(s.subject||s.task||'')}</td><td>${esc(s.time||'')}</td><td>${esc(s.center||'')}</td>
+    <td style="white-space:nowrap"><button class="link" data-act="schedit" data-i="${i}">Edit</button>
+      <button class="link" data-act="schdel" data-i="${i}" style="color:#c0392b">Del</button></td></tr>`).join(''):`<tr><td colspan="7" class="muted" style="text-align:center;padding:16px">${TT('No schedule yet. Add teaching or work shifts.')}</td></tr>`;
+  const logRows=filtered.length?filtered.map((L,idx2)=>{
+    const i=logs.indexOf(L);
+    return `<tr>
+      <td>${esc(L.date||'')}</td><td>${esc(L.person||'')}</td><td>${esc(L.position||'')}</td>
+      <td>${esc(L.action||'')}</td><td>${esc(L.problem||'')}</td><td>${esc(L.solving||'')}</td>
+      <td>${esc(L.goal||'')}</td>
+      <td><button class="ghost" data-act="logtoggle" data-i="${i}">${L.done?'✅':'⬜'}</button></td>
+      <td style="white-space:nowrap"><button class="link" data-act="logedit" data-i="${i}">Edit</button>
+        <button class="link" data-act="logdel" data-i="${i}" style="color:#c0392b">Del</button></td></tr>`;
+  }).join(''):`<tr><td colspan="9" class="muted" style="text-align:center;padding:16px">${TT('No daily reports in this date range.')}</td></tr>`;
+  return `<h1><span class="ic" aria-hidden="true">📋</span>${TT('Staff & schedule')}</h1>
+  <p class="sub" style="margin:0 0 14px">${TT('Teacher and staff teaching schedule, work by position, and daily activity reports.')}</p>
+  ${datebar()}
+  <div class="${animDash?'anim':''}" style="margin-bottom:14px">
+    <div class="cards">
+      <div class="card"><span class="sub"><span class="ic">📅</span>${TT('Schedule rows')}</span><span class="n" data-count="${sch.length}">${num(sch.length)}</span></div>
+      <div class="card"><span class="sub"><span class="ic">📝</span>${TT('Daily reports')}</span><span class="n" data-count="${filtered.length}">${num(filtered.length)}</span></div>
+      <div class="card"><span class="sub"><span class="ic">✅</span>${TT('Finished')}</span><span class="n" data-count="${done}">${num(done)}</span></div>
+      <div class="card"><span class="sub"><span class="ic">⬜</span>${TT('In progress')}</span><span class="n" data-count="${open}">${num(open)}</span></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="bar"><h2 style="margin:0">${TT('Weekly teaching & work schedule')}</h2>
+      <button type="button" class="primary" data-act="schadd">+ ${TT('Add schedule')}</button></div>
+    <p class="sub" style="margin:8px 0 10px">${TT('Plan who teaches or works by weekday, subject/task, time and center.')}</p>
+    <div class="scroll"><table class="data"><thead><tr>
+      <th>${TT('Day')}</th><th>${TT('Name')}</th><th>${TT('Position')}</th><th>${TT('Subject / task')}</th><th>${TT('Time')}</th><th>${TT('Center')}</th><th></th>
+    </tr></thead><tbody>${schRows}</tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="bar"><h2 style="margin:0">${TT('Daily work reports')}</h2>
+      <button type="button" class="primary" data-act="logadd">+ ${TT('Add daily report')}</button></div>
+    <p class="sub" style="margin:8px 0 10px">${TT('Record date, action, problem, solving and goal. Filter by day, month or year above. Mark finished when done.')}</p>
+    <div class="scroll"><table class="data"><thead><tr>
+      <th>${TT('Date')}</th><th>${TT('Name')}</th><th>${TT('Position')}</th><th>${TT('Action')}</th><th>${TT('Problem')}</th><th>${TT('Solving')}</th><th>${TT('Goal')}</th><th>${TT('Done')}</th><th></th>
+    </tr></thead><tbody>${logRows}</tbody></table></div>
+  </div>`;
+},
 projects(){const f=DF.from,x=DF.to,T=tot(f,x),A=tot();
  let L=S.projects.map((p,i)=>({p,i,s:sumP(p,f,x),a:sumP(p)}));
  if(sproj!='order'){const g=r=>sproj=='last'?r.a.date:r.s[sproj];L.sort((m,n)=>g(m)<g(n)?-1:g(m)>g(n)?1:0);if(ord=='desc')L.reverse()}
@@ -456,97 +506,79 @@ reports(){
   const v=S.students.filter(s=>(campus=='All'||s.center==campus)&&inR(s.enroll,f,x));
   const stuBen=v.length, tb=projBen+stuBen;
   const COLORS=['#2f9e6e','#3b6fb6','#c98a14','#e08a2b','#9b7bb8','#5dade2','#e74c3c','#1abc9c','#8e44ad','#16a085','#d35400','#2980b9','#27ae60','#c0392b'];
-  const stats=P.map((p,i)=>({i,name:p.n||PN[i]||('Project '+(i+1)),ben:+C[i].ben||0,count:+C[i].count||0,funds:+C[i].funds||0,val:Math.max(+C[i].ben||0,+C[i].count||0)}));
+  const projectCards=P.map((p,i)=>{
+    const s=C[i], name=p.n||PN[i]||('Project '+(i+1));
+    const ben=+s.ben||0, cnt=+s.count||0;
+    return `<div class="card" style="cursor:pointer;min-width:140px" data-act="sf" data-kind="project" data-val="${i}" title="${esc(name)}">
+      <span class="sub"><span class="ic">${['🏛️','💰','🌿','🏠','🎓','💻','🤝','🔧','🚰','💧','🚽','🏘️','🏡','🍲'][i]||'🌱'}</span> ${i+1}. ${esc(name.length>22?name.slice(0,22)+'…':name)}</span>
+      <div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px">
+        <div><div class="sub">${TT('Beneficiaries')}</div><span class="n" style="font-size:22px" data-count="${ben}">${num(ben)}</span></div>
+        <div style="text-align:right"><div class="sub">${TT('Completed')}</div><span class="n" style="font-size:22px" data-count="${cnt}">${num(cnt)}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+  const stats=P.map((p,i)=>({i,name:p.n||PN[i]||'',ben:+C[i].ben||0,count:+C[i].count||0,val:Math.max(+C[i].ben||0,+C[i].count||0)}));
   const ranked=[...stats].sort((a,b)=>b.val-a.val);
   const maxVal=Math.max(1,...stats.map(s=>s.val),stuBen);
-  const seg=[];
-  stats.forEach((s,i)=>{if(s.val>0)seg.push({l:s.name,v:s.val,c:COLORS[i%COLORS.length]})});
+  const seg=stats.filter(s=>s.val>0).map(s=>({l:s.name,v:s.val,c:COLORS[s.i%COLORS.length]}));
   if(stuBen>0)seg.push({l:TT('Students (education)'),v:stuBen,c:'#1a5f4a'});
   if(!seg.length)seg.push({l:TT('No data yet.'),v:1,c:'#ddd'});
-  const top3=ranked.filter(s=>s.val>0).slice(0,3);
-  const rows=P.map((p,i)=>{const s=C[i];return `<tr><td><b>${i+1}.</b> ${esc(p.n||PN[i]||'')}</td><td style="text-align:right">${num(s.ben)}</td><td style="text-align:right">${num(s.count)}</td><td style="text-align:right">${num(s.funds)}</td><td>${esc(s.date||'–')}</td></tr>`}).join('');
   return `<h1><span class="ic" aria-hidden="true">📈</span>Reports</h1>
   <p class="sub" style="margin:0 0 8px">${TT('Totals across all 14 projects. Students are also counted as beneficiaries.')}</p>
   ${datebar()}
   <div class="${animDash?'anim':''}" style="margin-bottom:14px">
     <div class="cards">
-      <div class="card"><span class="sub"><span class="ic">🌱</span>${TT('Projects')}</span><span class="n" data-count="${P.length}">${num(P.length)}</span></div>
-      <div class="card"><span class="sub"><span class="ic">🎓</span>${TT('Students')}</span><span class="n" data-count="${stuBen}">${num(stuBen)}</span></div>
+      <div class="card" style="cursor:pointer" data-act="sf" data-kind="status" data-val=""><span class="sub"><span class="ic">🌱</span>${TT('Projects')}</span><span class="n" data-count="${P.length}">${num(P.length)}</span></div>
+      <div class="card" style="cursor:pointer" data-act="sf" data-kind="status" data-val="Active"><span class="sub"><span class="ic">🎓</span>${TT('Students')}</span><span class="n" data-count="${stuBen}">${num(stuBen)}</span></div>
       <div class="card"><span class="sub"><span class="ic">🙌</span>${TT('Beneficiaries')}</span><span class="n" data-count="${tb}">${num(tb)}</span></div>
       <div class="card"><span class="sub"><span class="ic">💵</span>${TT('Funds (USD)')}</span><span class="n" data-count="${tf}">${num(tf)}</span></div>
       <div class="card"><span class="sub"><span class="ic">✔️</span>${TT('Completed')}</span><span class="n" data-count="${tc}">${num(tc)}</span></div>
     </div>
     <p class="sub" style="margin-top:8px">${TT('Beneficiaries')} = ${TT('Project beneficiaries')} (${num(projBen)}) + ${TT('Students')} (${num(stuBen)})</p>
   </div>
+  <div class="card" style="margin-bottom:14px">
+    <h2 style="margin-bottom:10px">${TT('All 14 projects')}</h2>
+    <p class="sub" style="margin:0 0 10px">${TT('Each card shows project number, beneficiaries and completed. Click a card to open Projects Tracker.')}</p>
+    <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">${projectCards}</div>
+  </div>
   <div class="bar"><span></span><span>${xbtns('proj')}</span></div>
   <div class="gr" style="margin-bottom:14px">
     <div class="card">
       <h2 style="margin-bottom:10px">${TT('Beneficiaries overview')}</h2>
       <div class="dnw">${donut(seg,Math.max(tb,1))}
-        <div style="flex:1;min-width:140px;max-height:280px;overflow:auto">
-          ${seg.filter(s=>s.v>0&&s.l!==TT('No data yet.')).map(s=>`<div class="lg"><i style="background:${s.c}"></i><span title="${esc(s.l)}">${esc(s.l.length>28?s.l.slice(0,28)+'…':s.l)}</span><b>${num(s.v)}</b></div>`).join('')||('<div class="muted">'+TT('No data yet.')+'</div>')}
+        <div style="flex:1;min-width:130px;max-height:260px;overflow:auto">
+          ${seg.filter(s=>s.l!==TT('No data yet.')).map(s=>`<div class="lg"><i style="background:${s.c}"></i><span>${esc(s.l.length>26?s.l.slice(0,26)+'…':s.l)}</span><b>${num(s.v)}</b></div>`).join('')}
         </div>
       </div>
     </div>
     <div class="card">
-      <h2 style="margin-bottom:10px">${TT('Top projects')}</h2>
-      ${top3.length?top3.map((s,r)=>`<div class="row" style="padding:10px 0;border-bottom:1px solid var(--solid,#eee);align-items:center">
-        <span style="width:28px;height:28px;border-radius:50%;background:${['#c98a14','#9aa0a6','#cd7f32'][r]};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">${r+1}</span>
-        <div style="flex:1;min-width:0"><b>${esc(s.name)}</b>
-          <div class="ht" style="margin-top:4px;height:8px;background:var(--soft,#eee);border-radius:99px;overflow:hidden"><i style="display:block;height:100%;width:${s.val/maxVal*100}%;background:${COLORS[s.i%COLORS.length]}"></i></div>
-        </div>
-        <b style="font-size:18px">${num(s.val)}</b>
-      </div>`).join('')+'<p class="sub" style="margin-top:8px">'+TT('Ranked by beneficiaries or completed count.')+'</p>'
-      :`<div class="empty">${TT('No project data yet. Add updates in Projects Tracker.')}</div><p class="sub" style="margin-top:8px">${TT('Students counted as beneficiaries')}: <b>${num(stuBen)}</b></p>`}
+      <h2 style="margin-bottom:10px">${TT('Structural setups')}</h2>
+      <div class="cards" style="margin:10px 0 0">${STRUCT.map(([i,l])=>`<div class="card" style="cursor:pointer" data-act="sf" data-kind="project" data-val="${i}"><span class="sub">${esc(l)}</span><span class="n" data-count="${(C[i]||{}).count||0}">${num((C[i]||{}).count||0)}</span></div>`).join('')}</div>
     </div>
   </div>
   <div class="card" style="margin-bottom:14px">
     <h2 style="margin-bottom:10px">${TT('All 14 projects — ranked')}</h2>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      ${ranked.map((s,r)=>{
-        const pct=s.val/maxVal*100, hot=s.val>0&&r<3;
-        return `<div style="display:grid;grid-template-columns:28px 1fr 64px;gap:10px;align-items:center${hot?';background:rgba(47,158,110,.08);border-radius:10px;padding:6px 8px':''}">
-          <span class="sub" style="font-weight:600;text-align:center">${r+1}</span>
-          <div>
-            <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px">
-              <span style="font-weight:${hot?'600':'500'}">${esc(s.name)}</span>
-              <span class="sub">${s.ben?num(s.ben)+' ben':''}${s.ben&&s.count?' · ':''}${s.count?num(s.count)+' done':(!s.ben&&!s.count?'—':'')}</span>
-            </div>
-            <div class="ht" style="height:12px;background:var(--soft,#eee);border-radius:99px;overflow:hidden">
-              <i style="display:block;height:100%;width:${Math.max(pct,s.val?2:0)}%;background:${COLORS[s.i%COLORS.length]};border-radius:99px"></i>
-            </div>
-          </div>
-          <b style="text-align:right;font-size:${hot?'18px':'15px'}">${num(s.val)}</b>
-        </div>`;
-      }).join('')}
+    ${ranked.map((s,r)=>{
+      const pct=s.val/maxVal*100,hot=s.val>0&&r<3;
+      return `<div style="display:grid;grid-template-columns:28px 1fr 56px;gap:8px;align-items:center;margin-bottom:8px${hot?';background:rgba(47,158,110,.08);border-radius:10px;padding:6px 8px':''}">
+        <span class="sub" style="font-weight:600;text-align:center">${r+1}</span>
+        <div><div style="font-weight:${hot?600:500}">${esc(s.name)}</div>
+          <div class="ht" style="height:10px;background:var(--soft,#eee);border-radius:99px;overflow:hidden;margin-top:4px"><i style="display:block;height:100%;width:${Math.max(pct,s.val?3:0)}%;background:${COLORS[s.i%COLORS.length]};border-radius:99px"></i></div></div>
+        <b style="text-align:right">${num(s.val)}</b></div>`;
+    }).join('')}
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--solid,#eee);display:grid;grid-template-columns:28px 1fr 56px;gap:8px;align-items:center">
+      <span></span><div><b>${TT('Students (education)')}</b>
+        <div class="ht" style="height:10px;background:var(--soft,#eee);border-radius:99px;overflow:hidden;margin-top:4px"><i style="display:block;height:100%;width:${stuBen/maxVal*100}%;background:#1a5f4a;border-radius:99px"></i></div></div>
+      <b style="text-align:right">${num(stuBen)}</b>
     </div>
-    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--solid,#eee);display:grid;grid-template-columns:28px 1fr 64px;gap:10px;align-items:center">
-      <span></span>
-      <div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><b>${TT('Students (education)')}</b><span class="sub">${num(stuBen)} ben</span></div>
-        <div class="ht" style="height:12px;background:var(--soft,#eee);border-radius:99px;overflow:hidden">
-          <i style="display:block;height:100%;width:${stuBen/maxVal*100}%;background:#1a5f4a;border-radius:99px"></i>
-        </div>
-      </div>
-      <b style="text-align:right;font-size:18px">${num(stuBen)}</b>
-    </div>
-  </div>
-  <div class="card scroll" style="margin-bottom:14px">
-    <h2 style="margin-bottom:10px">${TT('All 14 projects summary')}</h2>
-    <table class="data"><thead><tr><th>${TT('Project')}</th><th style="text-align:right">${TT('Beneficiaries')}</th><th style="text-align:right">${TT('Completed')}</th><th style="text-align:right">${TT('Funds (USD)')}</th><th>${TT('Last update')}</th></tr></thead>
-    <tbody>${rows}
-      <tr style="font-weight:700;background:var(--soft,#eef6f0)"><td>${TT('Total beneficiaries')}</td><td style="text-align:right">${num(tb)}</td><td style="text-align:right">${num(tc)}</td><td style="text-align:right">${num(tf)}</td><td></td></tr>
-    </tbody></table>
-  </div>
-  <div class="card"><h2 style="margin-bottom:6px">${TT('Structural setups')}</h2>
-    <div class="cards" style="margin:10px 0 0">${STRUCT.map(([i,l])=>kpi(l,num((C[i]||{}).count||0))).join('')}</div>
   </div>
   <div class="card scroll"><div class="bar"><h2>${TT('Totals by period')}</h2><span class="tl" style="margin:0;flex-wrap:wrap"><label>${TT('Group by')} <select id="grp">${[['day','Day'],['month','Month'],['year','Year']].map(([k,l])=>`<option value="${k}"${grp==k?' selected':''}>${l}</option>`).join('')}</select></label>${ordSel()}</span></div>${perTable()}</div>
   <div class="card scroll"><h2 style="margin-bottom:8px">${TT('Students by center')}</h2>
     <table><thead><tr><th>${TT('Center')}</th><th>${TT('Students')}</th><th>${TT('Active')}</th><th>${TT('Sponsored')}</th><th>${TT('Drop out')}</th></tr></thead>
-    <tbody>${Object.keys(CENTERS).map(c=>{const l=v.filter(s=>s.center==c);return `<tr><td>${esc(c)}</td><td>${l.length}</td><td>${l.filter(s=>stOf(s)=='Active').length}</td><td>${l.filter(s=>s.sponsored).length}</td><td>${l.filter(s=>stOf(s)=='Dropped').length}</td></tr>`}).join('')}</tbody></table>
+    <tbody>${Object.keys(CENTERS).map(c=>{const l=v.filter(s=>s.center==c);return `<tr style="cursor:pointer" data-act="sf" data-kind="center" data-val="${esc(c)}"><td>${esc(c)}</td><td>${l.length}</td><td>${l.filter(s=>stOf(s)=='Active').length}</td><td>${l.filter(s=>s.sponsored).length}</td><td>${l.filter(s=>stOf(s)=='Dropped').length}</td></tr>`}).join('')}</tbody></table>
   </div>`;
   }catch(err){console.error('Reports error',err);return '<h1>Reports</h1><p class="err">'+String(err&&err.message||err)+'</p>';}
+
 },
 about(){
   const A=S.about||(S.about={text:'',photos:[],files:[]});
@@ -746,7 +778,24 @@ function stRows(){const v=sorted(vis());return v.length?v.map(s=>{const i=S.stud
 /* events */
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-v],[data-act]');if(!b){const r=e.target.closest('[data-det]'),g=e.target.closest('[data-gb]'),w=e.target.closest('[data-trow]');if(r)showDet(+r.dataset.det);else if(g)openGB(+g.dataset.gb);else if(w)openT(+w.dataset.trow);return}
-  if(b.dataset.v){view=b.dataset.v;animDash=view=='dash'||view=='sponsor';render();return}
+  if(b.dataset.v){view=b.dataset.v;animDash=true;render();return}
+  if(b.dataset.act==='sf'){
+    const kind=b.dataset.kind,val=b.dataset.val;
+    if(!kind)return;
+    if(sf&&sf.kind===kind&&sf.val===val)sf=null;else sf={kind,val};
+    if(kind==='sponsored')view='sponsor';
+    else if(kind==='status'||kind==='center'||kind==='grade'){if(view!=='students'&&view!=='sponsor')view='students'}
+    else if(kind==='project')view='projects';
+    animDash=true;render();return;
+  }
+  if(b.dataset.act==='sfclear'){sf=null;render();return}
+  if(b.dataset.act==='logadd'){openLogForm(-1);return}
+  if(b.dataset.act==='logedit'){openLogForm(+b.dataset.i);return}
+  if(b.dataset.act==='logdel'){if(confirm(TT('Delete this daily report?'))){S.worklog.splice(+b.dataset.i,1);save();render()}return}
+  if(b.dataset.act==='logtoggle'){const L=S.worklog[+b.dataset.i];if(L){L.done=!L.done;save();render()}return}
+  if(b.dataset.act==='schadd'){openSchForm(-1);return}
+  if(b.dataset.act==='schedit'){openSchForm(+b.dataset.i);return}
+  if(b.dataset.act==='schdel'){if(confirm(TT('Delete this schedule row?'))){S.schedule.splice(+b.dataset.i,1);save();render()}return}
   const a=b.dataset.act,i=+b.dataset.i;
   if(a=='out'){user=null;render()}
   if(a=='lang'){lang=lang=='km'?'en':'km';saveUI();render()}
@@ -1013,6 +1062,35 @@ F.onsubmit=e=>{
   if(edit<0)S.students.push(d);else S.students[edit]=d;
   save();$('#dlg').close();render();
 };
+
+function openLogForm(i){
+  S.worklog=S.worklog||[];
+  const L=i>=0?S.worklog[i]:{date:new Date().toISOString().slice(0,10),person:'',position:'',action:'',problem:'',solving:'',goal:'',done:false};
+  const date=prompt(TT('Date')+' (YYYY-MM-DD)',L.date||''); if(date===null)return;
+  const person=prompt(TT('Name'),L.person||''); if(person===null)return;
+  const position=prompt(TT('Position')+' (Teacher, Admin, HR, Finance…)',L.position||''); if(position===null)return;
+  const action=prompt(TT('Action / what was done'),L.action||''); if(action===null)return;
+  const problem=prompt(TT('Problem'),L.problem||''); if(problem===null)return;
+  const solving=prompt(TT('Solving'),L.solving||''); if(solving===null)return;
+  const goal=prompt(TT('Goal'),L.goal||''); if(goal===null)return;
+  const row={date,person,position,action,problem,solving,goal,done:!!L.done};
+  if(i>=0)S.worklog[i]=row;else S.worklog.push(row);
+  save();render();
+}
+function openSchForm(i){
+  S.schedule=S.schedule||[];
+  const L=i>=0?S.schedule[i]:{day:'Mon',person:'',position:'Teacher',subject:'',time:'',center:Object.keys(CENTERS)[0]};
+  const day=prompt(TT('Day')+' (Mon–Sun)',L.day||'Mon'); if(day===null)return;
+  const person=prompt(TT('Name'),L.person||''); if(person===null)return;
+  const position=prompt(TT('Position'),L.position||''); if(position===null)return;
+  const subject=prompt(TT('Subject / task'),L.subject||L.task||''); if(subject===null)return;
+  const time=prompt(TT('Time')+' (e.g. 08:00-10:00)',L.time||''); if(time===null)return;
+  const center=prompt(TT('Center'),L.center||''); if(center===null)return;
+  const row={day,person,position,subject,task:subject,time,center};
+  if(i>=0)S.schedule[i]=row;else S.schedule.push(row);
+  save();render();
+}
+
 /* ========== CLOUD SYNC BOOTSTRAP ========== */
 (async function bootstrapCloud(){
   S.grades = S.grades || [];
@@ -1023,6 +1101,9 @@ F.onsubmit=e=>{
   S.tatt = S.tatt || [];
   S.kpi = S.kpi || {crit:[{id:'k1',n:'Attendance & punctuality',w:25},{id:'k2',n:'Teaching quality',w:25},{id:'k3',n:'Student progress',w:25},{id:'k4',n:'Teamwork & communication',w:25}],scores:{}};
   S.projects = S.projects || [];
+  S.worklog = S.worklog || [];
+  S.schedule = S.schedule || [];
+  S.about = S.about || {text:'',photos:[],files:[]};
 
   const cloud = await loadFromCloud();
   if (cloud && typeof cloud === 'object') {
@@ -1035,6 +1116,9 @@ F.onsubmit=e=>{
     S.tatt = cloud.tatt || S.tatt;
     S.kpi = cloud.kpi || S.kpi;
     S.projects = cloud.projects || S.projects;
+    S.worklog = cloud.worklog || S.worklog || [];
+    S.schedule = cloud.schedule || S.schedule || [];
+    S.about = cloud.about || S.about || {text:'',photos:[],files:[]};
     S.about = cloud.about || S.about || {text:'',photos:[],files:[]};
     try { localStorage.setItem('hvto-v2', JSON.stringify(S)); } catch(e) {}
     console.log('Loaded shared data from Supabase');
