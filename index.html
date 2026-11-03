@@ -714,7 +714,9 @@ document.addEventListener('change',e=>{
       const iSponsor=col('sponsor name','sponsor');
       const iSponsorId=col('sponsor id');
       const iDropout=col('drop out','dropout');
-      const iStatus=col('status');
+      let iStatus=-1;
+      for(let i=0;i<headers.length;i++){if(headers[i]==='status'){iStatus=i;break}}
+      if(iStatus<0){for(let i=0;i<headers.length;i++){if(headers[i].includes('status')&&!headers[i].includes('photo')){iStatus=i;break}}}
       const iNotes=col('notes');
 
       const yes=v=>{const s=String(v||'').trim().toLowerCase();return s==='yes'||s==='y'||s==='true'||s==='1'};
@@ -756,15 +758,17 @@ document.addEventListener('change',e=>{
         const sponsored=iSponsored>=0?yes(row[iSponsored]):(t.id==='spfile');
         const dropout=iDropout>=0&&yes(row[iDropout]);
         let status=iStatus>=0?String(row[iStatus]||'').trim():'';
-        if(!status)status=dropout?'Dropped':'Active';
-        if(/grad/i.test(status))status='Graduated';
-        else if(/drop/i.test(status))status='Dropped';
-        else if(/died|death|passed/i.test(status))status='Died';
-        else if(/postpone|postponed|hold/i.test(status))status='POSTPONE';
-        else if(/^pst$|post\s*secondary|post-secondary/i.test(status))status='PST';
-        else if(/active/i.test(status))status='Active';
-        else if(status && !/^[\d.]+$/.test(status))status=status; // keep custom text
-        else status='Active'; // empty or numeric (age wrongly in status col)
+        const statusRaw=String(status||'').trim();
+        const statusUp=statusRaw.toUpperCase();
+        if(!statusRaw)status=dropout?'Dropped':'Active';
+        else if(/GRAD/.test(statusUp))status='Graduated';
+        else if(/^(DROP|DROPPED|DROP OUT|DROPOUT)/.test(statusUp)||statusUp==='DROP')status='Dropped';
+        else if(/DIED|DEATH|PASSED AWAY|PASSED/.test(statusUp))status='Died';
+        else if(/POSTPONE|POSTPONED|ON HOLD|HOLD/.test(statusUp))status='POSTPONE';
+        else if(statusUp==='PST'||/^PST\b/.test(statusUp)||/POST\s*SECONDARY|POST-SECONDARY/.test(statusUp))status='PST';
+        else if(/ACTIVE/.test(statusUp))status='Active';
+        else if(/^[\d.]+$/.test(statusRaw))status='Active'; // numeric age wrongly in Status
+        else status=statusRaw;
 
         const data={
           enroll:iEnroll>=0?normDate(row[iEnroll]):'',
@@ -802,17 +806,22 @@ document.addEventListener('change',e=>{
           Object.keys(data).forEach(k=>{if(data[k]!==''&&data[k]!==undefined)stu[k]=data[k]});
           if(sid)stu.id=sid;
           stu.sponsored=sponsored;
+          stu.status=status;
           if(status==='Dropped'||dropout){stu.dropout=true;stu.status='Dropped'}
-          else{stu.dropout=!!dropout;stu.status=status}
+          else stu.dropout=false;
           used.add(stu);updated++;
         }else{
           const id=(sid&&!S.students.some(s=>s.id===sid))?sid:nextId(S.students,'HVTO-');
-          const ns=Object.assign({id, photo:'', pstat:'', addr:''}, data, {center:data.center||Object.keys(CENTERS)[0]});
+          const ns=Object.assign({id, photo:'', pstat:'', addr:''}, data, {center:data.center||Object.keys(CENTERS)[0], status, dropout:(status==='Dropped'||dropout)});
           S.students.push(ns);used.add(ns);created++;
         }
       }
+      // Recount statuses for message
+      const sc={Active:0,Graduated:0,Dropped:0,Died:0,POSTPONE:0,PST:0};
+      S.students.filter(s=>s.sponsored).forEach(s=>{const k=s.status;if(sc[k]!==undefined)sc[k]++;});
       save();
-      msg.textContent=TT('Import complete')+': '+updated+' updated, '+created+' created'+(skipped?', '+skipped+' skipped':'');
+      msg.textContent=TT('Import complete')+': '+updated+' updated, '+created+' created'+(skipped?', '+skipped+' skipped':'')
+        +' | Active '+sc.Active+', Grad '+sc.Graduated+', Drop '+sc.Dropped+', Died '+sc.Died+', POSTPONE '+sc.POSTPONE+', PST '+sc.PST;
       t.value='';
       render();
     }).catch(e=>{console.warn(e);msg.textContent=TT('Could not read this file.')+': '+(e.message||e);});
