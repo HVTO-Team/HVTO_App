@@ -224,7 +224,7 @@ let warned=0;const save=()=>{
   try{localStorage.setItem('hvto-v2',JSON.stringify(S))}catch(e){if(!warned){warned=1;alert(TT('Could not save: browser storage is full. Remove old outlines or photos.'))}}
   saveToCloud(S);
 };
-let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='';
+let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null;
 const $=s=>document.querySelector(s);
 const SALT='hvto.v1.k9q2',AUTH='4cc26f7b837c3a7be51c25ba6b916f92e2e4e71171f2fcdc0fc34cd963f9f711';let fails=0,lockUntil=0;
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
@@ -249,8 +249,42 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const age=b=>{if(!b)return'';const d=new Date(b),n=new Date();let a=n.getFullYear()-d.getFullYear();if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate()))a--;return a};
 const dur=(a,b)=>{if(!a)return'';const s=new Date(a),e=b?new Date(b):new Date();let m=(e.getFullYear()-s.getFullYear())*12+e.getMonth()-s.getMonth();if(e.getDate()<s.getDate())m--;if(m<0)return'Not started yet';const y=Math.floor(m/12),r=m%12;return[y&&y+(y>1?' years':' year'),r&&r+(r>1?' months':' month')].filter(Boolean).join(' ')||'Less than 1 month'};
 const inR=(d,f,x)=>(!f||(d||'')>=f)&&(!x||(d||'')<=x);
-const vis=()=>S.students.filter(s=>(campus=='All'||s.center==campus)&&inR(s.enroll,DF.from,DF.to)&&(!q||(s.en+s.km+s.id+(s.sponsor||'')+(s.sponsorid||'')).toLowerCase().includes(q.toLowerCase())));
+const vis=()=>S.students.filter(s=>(campus=='All'||s.center==campus)&&inR(s.enroll,DF.from,DF.to)&&matchSf(s)&&(!q||(s.en+s.km+s.id+(s.sponsor||'')+(s.sponsorid||'')).toLowerCase().includes(q.toLowerCase())));
 const visSponsored=()=>vis().filter(s=>s.sponsored);
+const stOf=s=>{
+  const raw=String(s.status||'').trim().toUpperCase();
+  if(s.dropout||s.status==='Dropped'||/^DROP/.test(raw))return 'Dropped';
+  if(/GRAD/.test(raw))return 'Graduated';
+  if(/DIED|DEATH|PASSED/.test(raw))return 'Died';
+  if(/POSTPONE|POSTPONED|HOLD/.test(raw))return 'POSTPONE';
+  if(raw==='PST'||/^PST\b/.test(raw)||/POST\s*SECONDARY/.test(raw))return 'PST';
+  if(/ACTIVE/.test(raw)||!raw)return 'Active';
+  return raw?raw.charAt(0)+raw.slice(1).toLowerCase():'Active';
+};
+const matchSf=s=>{
+  if(!sf)return true;
+  if(sf.kind==='status')return stOf(s)===sf.val;
+  if(sf.kind==='sponsored')return !!s.sponsored===(sf.val==='yes');
+  if(sf.kind==='center')return s.center===sf.val;
+  if(sf.kind==='grade'){
+    const g=String(s.grade||'').trim();
+    const low=g.toLowerCase().replace(/\s+/g,'');
+    if(sf.val==='Year1')return /^(year\s*1|y1|1st|freshman|year1)$/i.test(low);
+    if(sf.val==='Year2')return /^(year\s*2|y2|2nd|sophomore|year2)$/i.test(low);
+    if(sf.val==='Year3')return /^(year\s*3|y3|3rd|junior|year3)$/i.test(low);
+    if(sf.val==='Year4')return /^(year\s*4|y4|4th|senior|year4)$/i.test(low);
+    return String(parseInt(g,10))===sf.val || g===sf.val;
+  }
+  return true;
+};
+const filterChip=()=>{
+  if(!sf)return '';
+  const label=sf.kind==='status'?sf.val:sf.kind==='sponsored'?(sf.val==='yes'?TT('Sponsored'):TT('Not sponsored')):sf.kind==='center'?sf.val:sf.kind==='grade'?('Grade '+sf.val):sf.val;
+  return `<div class="card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px">
+    <span><b>${TT('Filter')}:</b> ${esc(label)} <span class="sub">(${TT('click a chart or card to change')})</span></span>
+    <button type="button" class="ghost" data-act="sfclear">${TT('Clear filter')}</button>
+  </div>`;
+};
 const sorted=v=>{const f={enroll:s=>s.enroll||'',name:s=>s.en.toLowerCase(),age:s=>+age(s.bday)||0,center:s=>s.center,id:s=>+((/(\d+)\s*$/.exec(s.id||'')||[])[1]||0)}[sstu],r=v.slice().sort((a,b)=>{const x=f(a),y=f(b);return x<y?-1:x>y?1:0});return ord=='asc'?r:r.reverse()};
 const av=s=>`<span class="av">${s.photo?`<img src="${s.photo}" alt="">`:esc((s.en||'?')[0])}</span>`;
 const num=n=>Number(n||0).toLocaleString('en-US');
@@ -268,7 +302,7 @@ function render(){
   a.innerHTML=`<div class="top"><img class="hlogo" src="${L1}" alt="Homestay Volunteer Teachers Organization logo"><div class="sub">${TT('Homestay Volunteer Teachers Organization')}</div></div><div class="shell"><aside><div class="brand"><img class="fc" src="${L2}" alt="HVTO Free Education Center logo"><div><strong class="serif" style="font-size:19px">HVTO</strong><br><small>Free Education Center</small></div></div>
   <nav>${NAV.map(([k,t])=>`<button data-v="${k}" class="${view==k?'on':''}"><span class="ic" aria-hidden="true">${IC[t]||''}</span>${TT(t)}</button>`).join('')}</nav></aside>
   <div><header><span class="tl">${tools()}</span><label>Campus <select id="camp"><option value="All">All campuses</option>${Object.keys(CENTERS).map(c=>`<option ${campus==c?'selected':''}>${c}</option>`).join('')}</select></label></header>
-  <div class="who"><span class="av">${esc(user[0].toUpperCase())}</span><b>${esc(user)}</b><button class="link" data-act="out">Sign out</button></div>${VIEWS[view]()}</div></div>`;trAll();if((view=='dash'||view=='sponsor')&&animDash){animDash=false;countUp()}
+  <div class="who"><span class="av">${esc(user[0].toUpperCase())}</span><b>${esc(user)}</b><button class="link" data-act="out">Sign out</button></div>${VIEWS[view]()}</div></div>`;trAll();if(animDash){animDash=false;countUp()}
 }
 const IC={'Dashboard':'📊','Students':'🎓','Sponsorship Program':'🤝','Teachers':'👩‍🏫','Gradebook':'📝','Course Outlines':'📚','Roster':'📋','Messages':'💬','Reports':'📈','HVTO Projects Tracker':'🌱','Active':'✅','Sponsored':'🤝','Drop out':'⚠️','Beneficiaries':'🙌','All-time beneficiaries':'🙌','Completed':'✔️','Funds (USD)':'💵','Clean water pumps':'🚰','Bio sand filters':'💧','Household toilets':'🚽','Charity houses':'🏠','On leave':'🏖️','Avg. service':'⏳'};
 const kpi=(l,v)=>`<div class="card"><span class="sub"><span class="ic" aria-hidden="true">${IC[l]||''}</span>${l}</span><span class="n">${v}</span></div>`;
@@ -279,9 +313,9 @@ const VIEWS={
 dash(){const all=S.students.filter(s=>campus=='All'||s.center==campus);
  const v=(!DF.from&&!DF.to)?all:all.filter(s=>inR(s.enroll,DF.from,DF.to));
  const T=S.teachers.filter(t=>campus=='All'||t.center==campus);
- const kc=(l,n)=>`<div class="card"><span class="sub"><span class="ic" aria-hidden="true">${IC[l]||''}</span>${l}</span><span class="n" data-count="${n}">${num(n)}</span></div>`;
- const seg=[{l:'Active',v:v.filter(s=>s.status=='Active'&&!isDrop(s)).length,c:'#2f9e6e'},{l:'Dropped',v:v.filter(isDrop).length,c:'#e08a2b'},{l:'Graduated',v:v.filter(s=>s.status=='Graduated'&&!isDrop(s)).length,c:'#3b6fb6'}];
- const byC=Object.keys(CENTERS).map(c=>({l:c,v:v.filter(s=>s.center==c).length}));
+ const kc=(l,n,kind,val)=>`<div class="card" style="cursor:pointer" data-act="sf" data-kind="${kind||''}" data-val="${val||''}" title="${TT('Click to view list')}"><span class="sub"><span class="ic" aria-hidden="true">${IC[l]||''}</span>${l}</span><span class="n" data-count="${n}">${num(n)}</span></div>`;
+ const seg=[{l:'Active',v:v.filter(s=>stOf(s)=='Active').length,c:'#2f9e6e',k:'Active'},{l:'Dropped',v:v.filter(s=>stOf(s)=='Dropped').length,c:'#e08a2b',k:'Dropped'},{l:'Graduated',v:v.filter(s=>stOf(s)=='Graduated').length,c:'#3b6fb6',k:'Graduated'}];
+ const byC=Object.keys(CENTERS).map(c=>({l:c,v:v.filter(s=>s.center==c).length,kind:'center',val:c}));
  const gradeOrder=['1','2','3','4','5','6','7','8','9','10','11','12','Year1','Year2','Year3','Year4'];
  const gradeLabel={
   '1':'Grade 1','2':'Grade 2','3':'Grade 3','4':'Grade 4','5':'Grade 5','6':'Grade 6',
@@ -300,14 +334,14 @@ dash(){const all=S.students.filter(s=>campus=='All'||s.center==campus);
   return '';
  };
  const gradeCount={}; v.forEach(s=>{const g=normG(s.grade); if(g)gradeCount[g]=(gradeCount[g]||0)+1});
- const byG=gradeOrder.filter(g=>gradeCount[g]).map(g=>({l:gradeLabel[g]||g,v:gradeCount[g]}));
+ const byG=gradeOrder.filter(g=>gradeCount[g]).map(g=>({l:gradeLabel[g]||g,v:gradeCount[g],kind:'grade',val:g}));
  const gradeTotal=byG.reduce((n,x)=>n+x.v,0);
  const now=new Date(),pts=Array.from({length:12},(_,i)=>{const d=new Date(now.getFullYear(),now.getMonth()-11+i,1),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');return{l:k.slice(5),v:all.filter(s=>(s.enroll||'').startsWith(k)).length}});
  const ids=new Set(all.map(s=>s.id)),sj=SUBJ.map(x=>{const G=S.grades.filter(g=>g.subj==x&&ids.has(g.sid)),a=G.length?G.reduce((n,g)=>n+pct(g),0)/G.length:0;return{l:x,v:a,t:G.length?a.toFixed(0)+'%':'–',c:'#c98a14'}});
  const pj=S.projects.map(p=>({l:p.n,v:sumP(p,DF.from,DF.to).ben})).filter(x=>x.v>0).sort((x,y)=>y.v-x.v).slice(0,5);
  return `<h1><span class="ic" aria-hidden="true">📊</span>School dashboard</h1><p class="sub" style="margin:0">Students, grades, and family contact for the three Siem Reap campuses.</p>${datebar()}
- <div class="${animDash?'anim':''}"><div class="cards">${kc('Students',v.length)}${kc('Active',v.filter(s=>s.status=='Active').length)}${kc('Sponsored',v.filter(s=>s.sponsored).length)}${kc('Drop out',v.filter(isDrop).length)}${kc('Teachers',T.length)}</div>
- <div class="gr"><div class="card"><h2 style="margin-bottom:10px">Student status</h2><div class="dnw">${donut(seg,v.length)}<div style="flex:1;min-width:130px">${seg.map(s=>`<div class="lg"><i style="background:${s.c}"></i><span>${s.l}</span><b>${s.v}</b></div>`).join('')}</div></div></div>
+ <div class="${animDash?'anim':''}"><div class="cards">${kc('Students',v.length,'status','')}${kc('Active',v.filter(s=>stOf(s)=='Active').length,'status','Active')}${kc('Sponsored',v.filter(s=>s.sponsored).length,'sponsored','yes')}${kc('Drop out',v.filter(s=>stOf(s)=='Dropped').length,'status','Dropped')}${kc('Teachers',T.length,'','')}</div>
+ <div class="gr"><div class="card"><h2 style="margin-bottom:10px">Student status</h2><div class="dnw">${donut(seg,v.length)}<div style="flex:1;min-width:130px">${seg.map(s=>`<div class="lg" style="cursor:pointer" data-act="sf" data-kind="status" data-val="${s.k||s.l}"><i style="background:${s.c}"></i><span>${s.l}</span><b>${s.v}</b></div>`).join('')}</div></div></div>
  <div class="card"><h2 style="margin-bottom:6px">Students by center</h2>${hbars(byC)}</div>
  <div class="card wide"><h2 style="margin-bottom:6px">${TT('Students by grade')}</h2>
   ${byG.length?hbars(byG.map((x,i)=>({...x,c:i<12?'#3b6fb6':'#c98a14'}))):'<div class="empty">'+TT('No grade data yet. Set Student grade on student profiles.')+'</div>'}
@@ -318,7 +352,28 @@ dash(){const all=S.students.filter(s=>campus=='All'||s.center==campus);
  <div class="card"><h2 style="margin-bottom:6px">Top projects by beneficiaries</h2>${pj.length?hbars(pj.map(x=>({...x,c:'#2f9e6e'}))):'<div class="empty">No data yet.</div>'}</div></div>
  <div class="card"><div class="bar"><h2><span class="ic" aria-hidden="true">🆕</span>Latest students</h2><span><button class="link" data-v="students" style="color:var(--green);font-weight:500">Open records</button> ${xbtns('stu')}</span></div>
  ${v.length?v.slice().reverse().slice(0,5).map(s=>`<div class="row" data-det="${S.students.indexOf(s)}">${av(s)}${who(s)}<span class="sub">${s.bday?age(s.bday)+' yrs':''}</span></div>`).join(''):'<div class="empty">No students at this campus yet. Add one from the Students page.</div>'}</div></div>`},
-students(){return `<h1><span class="ic" aria-hidden="true">🎓</span>Students</h1><p class="sub" style="margin:0 0 4px">Manage records and add new students.</p><p class="sub" style="margin:0 0 14px;font-size:13px">${storLine()}</p>${datebar()}
+students(){
+  const base=S.students.filter(s=>(campus=='All'||s.center==campus)&&inR(s.enroll,DF.from,DF.to));
+  const sc={Active:0,Graduated:0,Dropped:0,Died:0,POSTPONE:0,PST:0}; let other=0;
+  base.forEach(s=>{const k=stOf(s); if(sc[k]!==undefined)sc[k]++; else other++;});
+  const groups=[{k:'Active',l:TT('Active'),c:'#2f9e6e',ic:'✅'},{k:'Graduated',l:TT('Graduated'),c:'#3b6fb6',ic:'✔️'},{k:'Dropped',l:TT('Drop out'),c:'#e08a2b',ic:'⚠️'},{k:'Died',l:TT('Died'),c:'#8b5a5a',ic:'🖤'},{k:'POSTPONE',l:TT('POSTPONE'),c:'#9b7bb8',ic:'⏸️'},{k:'PST',l:TT('PST'),c:'#c98a14',ic:'🎓'}];
+  const seg=groups.map(g=>({l:g.l,v:sc[g.k],c:g.c,k:g.k})).filter(x=>x.v>0);
+  if(other)seg.push({l:TT('Other'),v:other,c:'#888',k:'Other'});
+  return `<h1><span class="ic" aria-hidden="true">🎓</span>Students</h1><p class="sub" style="margin:0 0 4px">Manage records and add new students.</p><p class="sub" style="margin:0 0 14px;font-size:13px">${storLine()}</p>${datebar()}
+ ${filterChip()}
+ <div class="${animDash?'anim':''}" style="margin-bottom:14px">
+   <div class="cards">
+     <div class="card" style="cursor:pointer" data-act="sfclear"><span class="sub"><span class="ic">🎓</span>${TT('Total')}</span><span class="n" data-count="${base.length}">${num(base.length)}</span></div>
+     ${groups.map(g=>`<div class="card" style="cursor:pointer${sf&&sf.kind==='status'&&sf.val===g.k?';outline:2px solid var(--green)':''}" data-act="sf" data-kind="status" data-val="${g.k}"><span class="sub"><span class="ic">${g.ic}</span>${g.l}</span><span class="n" data-count="${sc[g.k]}">${num(sc[g.k])}</span></div>`).join('')}
+   </div>
+   <div class="gr" style="margin-top:14px">
+     <div class="card"><h2 style="margin-bottom:10px">${TT('Student status')}</h2>
+       <div class="dnw">${donut(seg,base.length||1)}
+         <div style="flex:1;min-width:130px">${seg.map(s=>`<div class="lg" style="cursor:pointer" data-act="sf" data-kind="status" data-val="${s.k}"><i style="background:${s.c}"></i><span>${s.l}</span><b>${s.v}</b></div>`).join('')}</div>
+       </div>
+     </div>
+   </div>
+ </div>
  <div class="card" style="margin-bottom:14px">
    <h2 style="margin:0 0 8px">${TT('Import from spreadsheet')}</h2>
    <p class="sub" style="margin:0 0 10px">${TT('Upload the template Excel file. Existing students are updated; new ones are created.')}</p>
@@ -329,17 +384,8 @@ students(){return `<h1><span class="ic" aria-hidden="true">🎓</span>Students</
  <div class="bar"><span></span><span>${xbtns('stu')} <button class="btn" data-act="add"><span class="ic" aria-hidden="true">➕</span>Add student</button></span></div>
  <div class="scroll"><table><thead><tr><th>Student</th><th><button class="link" data-act="sid" style="color:var(--muted);font-weight:500" title="Sort">ID<span aria-hidden="true">${sstu=='id'?(ord=='asc'?' ▲':' ▼'):' ⇅'}</span></button></th><th>Sex</th><th>Age</th><th>Center</th><th>Class</th><th>Status</th><th></th></tr></thead><tbody id="tb">${stRows()}</tbody></table></div></div>`},
 sponsor(){
-  const list=S.students.filter(s=>(campus=='All'||s.center==campus)&&s.sponsored);
-  const stOf=s=>{
-    const raw=String(s.status||'').trim().toUpperCase();
-    if(s.dropout||isDrop(s)||/DROP/.test(raw))return 'Dropped';
-    if(/GRAD/.test(raw))return 'Graduated';
-    if(/DIED|DEATH|PASSED/.test(raw))return 'Died';
-    if(/POSTPONE|POSTPONED|HOLD/.test(raw))return 'POSTPONE';
-    if(/^PST$|POST\s*SECONDARY|POST-SECONDARY/.test(raw))return 'PST';
-    if(/ACTIVE/.test(raw)||!raw)return 'Active';
-    return raw.charAt(0)+raw.slice(1).toLowerCase();
-  };
+  const list=S.students.filter(s=>(campus=='All'||s.center==campus)&&s.sponsored&&matchSf(s));
+  const listAll=S.students.filter(s=>(campus=='All'||s.center==campus)&&s.sponsored);
   const groups=[
     {k:'Active',l:TT('Active'),c:'#2f9e6e',ic:'✅'},
     {k:'Graduated',l:TT('Graduated'),c:'#3b6fb6',ic:'✔️'},
@@ -350,8 +396,8 @@ sponsor(){
   ];
   const counts={}; groups.forEach(g=>counts[g.k]=0);
   let other=0;
-  list.forEach(s=>{const k=stOf(s); if(counts[k]!==undefined)counts[k]++; else other++;});
-  const total=list.length;
+  listAll.forEach(s=>{const k=stOf(s); if(counts[k]!==undefined)counts[k]++; else other++;});
+  const total=listAll.length;
   const seg=groups.map(g=>({l:g.l,v:counts[g.k],c:g.c})).filter(x=>x.v>0);
   if(other)seg.push({l:TT('Other'),v:other,c:'#888'});
   const rows=list.length?sorted(list).map(s=>{
@@ -366,11 +412,11 @@ sponsor(){
   }).join(''):`<tr><td colspan="8" class="muted" style="text-align:center;padding:24px">${TT('No sponsored students yet.')}</td></tr>`;
   return `<h1><span class="ic" aria-hidden="true">🤝</span>${TT('Sponsorship Program')}</h1>
   <p class="sub" style="margin:0 0 14px">${TT('Students who have a sponsor. Data is linked to the Students page.')}</p>
-
+  ${filterChip()}
   <div class="${animDash?'anim':''}">
     <div class="cards" style="margin-bottom:16px">
-      <div class="card"><span class="sub"><span class="ic" aria-hidden="true">🤝</span>${TT('Total')}</span><span class="n" data-count="${total}">${num(total)}</span></div>
-      ${groups.map(g=>`<div class="card"><span class="sub"><span class="ic" aria-hidden="true">${g.ic}</span>${g.l}</span><span class="n" data-count="${counts[g.k]}">${num(counts[g.k])}</span></div>`).join('')}
+      <div class="card" style="cursor:pointer" data-act="sfclear" title="${TT('Clear filter')}"><span class="sub"><span class="ic" aria-hidden="true">🤝</span>${TT('Total')}</span><span class="n" data-count="${total}">${num(total)}</span></div>
+      ${groups.map(g=>`<div class="card" style="cursor:pointer${sf&&sf.kind==='status'&&sf.val===g.k?';outline:2px solid var(--green)':''}" data-act="sf" data-kind="status" data-val="${g.k}" title="${TT('Click to view list')}"><span class="sub"><span class="ic" aria-hidden="true">${g.ic}</span>${g.l}</span><span class="n" data-count="${counts[g.k]}">${num(counts[g.k])}</span></div>`).join('')}
     </div>
     <div class="gr" style="margin-bottom:16px">
       <div class="card"><h2 style="margin-bottom:10px">${TT('Sponsorship status')}</h2>
@@ -379,7 +425,7 @@ sponsor(){
         </div>
       </div>
       <div class="card"><h2 style="margin-bottom:10px">${TT('Sponsorship groups')}</h2>
-        ${hbars(groups.map(g=>({l:g.l,v:counts[g.k],c:g.c})).filter(x=>x.v>0).concat(other?[{l:TT('Other'),v:other,c:'#888'}]:[]))||`<div class="empty">${TT('No data yet.')}</div>`}
+        ${hbars(groups.map(g=>({l:g.l,v:counts[g.k],c:g.c,kind:'status',val:g.k})).filter(x=>x.v>0).concat(other?[{l:TT('Other'),v:other,c:'#888'}]:[]))||`<div class="empty">${TT('No data yet.')}</div>`}
       </div>
     </div>
   </div>
@@ -398,29 +444,105 @@ sponsor(){
   <span class="tl" style="margin:0;flex-wrap:wrap"><label>${TT('Sort by')} <select id="ssort">${[['enroll','Enrollment date'],['id','Student ID'],['name','Name'],['center','Center']].map(([v,l])=>`<option value="${v}"${sstu==v?' selected':''}>${l}</option>`).join('')}</select></label> ${ordSel()}</span></div>
   <div class="scroll"><table class="data"><thead><tr><th>${TT('Name')}</th><th>${TT('Student ID')}</th><th>${TT('Sponsor')}</th><th>${TT('Sponsor ID')}</th><th>${TT('Center')}</th><th>${TT('Class')}</th><th>${TT('Status')}</th><th></th></tr></thead>
   <tbody id="tb">${rows}</tbody></table></div></div>`},
-teachers(){return `<h1><span class="ic" aria-hidden="true">👩‍🏫</span>Teachers</h1><p class="sub" style="margin:0 0 14px">Manage teachers: profiles, daily attendance and KPI evaluation.</p>
+teachers(){
+  const L=S.teachers.filter(t=>campus=='All'||t.center==campus||!t.center);
+  const active=L.filter(t=>t.status!='Left').length;
+  const left=L.filter(t=>t.status=='Left').length;
+  const depts={}; L.forEach(t=>{const d=t.department||t.pos||'Teaching';depts[d]=(depts[d]||0)+1});
+  const byD=Object.keys(depts).map(d=>({l:d,v:depts[d],c:'#3b6fb6'}));
+  return `<h1><span class="ic" aria-hidden="true">👩‍🏫</span>Teachers</h1><p class="sub" style="margin:0 0 14px">Manage teachers: profiles, daily attendance and KPI evaluation.</p>
+ <div class="${animDash?'anim':''}" style="margin-bottom:14px">
+  <div class="cards">
+   <div class="card"><span class="sub"><span class="ic">👩‍🏫</span>${TT('Teachers')}</span><span class="n" data-count="${L.length}">${num(L.length)}</span></div>
+   <div class="card"><span class="sub"><span class="ic">✅</span>${TT('Active')}</span><span class="n" data-count="${active}">${num(active)}</span></div>
+   <div class="card"><span class="sub"><span class="ic">🚪</span>${TT('Left')}</span><span class="n" data-count="${left}">${num(left)}</span></div>
+   <div class="card"><span class="sub"><span class="ic">🏢</span>${TT('Departments')}</span><span class="n" data-count="${Object.keys(depts).length}">${num(Object.keys(depts).length)}</span></div>
+  </div>
+  ${byD.length?`<div class="card" style="margin-top:14px"><h2 style="margin-bottom:10px">${TT('By department')}</h2>${hbars(byD)}</div>`:''}
+ </div>
  <div class="tl" style="margin:0 0 14px;flex-wrap:wrap">${[['dir','Directory','👥'],['att','Attendance','🗓️'],['kpi','KPI','🎯']].map(([k,l,i])=>`<button class="ghost${ttab==k?' on':''}" data-act="tt" data-t="${k}"><span class="ic" aria-hidden="true">${i}</span>${l}</button>`).join('')}</div>${ttab=='dir'?tDir():ttab=='att'?tAttView():tKpi()}`},
-grades(){return `<h1><span class="ic" aria-hidden="true">📝</span>Gradebook</h1><p class="sub" style="margin:0 0 14px">Search a student, filter by class, then update scores and attendance.</p>${datebar()}
+grades(){
+  const G=S.grades||[], A=S.att||[];
+  const ids=new Set((S.students||[]).map(s=>s.id));
+  const gRecent=G.filter(g=>ids.has(g.sid));
+  const avg=gRecent.length?gRecent.reduce((n,g)=>n+(+g.score||0)/(+g.max||100)*100,0)/gRecent.length:0;
+  const present=A.filter(a=>a.st==='Present').length;
+  const absent=A.filter(a=>a.st==='Absent').length;
+  const late=A.filter(a=>a.st==='Late').length;
+  const attN=A.length;
+  return `<h1><span class="ic" aria-hidden="true">📝</span>Gradebook</h1><p class="sub" style="margin:0 0 14px">Search a student, filter by class, then update scores and attendance.</p>
+ <div class="${animDash?'anim':''}" style="margin-bottom:14px">
+  <div class="cards">
+   <div class="card"><span class="sub"><span class="ic">📝</span>${TT('Score entries')}</span><span class="n" data-count="${gRecent.length}">${num(gRecent.length)}</span></div>
+   <div class="card"><span class="sub"><span class="ic">📊</span>${TT('Avg score')}</span><span class="n">${avg?avg.toFixed(0)+'%':'–'}</span></div>
+   <div class="card"><span class="sub"><span class="ic">✅</span>${TT('Present')}</span><span class="n" data-count="${present}">${num(present)}</span></div>
+   <div class="card"><span class="sub"><span class="ic">⚠️</span>${TT('Absent')}</span><span class="n" data-count="${absent}">${num(absent)}</span></div>
+   <div class="card"><span class="sub"><span class="ic">⏰</span>${TT('Late')}</span><span class="n" data-count="${late}">${num(late)}</span></div>
+  </div>
+ </div>
+ ${datebar()}
  <div class="card"><div class="bar"><input id="gq" type="search" placeholder="Search by name or ID" value="${esc(gq)}" aria-label="Search students"><span class="tl" style="margin:0;flex-wrap:wrap"><label>Class <select id="gcls"><option value="">All classes</option>${classes().map(l=>`<option value="${esc(l)}"${gcls==l?' selected':''}>${esc(l)}</option>`).join('')}${S.students.some(s=>!s.cls)?`<option value="__none"${gcls=='__none'?' selected':''}>No class</option>`:''}</select></label><label>Sort by <select id="gsort">${[['name','Name'],['avg','Average'],['gpa','GPA'],['att','Attendance']].map(([v,l])=>`<option value="${v}"${gsort==v?' selected':''}>${l}</option>`).join('')}</select></label><label>Order <select id="gord"><option value="asc"${gord=='asc'?' selected':''}>Ascending</option><option value="desc"${gord=='desc'?' selected':''}>Descending</option></select></label>${xbtns('grd')}</span></div>
  <div class="scroll"><table><thead><tr><th>Student</th><th>Class</th><th>Average</th><th>GPA</th><th>GPA last year</th><th>Attendance</th><th></th></tr></thead><tbody id="gb">${gbRows()}</tbody></table></div>
  <p class="sub" style="font-size:13px;margin:10px 0 0">GPA scale: A 90–100 = 4, B 80–89 = 3, C 70–79 = 2, D 60–69 = 1, below 60 = 0. GPA is based on the average score. “GPA last year” uses the previous calendar year.</p></div>`},
-msgs(){return `<h1><span class="ic" aria-hidden="true">💬</span>Messages</h1><p class="sub" style="margin:0 0 14px">Paste the invite link of each parent group (starts with https://t.me/). Replies are sent inside Telegram.</p>
- <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">${Object.keys(CENTERS).map(c=>{const l=S.tg[c]||'',ok=/^https:\/\/(t|telegram)\.me\//i.test(l);return `<div class="card"><h2 style="font-size:19px;margin-bottom:10px">${c}</h2><label class="sub" style="display:block;font-size:14px;margin-bottom:4px">Group link</label><input data-tg="${esc(c)}" value="${esc(l)}" placeholder="https://t.me/..." aria-label="Group link"><p class="err"></p>${ok?`<a class="btn" href="${esc(l)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;text-decoration:none"><span class="ic" aria-hidden="true">✈️</span>Open in Telegram</a>`:'<small>Link not set</small>'}</div>`}).join('')}</div>
+msgs(){
+  const centers=Object.keys(CENTERS);
+  const linked=centers.filter(c=>S.tg&&S.tg[c]).length;
+  return `<h1><span class="ic" aria-hidden="true">💬</span>Messages</h1><p class="sub" style="margin:0 0 14px">Paste the invite link of each parent group (starts with https://t.me/). Replies are sent inside Telegram.</p>
+ <div class="${animDash?'anim':''}" style="margin-bottom:14px"><div class="cards">
+  <div class="card"><span class="sub"><span class="ic">🏫</span>${TT('Centers')}</span><span class="n" data-count="${centers.length}">${num(centers.length)}</span></div>
+  <div class="card"><span class="sub"><span class="ic">🔗</span>${TT('Linked groups')}</span><span class="n" data-count="${linked}">${num(linked)}</span></div>
+  <div class="card"><span class="sub"><span class="ic">💬</span>${TT('Not linked')}</span><span class="n" data-count="${centers.length-linked}">${num(centers.length-linked)}</span></div>
+ </div></div>
+ <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">${centers.map(c=>{const l=S.tg[c]||'',ok=/^https:\/\/(t|telegram)\.me\//i.test(l);return `<div class="card"><h2 style="font-size:19px;margin-bottom:10px">${c}</h2><label class="sub" style="display:block;font-size:14px;margin-bottom:4px">Group link</label><input data-tg="${esc(c)}" value="${esc(l)}" placeholder="https://t.me/..." aria-label="Group link"><p class="err"></p>${ok?`<a class="btn" href="${esc(l)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;text-decoration:none"><span class="ic" aria-hidden="true">✈️</span>Open in Telegram</a>`:'<small>Link not set</small>'}</div>`}).join('')}</div>
  <div class="card"><p class="sub" style="margin:0">Reading and replying to parents inside this app needs a small server that keeps the Telegram bot key safe. It is not set up yet.</p></div>`},
-outlines(){return `<h1><span class="ic" aria-hidden="true">📚</span>Course Outlines</h1><p class="sub" style="margin:0 0 14px">Upload the lessons each class is teaching (Excel or CSV). Click any cell to edit; changes save automatically.</p>
- <div class="card"><div class="bar fl"><label>Outline name<input id="oname" placeholder="e.g. Term 1 lessons" style="width:220px"></label><label>Class<input id="ocl" list="oclist" style="width:170px"></label><datalist id="oclist">${allCls().map(c=>`<option value="${esc(c)}">`).join('')}</datalist><label class="btn" style="cursor:pointer">Choose Excel or CSV file<input type="file" id="ofile" accept=".xlsx,.xls,.csv" hidden></label></div></div>
+outlines(){
+  const O=S.outlines||[];
+  const sheets=O.reduce((n,o)=>n+(o.sheets?o.sheets.length:1),0);
+  const classes=new Set(O.map(o=>o.cls||o.class||'').filter(Boolean));
+  return `<h1><span class="ic" aria-hidden="true">📚</span>Course Outlines</h1><p class="sub" style="margin:0 0 14px">Upload the lessons each class is teaching (Excel or CSV). Click any cell to edit; changes save automatically.</p>
+ <div class="${animDash?'anim':''}" style="margin-bottom:14px"><div class="cards">
+  <div class="card"><span class="sub"><span class="ic">📚</span>${TT('Outlines')}</span><span class="n" data-count="${O.length}">${num(O.length)}</span></div>
+  <div class="card"><span class="sub"><span class="ic">📄</span>${TT('Sheets')}</span><span class="n" data-count="${sheets}">${num(sheets)}</span></div>
+  <div class="card"><span class="sub"><span class="ic">🏫</span>${TT('Classes')}</span><span class="n" data-count="${classes.size}">${num(classes.size)}</span></div>
+ </div></div>
+ <div class="card"> <div class="card"><div class="bar fl"><label>Outline name<input id="oname" placeholder="e.g. Term 1 lessons" style="width:220px"></label><label>Class<input id="ocl" list="oclist" style="width:170px"></label><datalist id="oclist">${allCls().map(c=>`<option value="${esc(c)}">`).join('')}</datalist><label class="btn" style="cursor:pointer">Choose Excel or CSV file<input type="file" id="ofile" accept=".xlsx,.xls,.csv" hidden></label></div></div>
  <div class="card"><div class="bar"><input id="oq" type="search" placeholder="Search lessons" value="${esc(oq)}" aria-label="Search lessons"><label>Class <select id="ocls"><option value="">All classes</option>${allCls().map(c=>`<option value="${esc(c)}"${ocls==c?' selected':''}>${esc(c)}</option>`).join('')}</select></label></div><div id="ores">${oRes()}</div></div>`},
-roster(){const v=vis();return `<h1><span class="ic" aria-hidden="true">📋</span>Roster</h1><p class="sub" style="margin:0 0 14px">Students grouped by center.</p>${datebar()}<div class="bar"><span></span><span>${xbtns('stu')}</span></div>`+Object.keys(CENTERS).filter(c=>campus=='All'||c==campus).map(c=>{const l=v.filter(s=>s.center==c);return `<div class="card"><h2>${CENTERS[c]}</h2>${l.length?l.map(s=>`<div class="row" data-det="${S.students.indexOf(s)}">${av(s)}${who(s)}<span class="pill${isDrop(s)?' bad':''}">${esc(s.status)}</span></div>`).join(''):'<p class="sub">No students enrolled.</p>'}</div>`}).join('')},
+roster(){const v=vis();
+  const byC=Object.keys(CENTERS).map(c=>({l:c,v:v.filter(s=>s.center==c).length,c:'#2f9e6e'}));
+  return `<h1><span class="ic" aria-hidden="true">📋</span>Roster</h1><p class="sub" style="margin:0 0 14px">Students grouped by center.</p>
+ <div class="${animDash?'anim':''}" style="margin-bottom:14px">
+  <div class="cards">
+   <div class="card"><span class="sub"><span class="ic">📋</span>${TT('Students')}</span><span class="n" data-count="${v.length}">${num(v.length)}</span></div>
+   ${byC.map(x=>`<div class="card"><span class="sub">${esc(x.l.replace('HVTO Free Education Center ','Center '))}</span><span class="n" data-count="${x.v}">${num(x.v)}</span></div>`).join('')}
+  </div>
+  <div class="card" style="margin-top:14px"><h2 style="margin-bottom:10px">${TT('Students by center')}</h2>${hbars(byC)}</div>
+ </div>
+ ${datebar()}<div class="bar"><span></span><span>${xbtns('stu')}</span></div>`+Object.keys(CENTERS).filter(c=>campus=='All'||c==campus).map(c=>{const l=v.filter(s=>s.center==c);return `<div class="card"><h2>${CENTERS[c]}</h2>${l.length?l.map(s=>`<div class="row" data-det="${S.students.indexOf(s)}">${av(s)}${who(s)}<span class="pill${isDrop(s)?' bad':''}">${esc(s.status)}</span></div>`).join(''):'<p class="sub">No students enrolled.</p>'}</div>`}).join('')},
 projects(){const f=DF.from,x=DF.to,T=tot(f,x),A=tot();
  let L=S.projects.map((p,i)=>({p,i,s:sumP(p,f,x),a:sumP(p)}));
  if(sproj!='order'){const g=r=>sproj=='last'?r.a.date:r.s[sproj];L.sort((m,n)=>g(m)<g(n)?-1:g(m)>g(n)?1:0);if(ord=='desc')L.reverse()}
  return `<h1><span class="ic" aria-hidden="true">🌱</span>HVTO Projects Tracker</h1><p class="sub" style="margin:0 0 14px">Add an update by day, month or year. Each update is added to the totals you already have.</p>${datebar()}
- <div class="cards">${tcards(T)}${f||x?kpi('All-time beneficiaries',num(A.ben)):''}</div>
+ <div class="${animDash?'anim':''}">
+ <div class="cards">
+  <div class="card"><span class="sub"><span class="ic">🌱</span>${TT('Projects')}</span><span class="n" data-count="${S.projects.length}">${num(S.projects.length)}</span></div>
+  <div class="card"><span class="sub"><span class="ic">🙌</span>${TT('Beneficiaries')}</span><span class="n" data-count="${T.ben}">${num(T.ben)}</span></div>
+  <div class="card"><span class="sub"><span class="ic">💵</span>${TT('Funds (USD)')}</span><span class="n" data-count="${T.funds}">${num(T.funds)}</span></div>
+  <div class="card"><span class="sub"><span class="ic">✔️</span>${TT('Completed')}</span><span class="n" data-count="${T.count}">${num(T.count)}</span></div>
+  ${f||x?kpi('All-time beneficiaries',num(A.ben)):''}
+ </div></div>
  <div class="card"><div class="bar"><h2>14 projects</h2><span class="tl" style="margin:0;flex-wrap:wrap"><label>Sort by <select id="psort">${[['order','Project order'],['count','Completed'],['ben','Beneficiaries'],['funds','Funds (USD)'],['last','Last update']].map(([v,l])=>`<option value="${v}"${sproj==v?' selected':''}>${l}</option>`).join('')}</select></label>${ordSel()}${xbtns('proj')}</span></div>
  <div class="scroll"><table><thead><tr><th>#</th><th>Project</th><th>Completed</th><th>Beneficiaries</th><th>Funds (USD)</th><th>Last update</th><th></th></tr></thead><tbody>
  ${L.map(({p,i,s,a})=>`<tr><td>${i+1}</td><td style="min-width:220px">${esc(p.n)}${a.note?`<br><small>${esc(a.note.slice(0,80))}</small>`:''}</td><td>${num(s.count)}</td><td>${num(s.ben)}</td><td>${num(s.funds)}</td><td>${a.date||'<span class="muted">No update yet</span>'}</td><td style="white-space:nowrap"><button class="btn" style="padding:7px 16px" data-act="upd" data-i="${i}">Update</button> <button class="link" data-act="hist" data-i="${i}">History (${p.entries.length})</button></td></tr>`).join('')}</tbody></table></div></div>`},
 reports(){const P=S.projects,f=DF.from,x=DF.to,C=P.map(p=>sumP(p,f,x)),mx=Math.max(1,...C.map(c=>c.ben)),tb=C.reduce((n,c)=>n+c.ben,0),v=S.students.filter(s=>inR(s.enroll,f,x));
+ const tf=C.reduce((n,c)=>n+(+c.funds||0),0),tc=C.reduce((n,c)=>n+(+c.count||0),0);
  return `<h1><span class="ic" aria-hidden="true">📈</span>Reports</h1><p class="sub" style="margin:0">Totals across all 14 projects for the date range you choose. Leave the dates empty to see all time.</p>${datebar()}
+ <div class="${animDash?'anim':''}" style="margin-bottom:14px"><div class="cards">
+  <div class="card"><span class="sub"><span class="ic">🌱</span>${TT('Projects')}</span><span class="n" data-count="${P.length}">${num(P.length)}</span></div>
+  <div class="card"><span class="sub"><span class="ic">🎓</span>${TT('Students')}</span><span class="n" data-count="${v.length}">${num(v.length)}</span></div>
+  <div class="card"><span class="sub"><span class="ic">🙌</span>${TT('Beneficiaries')}</span><span class="n" data-count="${tb}">${num(tb)}</span></div>
+  <div class="card"><span class="sub"><span class="ic">💵</span>${TT('Funds (USD)')}</span><span class="n" data-count="${tf}">${num(tf)}</span></div>
+  <div class="card"><span class="sub"><span class="ic">✔️</span>${TT('Completed')}</span><span class="n" data-count="${tc}">${num(tc)}</span></div>
+ </div></div>
  <div class="bar"><span></span><span>${xbtns('proj')}</span></div>
  <div class="cards">${tcards(tot(f,x))}</div>
  <div class="card"><h2 style="margin-bottom:6px">Structural setups</h2><div class="cards" style="margin:10px 0 0">${STRUCT.map(([i,l])=>kpi(l,num(C[i].count))).join('')}</div></div>
@@ -446,7 +568,7 @@ function perTable(){const R=periods(grp);if(!R.length)return'<div class="empty">
 const perX=()=>[['Period','Updates','New students','Completed','Beneficiaries','Funds (USD)','Running total (beneficiaries)'],...periods(grp).map(r=>[r.k,r.u,r.st,r.count,r.ben,r.funds,r.cum])];
 /* charts + teachers */
 const donut=(S2,n)=>{const R=54,C=2*Math.PI*R;let off=0;return `<svg viewBox="0 0 140 140" class="dn" width="160" height="160" role="img" aria-label="Student status"><circle cx="70" cy="70" r="${R}" fill="none" stroke="var(--soft)" stroke-width="18"/>${n?S2.map(s=>{const L=s.v/n*C,o=off;off+=L;return s.v?`<circle class="s" cx="70" cy="70" r="${R}" fill="none" stroke="${s.c}" stroke-width="18" stroke-dasharray="${L} ${C-L}" stroke-dashoffset="${-o}" transform="rotate(-90 70 70)"/>`:''}).join(''):''}<text x="70" y="70" text-anchor="middle" class="dv">${n}</text><text x="70" y="88" text-anchor="middle" class="cl">Students</text></svg>`};
-const hbars=I=>{const mx=Math.max(1,...I.map(i=>i.v));return I.map(i=>`<div class="hb"><span>${esc(i.l)}</span><span class="ht"><i style="width:${i.v/mx*100}%;background:${i.c||'var(--green)'}"></i></span><b>${i.t??num(i.v)}</b></div>`).join('')};
+const hbars=I=>{const mx=Math.max(1,...I.map(i=>i.v));return I.map(i=>`<div class="hb"${i.kind?` style="cursor:pointer" data-act="sf" data-kind="${i.kind}" data-val="${esc(i.val||'')}"`:''}><span>${esc(i.l)}</span><span class="ht"><i style="width:${i.v/mx*100}%;background:${i.c||'var(--green)'}"></i></span><b>${i.t??num(i.v)}</b></div>`).join('')};
 const lineC=P=>{const W=520,H=170,pl=26,pb=24,pt=12,mx=Math.max(1,...P.map(p=>p.v)),X=i=>pl+i*(W-pl-12)/(P.length-1),Y=v=>pt+(H-pt-pb)*(1-v/mx),d=P.map((p,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.v).toFixed(1)).join(' ');
  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Enrollment by month">${[0,.5,1].map(f=>`<line x1="${pl}" x2="${W-8}" y1="${pt+(H-pt-pb)*f}" y2="${pt+(H-pt-pb)*f}" stroke="var(--line)"/>`).join('')}<text x="0" y="${pt+4}" class="cl">${mx}</text><path class="ar" d="${d} L${X(P.length-1)} ${H-pb} L${X(0)} ${H-pb}Z" fill="var(--green)" opacity=".16"/><path class="ln" pathLength="1" d="${d}" fill="none" stroke="var(--green)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1"/>${P.map((p,i)=>`<circle cx="${X(i)}" cy="${Y(p.v)}" r="3.5" fill="var(--green)"/><text x="${X(i)}" y="${H-6}" text-anchor="middle" class="cl">${p.l}</text>`).join('')}</svg>`};
 function countUp(){if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;document.querySelectorAll('[data-count]').forEach(el=>{const n=+el.dataset.count,t0=performance.now(),f=t=>{const p=Math.min(1,(t-t0)/1000);el.textContent=num(Math.round(n*(1-Math.pow(1-p,3))));if(p<1)requestAnimationFrame(f)};requestAnimationFrame(f)})}
@@ -600,7 +722,16 @@ function stRows(){const v=sorted(vis());return v.length?v.map(s=>{const i=S.stud
 /* events */
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-v],[data-act]');if(!b){const r=e.target.closest('[data-det]'),g=e.target.closest('[data-gb]'),w=e.target.closest('[data-trow]');if(r)showDet(+r.dataset.det);else if(g)openGB(+g.dataset.gb);else if(w)openT(+w.dataset.trow);return}
-  if(b.dataset.v){view=b.dataset.v;animDash=view=='dash'||view=='sponsor';render();return}
+  if(b.dataset.v){view=b.dataset.v;animDash=true;render();return}
+  if(b.dataset.act==='sf'){
+    const kind=b.dataset.kind,val=b.dataset.val;
+    if(!kind){return}
+    if(sf&&sf.kind===kind&&sf.val===val)sf=null; else sf={kind,val};
+    if(view!=='students'&&view!=='sponsor')view=(kind==='sponsored'?'sponsor':'students');
+    else if(kind==='sponsored'&&view==='students')view='sponsor';
+    animDash=true;render();return;
+  }
+  if(b.dataset.act==='sfclear'){sf=null;render();return}
   const a=b.dataset.act,i=+b.dataset.i;
   if(a=='out'){user=null;render()}
   if(a=='lang'){lang=lang=='km'?'en':'km';saveUI();render()}
