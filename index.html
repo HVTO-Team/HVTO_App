@@ -499,7 +499,7 @@ students(){
  <div class="scroll"><table><thead><tr><th>Student</th><th><button class="link" data-act="sid" style="color:var(--muted);font-weight:500" title="Sort">ID<span aria-hidden="true">${sstu=='id'?(ord=='asc'?' ▲':' ▼'):' ⇅'}</span></button></th><th>Sex</th><th>Age</th><th>Center</th><th>Class</th><th>Status</th><th></th></tr></thead><tbody id="tb">${stRows()}</tbody></table></div></div>`},
 sponsor(){
   const listAll=S.students.filter(s=>(campus=='All'||s.center==campus)&&s.sponsored);
-  const list=listAll.filter(matchSf);
+  const list=listAll.filter(s=>matchSf(s)&&matchQ(s));
   const stOf=s=>{
     const raw=String(s.status||'').trim().toUpperCase();
     if(s.dropout||isDrop(s)||/DROP/.test(raw))return 'Dropped';
@@ -1258,31 +1258,90 @@ F.onsubmit=e=>{
 
 let logEdit=-1;
 
-const KH_HOLIDAYS={
+
+const KH_HOLIDAYS_BY_YEAR={
+  2025:{
+    '2025-01-01':{en:'International New Year',km:'ថ្ងៃចូលឆ្នាំសកល'},
+    '2025-01-07':{en:'Victory over Genocide Day',km:'ទិវាជ័យជម្នះលើរបបប្រល័យពូជសាសន៍'},
+    '2025-03-08':{en:"International Women's Day",km:'ទិវានារីអន្តរជាតិ'},
+    '2025-04-14':{en:'Khmer New Year',km:'ចូលឆ្នាំខ្មែរ'},
+    '2025-04-15':{en:'Khmer New Year',km:'ចូលឆ្នាំខ្មែរ'},
+    '2025-04-16':{en:'Khmer New Year',km:'ចូលឆ្នាំខ្មែរ'},
+    '2025-05-01':{en:'Labour Day',km:'ទិវាពលកម្មអន្តរជាតិ'},
+    '2025-05-14':{en:"King's Birthday",km:'ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្ម'},
+    '2025-06-18':{en:"Queen Mother's Birthday",km:'ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្មព្រះមាតា'},
+    '2025-09-24':{en:'Constitution Day',km:'ទិវារដ្ឋធម្មនុញ្ញ'},
+    '2025-11-04':{en:'Water Festival (Bon Om Touk)',km:'ព្រះរាជពិធីបុណ្យអុំទូក'},
+    '2025-11-05':{en:'Water Festival (Bon Om Touk)',km:'ព្រះរាជពិធីបុណ្យអុំទូក'},
+    '2025-11-06':{en:'Water Festival (Bon Om Touk)',km:'ព្រះរាជពិធីបុណ្យអុំទូក'},
+    '2025-11-09':{en:'Independence Day',km:'ទិវាឯករាជ្យជាតិ'},
+    '2025-10-15':{en:"King Father's Commemoration",km:'ទិវាគោរពព្រះវិញ្ញាណក្ខន្ធ'},
+    '2025-10-29':{en:'Coronation Day',km:'ព្រះរាជពិធីគ្រងរាជ្យ'}
+  },
+  2026:{
+    '2026-01-01':{en:'International New Year',km:'ថ្ងៃចូលឆ្នាំសកល'},
+    '2026-01-07':{en:'Victory over Genocide Day',km:'ទិវាជ័យជម្នះលើរបបប្រល័យពូជសាសន៍'},
+    '2026-03-08':{en:"International Women's Day",km:'ទិវានារីអន្តរជាតិ'},
+    '2026-04-14':{en:'Khmer New Year',km:'ចូលឆ្នាំខ្មែរ'},
+    '2026-04-15':{en:'Khmer New Year',km:'ចូលឆ្នាំខ្មែរ'},
+    '2026-04-16':{en:'Khmer New Year',km:'ចូលឆ្នាំខ្មែរ'},
+    '2026-05-01':{en:'Labour Day & Visak Bochea',km:'ទិវាពលកម្ម និង វិសាខបូជា'},
+    '2026-05-05':{en:'Royal Plowing Ceremony',km:'ព្រះរាជពិធីច្រត់ព្រះនង្គ័ល'},
+    '2026-05-14':{en:"King's Birthday",km:'ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្ម'},
+    '2026-06-18':{en:"Queen Mother's Birthday",km:'ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្មព្រះមាតា'},
+    '2026-09-24':{en:'Constitution Day',km:'ទិវារដ្ឋធម្មនុញ្ញ'},
+    '2026-10-10':{en:'Pchum Ben',km:'ភ្ជុំបិណ្ឌ'},
+    '2026-10-11':{en:'Pchum Ben',km:'ភ្ជុំបិណ្ឌ'},
+    '2026-10-12':{en:'Pchum Ben',km:'ភ្ជុំបិណ្ឌ'},
+    '2026-10-15':{en:"King Father's Commemoration",km:'ទិវាគោរពព្រះវិញ្ញាណក្ខន្ធ'},
+    '2026-10-29':{en:'Coronation Day',km:'ព្រះរាជពិធីគ្រងរាជ្យ'},
+    '2026-11-09':{en:'Independence Day',km:'ទិវាឯករាជ្យជាតិ'},
+    '2026-11-23':{en:'Water Festival (Bon Om Touk)',km:'ព្រះរាជពិធីបុណ្យអុំទូក'},
+    '2026-11-24':{en:'Water Festival (Bon Om Touk)',km:'ព្រះរាជពិធីបុណ្យអុំទូក'},
+    '2026-11-25':{en:'Water Festival (Bon Om Touk)',km:'ព្រះរាជពិធីបុណ្យអុំទូក'},
+    '2026-12-29':{en:'Peace Day',km:'ទិវាសន្តិភាព'}
+  },
+  2027:{
+    '2027-01-01':{en:'International New Year',km:'ថ្ងៃចូលឆ្នាំសកល'},
+    '2027-01-07':{en:'Victory over Genocide Day',km:'ទិវាជ័យជម្នះលើរបបប្រល័យពូជសាសន៍'},
+    '2027-03-08':{en:"International Women's Day",km:'ទិវានារីអន្តរជាតិ'},
+    '2027-04-14':{en:'Khmer New Year',km:'ចូលឆ្នាំខ្មែរ'},
+    '2027-04-15':{en:'Khmer New Year',km:'ចូលឆ្នាំខ្មែរ'},
+    '2027-04-16':{en:'Khmer New Year',km:'ចូលឆ្នាំខ្មែរ'},
+    '2027-05-01':{en:'Labour Day',km:'ទិវាពលកម្មអន្តរជាតិ'},
+    '2027-05-14':{en:"King's Birthday",km:'ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្ម'},
+    '2027-06-18':{en:"Queen Mother's Birthday",km:'ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្មព្រះមាតា'},
+    '2027-09-24':{en:'Constitution Day',km:'ទិវារដ្ឋធម្មនុញ្ញ'},
+    '2027-10-15':{en:"King Father's Commemoration",km:'ទិវាគោរពព្រះវិញ្ញាណក្ខន្ធ'},
+    '2027-10-29':{en:'Coronation Day',km:'ព្រះរាជពិធីគ្រងរាជ្យ'},
+    '2027-11-09':{en:'Independence Day',km:'ទិវាឯករាជ្យជាតិ'},
+    '2027-11-12':{en:'Water Festival (Bon Om Touk)',km:'ព្រះរាជពិធីបុណ្យអុំទូក'},
+    '2027-11-13':{en:'Water Festival (Bon Om Touk)',km:'ព្រះរាជពិធីបុណ្យអុំទូក'},
+    '2027-11-14':{en:'Water Festival (Bon Om Touk)',km:'ព្រះរាជពិធីបុណ្យអុំទូក'}
+  }
+};
+const KH_HOLIDAYS_FIXED={
   '01-01':{en:'International New Year',km:'ថ្ងៃចូលឆ្នាំសកល'},
   '01-07':{en:'Victory over Genocide Day',km:'ទិវាជ័យជម្នះលើរបបប្រល័យពូជសាសន៍'},
   '03-08':{en:"International Women's Day",km:'ទិវានារីអន្តរជាតិ'},
-  '04-14':{en:'Khmer New Year',km:'ចូលឆ្នាំខ្មែរ'},
-  '04-15':{en:'Khmer New Year',km:'ចូលឆ្នាំខ្មែរ'},
-  '04-16':{en:'Khmer New Year',km:'ចូលឆ្នាំខ្មែរ'},
-  '05-01':{en:'International Labor Day',km:'ទិវាពលកម្មអន្តរជាតិ'},
+  '05-01':{en:'Labour Day',km:'ទិវាពលកម្មអន្តរជាតិ'},
   '05-14':{en:"King's Birthday",km:'ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្ម'},
-  '05-15':{en:"King's Birthday",km:'ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្ម'},
-  '05-16':{en:"King's Birthday",km:'ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្ម'},
-  '06-01':{en:"International Children's Day",km:'ទិវាកុមារអន្តរជាតិ'},
   '06-18':{en:"Queen Mother's Birthday",km:'ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្មព្រះមាតា'},
   '09-24':{en:'Constitution Day',km:'ទិវារដ្ឋធម្មនុញ្ញ'},
-  '10-15':{en:"Commemoration of the King's Father",km:'ទិវាប្រារព្ធពិធីគោរពវិញ្ញាណក្ខន្ធ'},
+  '10-15':{en:"King Father's Commemoration",km:'ទិវាគោរពព្រះវិញ្ញាណក្ខន្ធ'},
   '10-29':{en:'Coronation Day',km:'ព្រះរាជពិធីគ្រងរាជ្យ'},
-  '11-09':{en:'Independence Day',km:'ទិវាឯករាជ្យជាតិ'},
-  '12-10':{en:'Human Rights Day',km:'ទិវាសិទ្ធិមនុស្ស'}
+  '11-09':{en:'Independence Day',km:'ទិវាឯករាជ្យជាតិ'}
 };
 const holidayOf=ds=>{
   if(!ds||ds.length<10)return null;
+  const y=+ds.slice(0,4);
+  const by=KH_HOLIDAYS_BY_YEAR[y];
+  if(by&&by[ds])return by[ds];
   const md=ds.slice(5,10);
-  return KH_HOLIDAYS[md]||null;
+  return KH_HOLIDAYS_FIXED[md]||null;
 };
 const isSunday=ds=>{try{const d=new Date(ds+'T12:00:00');return d.getDay()===0}catch(e){return false}};
+
 function openDayPanel(ds){
   S.worklog=S.worklog||[];
   const items=S.worklog.map((L,i)=>({L,i})).filter(x=>x.L.date===ds);
