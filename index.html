@@ -547,7 +547,7 @@ reports(){
     <tbody>${Object.keys(CENTERS).map(c=>{const l=v.filter(s=>s.center==c);return `<tr><td>${esc(c)}</td><td>${l.length}</td><td>${l.filter(s=>stOf(s)=='Active').length}</td><td>${l.filter(s=>s.sponsored).length}</td><td>${l.filter(s=>stOf(s)=='Dropped').length}</td></tr>`}).join('')}</tbody></table>
   </div>`;
   }catch(err){console.error('Reports error',err);return '<h1>Reports</h1><p class="err">'+String(err&&err.message||err)+'</p>';}
-,
+},
 about(){
   const A=S.about||(S.about={text:'',photos:[],files:[]});
   const photos=(A.photos||[]).map((p,i)=>`<div class="card" style="padding:8px"><img src="${p.data}" alt="" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;cursor:pointer" data-act="aboutimg" data-i="${i}"><div class="bar" style="margin-top:6px"><small class="sub">${esc(p.name||'')}</small><button type="button" class="ghost" data-act="aboutdelphoto" data-i="${i}" style="color:#c0392b">${TT('Delete')}</button></div></div>`).join('');
