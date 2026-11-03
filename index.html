@@ -759,7 +759,12 @@ document.addEventListener('change',e=>{
         if(!status)status=dropout?'Dropped':'Active';
         if(/grad/i.test(status))status='Graduated';
         else if(/drop/i.test(status))status='Dropped';
-        else if(status)status='Active';
+        else if(/died|death|passed/i.test(status))status='Died';
+        else if(/postpone|postponed|hold/i.test(status))status='POSTPONE';
+        else if(/^pst$|post\s*secondary|post-secondary/i.test(status))status='PST';
+        else if(/active/i.test(status))status='Active';
+        else if(status && !/^[\d.]+$/.test(status))status=status; // keep custom text
+        else status='Active'; // empty or numeric (age wrongly in status col)
 
         const data={
           enroll:iEnroll>=0?normDate(row[iEnroll]):'',
@@ -797,7 +802,8 @@ document.addEventListener('change',e=>{
           Object.keys(data).forEach(k=>{if(data[k]!==''&&data[k]!==undefined)stu[k]=data[k]});
           if(sid)stu.id=sid;
           stu.sponsored=sponsored;
-          if(dropout){stu.dropout=true;stu.status='Dropped'}
+          if(status==='Dropped'||dropout){stu.dropout=true;stu.status='Dropped'}
+          else{stu.dropout=!!dropout;stu.status=status}
           used.add(stu);updated++;
         }else{
           const id=(sid&&!S.students.some(s=>s.id===sid))?sid:nextId(S.students,'HVTO-');
