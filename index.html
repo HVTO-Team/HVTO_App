@@ -341,9 +341,39 @@ projects:PN.map(n=>({n,entries:[]}))};
 try{const r=localStorage.getItem('hvto-v2')||localStorage.getItem('hvto-v1');if(r){S=JSON.parse(r);S.students.forEach(s=>{s.center=OLD[s.center]||s.center;delete s.howlong});S.projects.forEach(migrate);S.v3=1}}catch(e){}
 /* Cloud load will run after DOM ready and may replace S */
 S.grades=S.grades||[];S.att=S.att||[];S.outlines=S.outlines||[];S.tg=S.tg||{};S.teachers=S.teachers||[];S.tatt=S.tatt||[];S.kpi=S.kpi||{crit:[{id:'k1',n:'Attendance & punctuality',w:20},{id:'k2',n:'Lesson preparation',w:20},{id:'k3',n:'Teaching quality',w:25},{id:'k4',n:'Student progress',w:20},{id:'k5',n:'Teamwork & conduct',w:15}],scores:{}};
-let warned=0;const save=()=>{
-  try{localStorage.setItem('hvto-v2',JSON.stringify(S))}catch(e){if(!warned){warned=1;alert(TT('Could not save: browser storage is full. Remove old outlines or photos.'))}}
-  saveToCloud(S);
+let warned=0;
+const slimForLocal=obj=>{
+  try{
+    const o=JSON.parse(JSON.stringify(obj));
+    // keep about metadata, drop huge base64 bodies in local cache only
+    if(o.about){
+      if(o.about.files)o.about.files=(o.about.files||[]).map(f=>({name:f.name,type:f.type,size:f.size,data:f.size>200000?(''): (f.data||'')}));
+      if(o.about.photos)o.about.photos=(o.about.photos||[]).map(p=>({name:p.name,type:p.type,size:p.size,data:(p.data&&p.data.length>300000)?'':(p.data||'')}));
+    }
+    // strip student photos if still too big later
+    if(o.students)o.students=o.students.map(s=>{const x={...s};if(x.photo&&String(x.photo).length>80000)x.photo='';return x});
+    return o;
+  }catch(e){return obj}
+};
+const save=()=>{
+  // Always try full cloud save first
+  try{saveToCloud(S)}catch(e){}
+  try{
+    localStorage.setItem('hvto-v2',JSON.stringify(S));
+    warned=0;
+  }catch(e){
+    // Quota full: save slim local copy so roster/students still work offline-ish
+    try{
+      localStorage.setItem('hvto-v2',JSON.stringify(slimForLocal(S)));
+      if(!warned){
+        warned=1;
+        alert(TT('Browser storage is almost full. Large About Us files are kept in the cloud only. Delete big PDFs/photos in About Us if save still fails.'));
+      }
+    }catch(e2){
+      try{localStorage.removeItem('hvto-v2')}catch(e3){}
+      if(!warned){warned=1;alert(TT('Could not save locally. Data was still sent to cloud if connected. Delete large About Us files (10MB PDF) to free space.'))}
+    }
+  }
 };
 let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null,schCenterFilter='All',rosterQ='',rosterPerson='',calY=new Date().getFullYear(),calM=new Date().getMonth();
 const $=s=>document.querySelector(s);
@@ -1072,6 +1102,21 @@ document.addEventListener('click',e=>{
   if(b.dataset.act==='schadd'){openSchForm(-1);return}
   if(b.dataset.act==='schedit'){openSchForm(+b.dataset.i);return}
   if(b.dataset.act==='schdel'){if(confirm(TT('Delete this schedule row?'))){S.schedule.splice(+b.dataset.i,1);save();render()}return}
+  if(b.dataset.act==='aboutdelphoto'){
+    S.about=S.about||{text:'',photos:[],files:[]};
+    S.about.photos.splice(+b.dataset.i,1);
+    save();render();return
+  }
+  if(b.dataset.act==='aboutdelfile'){
+    S.about=S.about||{text:'',photos:[],files:[]};
+    S.about.files.splice(+b.dataset.i,1);
+    save();render();return
+  }
+  if(b.dataset.act==='aboutimg'){
+    const p=(S.about&&S.about.photos||[])[+b.dataset.i];
+    if(p&&p.data){$('#lbi').src=p.data;$('#lb').showModal()}
+    return
+  }
   const a=b.dataset.act,i=+b.dataset.i;
   if(a=='out'){user=null;render()}
   if(a=='lang'){lang=lang=='km'?'en':'km';saveUI();render()}
@@ -1121,7 +1166,12 @@ document.addEventListener('change',e=>{
   if(t.id=='schcf'){schCenterFilter=t.value;render()}
   if(t.id=='aboutphoto'||t.id=='aboutfile'){
     const files=[...t.files];t.value='';if(!files.length)return;
-    S.about=S.about||{text:'',photos:[],files:[]};const isPhoto=t.id==='aboutphoto';let left=files.length;
+    S.about=S.about||{text:'',photos:[],files:[]};const isPhoto=t.id==='aboutphoto';
+    const tooBig=files.filter(f=>f.size>4*1024*1024);
+    if(tooBig.length){
+      if(!confirm(TT('Some files are larger than 4 MB and can fill browser storage. Continue upload? Prefer smaller PDFs or host big files elsewhere.')))return;
+    }
+    let left=files.length;
     files.forEach(file=>{const reader=new FileReader();reader.onload=()=>{const item={name:file.name,type:file.type,size:file.size,data:reader.result};if(isPhoto)S.about.photos.push(item);else S.about.files.push(item);left--;if(left<=0){save();render()}};reader.readAsDataURL(file)});return;
   }
   if(t.id=='dfrom'||t.id=='dto'){DF[t.id=='dfrom'?'from':'to']=t.value;render()}
