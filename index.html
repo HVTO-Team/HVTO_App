@@ -345,7 +345,7 @@ let warned=0;const save=()=>{
   try{localStorage.setItem('hvto-v2',JSON.stringify(S))}catch(e){if(!warned){warned=1;alert(TT('Could not save: browser storage is full. Remove old outlines or photos.'))}}
   saveToCloud(S);
 };
-let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null,schCenterFilter='All',calY=new Date().getFullYear(),calM=new Date().getMonth();
+let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null,schCenterFilter='All',rosterQ='',rosterPerson='',calY=new Date().getFullYear(),calM=new Date().getMonth();
 const $=s=>document.querySelector(s);
 const SALT='hvto.v1.k9q2',AUTH='4cc26f7b837c3a7be51c25ba6b916f92e2e4e71171f2fcdc0fc34cd963f9f711';let fails=0,lockUntil=0;
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
@@ -596,7 +596,7 @@ roster(){
   const logs=S.worklog||[], sch=S.schedule||[];
   const y=calY, m=calM;
   const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const first=new Date(y,m,1), startPad=(first.getDay()+6)%7; // Mon=0
+  const first=new Date(y,m,1), startPad=(first.getDay()+6)%7;
   const daysInMonth=new Date(y,m+1,0).getDate();
   const today=new Date(); const todayStr=today.toISOString().slice(0,10);
   const logsByDate={};
@@ -620,29 +620,64 @@ roster(){
     </div>`;
   }
   const schF=typeof schCenterFilter!=='undefined'?schCenterFilter:'All';
-  const schList=sch.map((s,i)=>({s,i})).filter(x=>schF==='All'||!schF||x.s.center===schF);
+  const rq=(typeof rosterQ!=='undefined'?rosterQ:'').toLowerCase().trim();
+  const matchSch=s=>{
+    if(schF!=='All'&&schF&&s.center!==schF)return false;
+    if(!rq)return true;
+    const hay=((s.person||'')+' '+(s.subject||s.task||'')+' '+(s.cls||'')+' '+(s.time||'')+' '+(s.center||'')+' '+(s.grade||'')+' '+(s.book||'')+' '+(s.day||'')+' '+(s.position||'')).toLowerCase();
+    return rq.split(/\s+/).every(t=>hay.includes(t));
+  };
+  const matchLog=L=>{
+    if(schF!=='All'&&schF&&L.center&&L.center!==schF)return false;
+    if(!rq)return true;
+    const hay=((L.person||'')+' '+(L.position||'')+' '+(L.action||'')+' '+(L.center||'')+' '+(L.date||'')+' '+(L.problem||'')+' '+(L.goal||'')).toLowerCase();
+    return rq.split(/\s+/).every(t=>hay.includes(t));
+  };
+  const schList=sch.map((s,i)=>({s,i})).filter(x=>matchSch(x.s));
+  const logList=logs.map((L,i)=>({L,i})).filter(x=>matchLog(x.L)).sort((a,b)=>(b.L.date||'').localeCompare(a.L.date||''));
+  const monthLogs=logs.filter(L=>{if(!L.date)return false;const p=L.date.split('-');return +p[0]===y&&+p[1]===(m+1)});
   const schRows=schList.length?schList.map(({s,i})=>`<tr>
     <td>${esc(s.day||'')}${s.date?'<br><small class="sub">'+esc(s.date)+'</small>':''}</td>
-    <td><b>${esc(s.person||'')}</b><br><small class="sub">${esc(s.position||'')}</small></td>
+    <td><button type="button" class="link" data-act="person" data-name="${esc(s.person||'')}" style="font-weight:600;text-align:left">${esc(s.person||'')}</button><br><small class="sub">${esc(s.position||'')}</small></td>
     <td>${esc(s.subject||s.task||'')}${s.book?'<br><small class="sub">📖 '+esc(s.book)+'</small>':''}</td>
     <td>${esc(s.cls||'–')}${s.grade?'<br><small class="sub">🎓 '+esc(s.grade)+'</small>':''}</td>
     <td>${esc(s.time||'')}</td>
-    <td>${s.students||s.volunteers?`<span title="Students">👥 ${esc(String(s.students||0))}</span><br><span title="Volunteers">🤝 ${esc(String(s.volunteers||0))}</span>`:'–'}</td>
+    <td>${s.students||s.volunteers?`<span>👥 ${esc(String(s.students||0))}</span><br><span>🤝 ${esc(String(s.volunteers||0))}</span>`:'–'}</td>
     <td>${esc(s.center||'')}</td>
     <td style="white-space:nowrap"><button type="button" class="link" data-act="schedit" data-i="${i}">${TT('Edit')}</button>
       <button type="button" class="link" data-act="schdel" data-i="${i}" style="color:#c0392b">${TT('Del')}</button></td></tr>`).join('')
-    :`<tr><td colspan="8" class="muted" style="text-align:center;padding:16px">${TT('No teaching shifts yet. Add a shift below.')}</td></tr>`;
-  const monthLogs=logs.filter(L=>{if(!L.date)return false;const p=L.date.split('-');return +p[0]===y&&+p[1]===(m+1)});
+    :`<tr><td colspan="8" class="muted" style="text-align:center;padding:16px">${TT('No teaching shifts match filters.')}</td></tr>`;
+  const personPanel=(()=>{
+    if(!rosterPerson)return '';
+    const name=rosterPerson;
+    const pLogs=logs.map((L,i)=>({L,i})).filter(x=>(x.L.person||'').toLowerCase()===name.toLowerCase());
+    const pSch=sch.map((s,i)=>({s,i})).filter(x=>(x.s.person||'').toLowerCase()===name.toLowerCase());
+    return `<div class="card" id="personDetail" style="margin-bottom:14px;border:2px solid var(--green,#2f9e6e)">
+      <div class="bar"><h2 style="margin:0">👤 ${esc(name)}</h2>
+        <button type="button" class="ghost" data-act="personclear">${TT('Close')}</button></div>
+      <p class="sub">${TT('All shifts and daily reports for this person.')}</p>
+      <h3 style="margin:12px 0 6px">📚 ${TT('Shifts')} (${pSch.length})</h3>
+      <div class="scroll"><table class="data"><thead><tr><th>${TT('Day')}</th><th>${TT('Subject')}</th><th>${TT('Time')}</th><th>${TT('Class')}</th><th>${TT('Center')}</th><th></th></tr></thead>
+      <tbody>${pSch.length?pSch.map(({s,i})=>`<tr><td>${esc(s.day||'')}</td><td>${esc(s.subject||s.task||'')}</td><td>${esc(s.time||'')}</td><td>${esc(s.cls||'')}</td><td>${esc(s.center||'')}</td>
+        <td><button type="button" class="link" data-act="schedit" data-i="${i}">${TT('Edit')}</button></td></tr>`).join(''):`<tr><td colspan="6" class="muted">${TT('No shifts')}</td></tr>`}</tbody></table></div>
+      <h3 style="margin:16px 0 6px">📝 ${TT('Daily reports')} (${pLogs.length})</h3>
+      <div class="scroll"><table class="data"><thead><tr><th>${TT('Date')}</th><th>${TT('Action')}</th><th>${TT('Problem')}</th><th>${TT('Goal')}</th><th>${TT('Done')}</th><th></th></tr></thead>
+      <tbody>${pLogs.length?pLogs.map(({L,i})=>`<tr><td>${esc(L.date||'')}</td><td>${esc((L.action||'').slice(0,50))}</td><td>${esc((L.problem||'').slice(0,40))}</td><td>${esc((L.goal||'').slice(0,40))}</td>
+        <td>${L.done||L.c_done?'✅':'⬜'}</td>
+        <td><button type="button" class="link" data-act="logedit" data-i="${i}">${TT('Edit')}</button></td></tr>`).join(''):`<tr><td colspan="6" class="muted">${TT('No reports')}</td></tr>`}</tbody></table></div>
+    </div>`;
+  })();
   return `<h1><span class="ic" aria-hidden="true">📋</span>${TT('Roster')}</h1>
   <p class="sub" style="margin:0 0 14px">${TT('Calendar of daily staff reports. Click a date to add or edit. Teaching shifts are below.')}</p>
   <div class="${animDash?'anim':''}" style="margin-bottom:14px">
     <div class="cards">
-      <div class="card"><span class="sub"><span class="ic">📅</span>${TT('This month reports')}</span><span class="n" data-count="${monthLogs.length}">${num(monthLogs.length)}</span></div>
+      <div class="card" style="cursor:pointer" data-act="sfclear"><span class="sub"><span class="ic">📅</span>${TT('This month reports')}</span><span class="n" data-count="${monthLogs.length}">${num(monthLogs.length)}</span></div>
       <div class="card"><span class="sub"><span class="ic">✅</span>${TT('Finished')}</span><span class="n" data-count="${monthLogs.filter(L=>L.done).length}">${num(monthLogs.filter(L=>L.done).length)}</span></div>
-      <div class="card"><span class="sub"><span class="ic">👩‍🏫</span>${TT('Teaching shifts')}</span><span class="n" data-count="${sch.length}">${num(sch.length)}</span></div>
+      <div class="card" style="cursor:pointer" title="${TT('All shifts')}"><span class="sub"><span class="ic">👩‍🏫</span>${TT('Teaching shifts')}</span><span class="n" data-count="${sch.length}">${num(sch.length)}</span></div>
       <div class="card"><span class="sub"><span class="ic">📝</span>${TT('All reports')}</span><span class="n" data-count="${logs.length}">${num(logs.length)}</span></div>
     </div>
   </div>
+  ${personPanel}
   <div class="card" style="margin-bottom:14px">
     <div class="bar" style="margin-bottom:12px">
       <h2 style="margin:0">${TT('Daily report calendar')}</h2>
@@ -652,6 +687,8 @@ roster(){
         <button type="button" class="ghost" data-act="calnext">›</button>
         <button type="button" class="ghost" data-act="caltoday">${TT('Today')}</button>
         <button type="button" class="primary" data-act="logadd">${TT('+ Report')}</button>
+        <button type="button" class="ghost" data-act="exportlogs">📤 ${TT('Export reports')}</button>
+        <button type="button" class="ghost" data-act="exportsch">📤 ${TT('Export shifts')}</button>
       </span>
     </div>
     <div class="cal-grid-head">
@@ -666,21 +703,39 @@ roster(){
     <p class="sub" style="margin-top:8px">${TT('Gregorian calendar with Cambodia national holidays noted. Sundays marked in red. Click a date to add or edit daily reports.')}</p>
   </div>
   <div class="card" id="caldetail" style="margin-bottom:14px;display:none"></div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="bar search-bar">
+      <input id="rq" type="search" placeholder="${TT('Filter by name, center, class, time, subject…')}" value="${esc(typeof rosterQ!=='undefined'?rosterQ:'')}" autocomplete="off" style="min-width:220px;flex:1">
+      <label class="sub">${TT('Center')}
+        <select id="schcf">${['All',...Object.keys(CENTERS)].map(x=>`<option value="${esc(x)}"${schF===x?' selected':''}>${esc(x==='All'?TT('All centers'):x)}</option>`).join('')}</select>
+      </label>
+    </div>
+  </div>
   <div class="card">
     <div class="bar"><h2 style="margin:0">📚 ${TT('Teaching shift roster')}</h2>
-      <span class="tl" style="margin:0;gap:8px;flex-wrap:wrap">
-        <label class="sub">${TT('Center')}
-          <select id="schcf">${['All',...Object.keys(CENTERS)].map(x=>`<option value="${esc(x)}"${(typeof schCenterFilter!=='undefined'?schCenterFilter:'All')===x?' selected':''}>${esc(x==='All'?TT('All centers'):x)}</option>`).join('')}
-          </select>
-        </label>
-        <button type="button" class="primary" data-act="schadd">+ ${TT('Add shift')}</button>
-      </span>
+      <button type="button" class="primary" data-act="schadd">+ ${TT('Add shift')}</button>
     </div>
-    <p class="sub" style="margin:8px 0 10px">${TT('Weekly teaching and work shifts by teacher/staff, subject, time and center.')}</p>
+    <p class="sub" style="margin:8px 0 10px">${TT('Weekly teaching and work shifts. Click a teacher name to see all their shifts and reports. Time: type 8-10 or 2-4 for auto 24h format.')}</p>
     <div class="scroll"><table class="data"><thead><tr>
       <th>${TT('Day')} / ${TT('Date')}</th><th>⭐ ${TT('Teacher')}</th><th>⭐ ${TT('Subject')}</th>
       <th>${TT('Class')} / ${TT('Grade')}</th><th>⭐ ${TT('Time')}</th><th>👥 / 🤝</th><th>${TT('Center')}</th><th></th>
     </tr></thead><tbody>${schRows}</tbody></table></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="bar"><h2 style="margin:0">📝 ${TT('All daily reports')}</h2>
+      <button type="button" class="ghost" data-act="exportlogs">📤 ${TT('Export')}</button></div>
+    <div class="scroll"><table class="data"><thead><tr>
+      <th>${TT('Date')}</th><th>${TT('Name')}</th><th>${TT('Position')}</th><th>${TT('Action')}</th><th>${TT('Center')}</th><th>${TT('Done')}</th><th></th>
+    </tr></thead><tbody>${logList.length?logList.map(({L,i})=>`<tr>
+      <td>${esc(L.date||'')}</td>
+      <td><button type="button" class="link" data-act="person" data-name="${esc(L.person||'')}" style="font-weight:600">${esc(L.person||'')}</button></td>
+      <td>${esc(L.position||'')}</td>
+      <td>${esc((L.action||'').slice(0,48))}</td>
+      <td>${esc(L.center||'')}</td>
+      <td><button type="button" class="ghost" data-act="logtoggle" data-i="${i}">${L.done||L.c_done?'✅':'⬜'}</button></td>
+      <td><button type="button" class="link" data-act="logedit" data-i="${i}">${TT('Edit')}</button>
+        <button type="button" class="link" data-act="logdel" data-i="${i}" style="color:#c0392b">${TT('Del')}</button></td>
+    </tr>`).join(''):`<tr><td colspan="7" class="muted" style="text-align:center;padding:16px">${TT('No reports match filters.')}</td></tr>`}</tbody></table></div>
   </div>`;
 },
 projects(){const f=DF.from,x=DF.to,T=tot(f,x),A=tot();
@@ -1010,6 +1065,10 @@ document.addEventListener('click',e=>{
   if(b.dataset.act==='logedit'){openLogForm(+b.dataset.i);return}
   if(b.dataset.act==='logdel'){if(confirm(TT('Delete this daily report?'))){S.worklog.splice(+b.dataset.i,1);save();render()}return}
   if(b.dataset.act==='logtoggle'){const L=S.worklog[+b.dataset.i];if(L){L.done=!L.done;save();render()}return}
+  if(b.dataset.act==='person'){rosterPerson=b.dataset.name||'';render();setTimeout(()=>{const el=$('#personDetail');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},50);return}
+  if(b.dataset.act==='personclear'){rosterPerson=null;render();return}
+  if(b.dataset.act==='exportlogs'){exportRosterCSV('logs');return}
+  if(b.dataset.act==='exportsch'){exportRosterCSV('sch');return}
   if(b.dataset.act==='schadd'){openSchForm(-1);return}
   if(b.dataset.act==='schedit'){openSchForm(+b.dataset.i);return}
   if(b.dataset.act==='schdel'){if(confirm(TT('Delete this schedule row?'))){S.schedule.splice(+b.dataset.i,1);save();render()}return}
@@ -1250,6 +1309,16 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('input',e=>{
   const t=e.target;
+  if(t.id=='rq'){
+    rosterQ=t.value;
+    const sy=window.scrollY,sx=window.scrollX,start=t.selectionStart,end=t.selectionEnd;
+    render();
+    requestAnimationFrame(()=>{
+      const n=$('#rq'); if(n){n.focus(); try{n.setSelectionRange(start,end)}catch(e){}}
+      window.scrollTo(sx,sy);
+    });
+    return;
+  }
   if(t.id=='q'||t.id=='spq'){
     q=t.value;
     const sy=window.scrollY, sx=window.scrollX;
@@ -1389,6 +1458,75 @@ const holidayOf=ds=>{
 };
 const isSunday=ds=>{try{const d=new Date(ds+'T12:00:00');return d.getDay()===0}catch(e){return false}};
 
+
+function normShiftTime(raw){
+  if(!raw)return '';
+  let s=String(raw).trim().replace(/\s+/g,'');
+  if(!s)return '';
+  // already looks like 08:00-10:00
+  if(/^\d{1,2}:\d{2}\s*[-–—to]+\s*\d{1,2}:\d{2}$/i.test(s)){
+    const parts=s.split(/\s*[-–—to]+\s*/i);
+    const fmt=t=>{
+      let [h,m]=t.split(':').map(Number);
+      if(h>=0&&h<=23)return String(h).padStart(2,'0')+':'+String(m||0).padStart(2,'0');
+      return t;
+    };
+    return fmt(parts[0])+'-'+fmt(parts[1]);
+  }
+  // patterns: 8-10, 8:00-10, 2-4, 14-16, 8am-10am
+  s=s.replace(/to/gi,'-').replace(/[–—]/g,'-');
+  const m=s.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*-\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i);
+  if(!m)return raw; // leave as typed if not parseable
+  let h1=+m[1], mi1=+(m[2]||0), p1=(m[3]||'').toLowerCase();
+  let h2=+m[4], mi2=+(m[5]||0), p2=(m[6]||'').toLowerCase();
+  const to24=(h,p,isEnd)=>{
+    if(p==='pm'&&h<12)h+=12;
+    if(p==='am'&&h===12)h=0;
+    if(!p){
+      // heuristic: single-digit or <=7 for end often afternoon school times
+      // 8-10 -> morning; 1-3,2-4,3-5 -> afternoon; 7-9 could be morning
+      if(h>=1&&h<=6)h+=12; // 1-6 without am/pm -> afternoon
+      // 7 stays 07 unless end of pair started morning - handled below
+    }
+    return h;
+  };
+  // If neither has am/pm: if both <=7 treat as afternoon when start>=1&&start<=6
+  if(!p1&&!p2){
+    if(h1>=1&&h1<=6)h1+=12;
+    if(h2>=1&&h2<=6)h2+=12;
+    // if start is 7-11 and end is 1-6 without pm, end is afternoon
+    if(h1>=7&&h1<=11&&h2>=1&&h2<=6)h2+=12;
+  } else {
+    h1=to24(h1,p1,false);
+    h2=to24(h2,p2,true);
+  }
+  if(h1>23)h1=h1%24; if(h2>23)h2=h2%24;
+  return String(h1).padStart(2,'0')+':'+String(mi1).padStart(2,'0')+'-'+String(h2).padStart(2,'0')+':'+String(mi2).padStart(2,'0');
+}
+
+
+function exportRosterCSV(kind){
+  const rows=[];
+  if(kind==='logs'){
+    rows.push(['Date','Name','Position','Center','Action','Problem','Solving','Goal','Done','Notes']);
+    (S.worklog||[]).forEach(L=>{
+      rows.push([L.date||'',L.person||'',L.position||'',L.center||'',L.action||'',L.problem||'',L.solving||'',L.goal||'',(L.done||L.c_done)?'Yes':'No',L.notes||'']);
+    });
+  } else {
+    rows.push(['Day','Date','Name','Position','Subject','Book','Class','Grade','Time','Students','Volunteers','Center','Notes']);
+    (S.schedule||[]).forEach(s=>{
+      rows.push([s.day||'',s.date||'',s.person||'',s.position||'',s.subject||s.task||'',s.book||'',s.cls||'',s.grade||'',s.time||'',s.students||'',s.volunteers||'',s.center||'',s.notes||'']);
+    });
+  }
+  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=kind==='logs'?'HVTO-daily-reports.csv':'HVTO-teaching-shifts.csv';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),500);
+}
+
 function openDayPanel(ds){
   S.worklog=S.worklog||[];
   const items=S.worklog.map((L,i)=>({L,i})).filter(x=>x.L.date===ds);
@@ -1449,6 +1587,7 @@ function openLogForm(i,datePreset){
     e.preventDefault();
     const d=Object.fromEntries(new FormData(F));
     if(!d.person||!d.time||!d.subject){const err=$('#scherr');if(err)err.textContent=TT('Teacher name, time and subject are required.');return}
+    d.time=normShiftTime(d.time)||d.time;
     d.task=d.subject;
     S.schedule=S.schedule||[];
     if(schEdit>=0)S.schedule[schEdit]=Object.assign({},S.schedule[schEdit],d);
@@ -1504,6 +1643,12 @@ function openSchForm(i){
   F.position.value=L.position||'Teacher';
   F.notes.value=L.notes||'';
   dlg.showModal();
+  const timeEl=F.time;
+  if(timeEl&&!timeEl._normBound){
+    timeEl._normBound=true;
+    timeEl.addEventListener('blur',()=>{timeEl.value=normShiftTime(timeEl.value)||timeEl.value});
+    timeEl.placeholder='e.g. 8-10 or 2-4 → 08:00-10:00 / 14:00-16:00';
+  }
 }
 /* ========== CLOUD SYNC BOOTSTRAP ========== */
 (async function bootstrapCloud(){
