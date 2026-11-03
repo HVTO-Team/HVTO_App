@@ -100,6 +100,22 @@ tr[data-trow]{cursor:pointer}tr[data-trow]:hover td{background:var(--soft)}
 #ddc .av img,#gdc .av img,#pimg,#tpimg{cursor:zoom-in}
 input[readonly]{opacity:.8;cursor:not-allowed}
 [hidden]{display:none!important}.sw.w{margin-top:12px!important}
+
+.cal-grid-head{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.cal-h{text-align:center;font-size:12px;font-weight:600;color:var(--muted,#666);padding:6px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-cell{min-height:88px;border:1px solid var(--solid,#e8e4d8);border-radius:12px;padding:6px;background:var(--card,#fff);cursor:pointer;transition:box-shadow .15s,border-color .15s}
+.cal-cell:hover{border-color:var(--green,#2f9e6e);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.cal-cell.empty{background:transparent;border:none;cursor:default;min-height:0}
+.cal-cell.today{border-color:var(--green,#2f9e6e);background:rgba(47,158,110,.08)}
+.cal-cell.has{background:rgba(59,111,182,.04)}
+.cal-num{font-weight:600;font-size:13px;margin-bottom:4px}
+.cal-badges{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:3px}
+.cal-b{font-size:10px;background:var(--soft,#f0ebe0);padding:1px 5px;border-radius:99px}
+.cal-b.ok{background:rgba(47,158,110,.2)}
+.cal-item{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text,#333)}
+.cal-more{font-size:10px;color:var(--muted,#888)}
+@media(max-width:700px){.cal-cell{min-height:64px;padding:4px}.cal-item{display:none}}
 </style>
 </head>
 <body>
@@ -179,7 +195,7 @@ function migrate(p){if(!p.entries){p.entries=(p.count||p.ben||p.funds||p.desc)?[
 if(!S.v3){let c=0,b=0,f=0;p.entries.sort((x,y)=>x.date.localeCompare(y.date)).forEach(e=>{const a=[e.count,e.ben,e.funds];e.count-=c;e.ben-=b;e.funds-=f;[c,b,f]=a})}
 p.entries.forEach(e=>{e.id=e.id||Math.random().toString(36).slice(2,9);e.per=e.per||'day'})}
 const OLD={'West Sreth':CN[0],'Rumdeng':CN[1],'Sophy':CN[2]};
-const NAV=[['dash','Dashboard'],['students','Students'],['sponsor','Sponsorship Program'],['teachers','Teachers'],['grades','Gradebook'],['outlines','Course Outlines'],['roster','Staff & schedule'],['msgs','Messages'],['reports','Reports'],['projects','HVTO Projects Tracker'],['about','About Us']];
+const NAV=[['dash','Dashboard'],['students','Students'],['sponsor','Sponsorship Program'],['teachers','Teachers'],['grades','Gradebook'],['outlines','Course Outlines'],['roster','Roster'],['msgs','Messages'],['reports','Reports'],['projects','HVTO Projects Tracker'],['about','About Us']];
 const PN=['Institutional and Human Resource Development','HVTO FINANCE','Eco-Tourism','Homestay Volunteers','HVTO Education Center','Free Classes for English and Computer Trainings','Sponsorship for Education Program','Vocational Training','Clean Water Pump Project','Bio Sand Filter Program','HVTO Toilet for Household','Community and Development','HVTO House Charity Project','Food Relief Program'];
 const STRUCT=[[8,'Clean water pumps'],[9,'Bio sand filters'],[10,'Household toilets'],[12,'Charity houses']];
 const mk=(id,en,km,sex,b,c,st,sp,dr)=>({id,en,km,sex,bday:b,center:c,status:st,sponsored:sp,sponsor:sp?'Sponsor on file':'',dropout:dr,howlong:dr?'3 months':'',pstat:'New',level:'Beginner',enroll:'2025-09-01'});
@@ -224,7 +240,7 @@ let warned=0;const save=()=>{
   try{localStorage.setItem('hvto-v2',JSON.stringify(S))}catch(e){if(!warned){warned=1;alert(TT('Could not save: browser storage is full. Remove old outlines or photos.'))}}
   saveToCloud(S);
 };
-let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null;
+let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null,calY=new Date().getFullYear(),calM=new Date().getMonth();
 const $=s=>document.querySelector(s);
 const SALT='hvto.v1.k9q2',AUTH='4cc26f7b837c3a7be51c25ba6b916f92e2e4e71171f2fcdc0fc34cd963f9f711';let fails=0,lockUntil=0;
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
@@ -249,7 +265,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const age=b=>{if(!b)return'';const d=new Date(b),n=new Date();let a=n.getFullYear()-d.getFullYear();if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate()))a--;return a};
 const dur=(a,b)=>{if(!a)return'';const s=new Date(a),e=b?new Date(b):new Date();let m=(e.getFullYear()-s.getFullYear())*12+e.getMonth()-s.getMonth();if(e.getDate()<s.getDate())m--;if(m<0)return'Not started yet';const y=Math.floor(m/12),r=m%12;return[y&&y+(y>1?' years':' year'),r&&r+(r>1?' months':' month')].filter(Boolean).join(' ')||'Less than 1 month'};
 const inR=(d,f,x)=>(!f||(d||'')>=f)&&(!x||(d||'')<=x);
-const vis=()=>S.students.filter(s=>(campus=='All'||s.center==campus)&&inR(s.enroll,DF.from,DF.to)&&(!q||(s.en+s.km+s.id+(s.sponsor||'')+(s.sponsorid||'')).toLowerCase().includes(q.toLowerCase())));
+const vis=()=>S.students.filter(s=>(campus=='All'||s.center==campus)&&inR(s.enroll,DF.from,DF.to)&&matchSf(s)&&(!q||(s.en+s.km+s.id+(s.sponsor||'')+(s.sponsorid||'')).toLowerCase().includes(q.toLowerCase())));
 const visSponsored=()=>vis().filter(s=>s.sponsored);
 const sorted=v=>{const f={enroll:s=>s.enroll||'',name:s=>s.en.toLowerCase(),age:s=>+age(s.bday)||0,center:s=>s.center,id:s=>+((/(\d+)\s*$/.exec(s.id||'')||[])[1]||0)}[sstu],r=v.slice().sort((a,b)=>{const x=f(a),y=f(b);return x<y?-1:x>y?1:0});return ord=='asc'?r:r.reverse()};
 const av=s=>`<span class="av">${s.photo?`<img src="${s.photo}" alt="">`:esc((s.en||'?')[0])}</span>`;
@@ -302,12 +318,21 @@ const matchSf=s=>{
   }
   return true;
 };
+const filterChip=()=>{
+  if(!sf)return '';
+  const label=sf.kind==='status'?sf.val:sf.kind==='sponsored'?(sf.val==='yes'?TT('Sponsored'):TT('Not sponsored')):sf.kind==='center'?sf.val:sf.kind==='grade'?('Grade '+sf.val):String(sf.val);
+  return `<div class="card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px">
+    <span><b>${TT('Filter')}:</b> ${esc(label)}</span>
+    <button type="button" class="ghost" data-act="sfclear">${TT('Clear filter')}</button>
+  </div>`;
+};
+
 const VIEWS={
 dash(){const all=S.students.filter(s=>campus=='All'||s.center==campus);
  const v=(!DF.from&&!DF.to)?all:all.filter(s=>inR(s.enroll,DF.from,DF.to));
  const T=S.teachers.filter(t=>campus=='All'||t.center==campus);
- const kc=(l,n)=>`<div class="card"><span class="sub"><span class="ic" aria-hidden="true">${IC[l]||''}</span>${l}</span><span class="n" data-count="${n}">${num(n)}</span></div>`;
- const seg=[{l:'Active',v:v.filter(s=>s.status=='Active'&&!isDrop(s)).length,c:'#2f9e6e'},{l:'Dropped',v:v.filter(isDrop).length,c:'#e08a2b'},{l:'Graduated',v:v.filter(s=>s.status=='Graduated'&&!isDrop(s)).length,c:'#3b6fb6'}];
+ const kc=(l,n,kind,val)=>`<div class="card" style="cursor:pointer" data-act="sf" data-kind="${kind||''}" data-val="${val||''}" title="${TT('Click to view list')}"><span class="sub"><span class="ic" aria-hidden="true">${IC[l]||''}</span>${l}</span><span class="n" data-count="${n}">${num(n)}</span></div>`;
+ const seg=[{l:'Active',v:v.filter(s=>stOf(s)=='Active').length,c:'#2f9e6e',k:'Active'},{l:'Dropped',v:v.filter(s=>stOf(s)=='Dropped').length,c:'#e08a2b',k:'Dropped'},{l:'Graduated',v:v.filter(s=>stOf(s)=='Graduated').length,c:'#3b6fb6',k:'Graduated'}];
  const byC=Object.keys(CENTERS).map(c=>({l:c,v:v.filter(s=>s.center==c).length}));
  const gradeOrder=['1','2','3','4','5','6','7','8','9','10','11','12','Year1','Year2','Year3','Year4'];
  const gradeLabel={
@@ -333,8 +358,8 @@ dash(){const all=S.students.filter(s=>campus=='All'||s.center==campus);
  const ids=new Set(all.map(s=>s.id)),sj=SUBJ.map(x=>{const G=S.grades.filter(g=>g.subj==x&&ids.has(g.sid)),a=G.length?G.reduce((n,g)=>n+pct(g),0)/G.length:0;return{l:x,v:a,t:G.length?a.toFixed(0)+'%':'–',c:'#c98a14'}});
  const pj=S.projects.map(p=>({l:p.n,v:sumP(p,DF.from,DF.to).ben})).filter(x=>x.v>0).sort((x,y)=>y.v-x.v).slice(0,5);
  return `<h1><span class="ic" aria-hidden="true">📊</span>School dashboard</h1><p class="sub" style="margin:0">Students, grades, and family contact for the three Siem Reap campuses.</p>${datebar()}
- <div class="${animDash?'anim':''}"><div class="cards">${kc('Students',v.length)}${kc('Active',v.filter(s=>s.status=='Active').length)}${kc('Sponsored',v.filter(s=>s.sponsored).length)}${kc('Drop out',v.filter(isDrop).length)}${kc('Teachers',T.length)}</div>
- <div class="gr"><div class="card"><h2 style="margin-bottom:10px">Student status</h2><div class="dnw">${donut(seg,v.length)}<div style="flex:1;min-width:130px">${seg.map(s=>`<div class="lg"><i style="background:${s.c}"></i><span>${s.l}</span><b>${s.v}</b></div>`).join('')}</div></div></div>
+ <div class="${animDash?'anim':''}"><div class="cards">${kc('Students',v.length,'status','')}${kc('Active',v.filter(s=>stOf(s)=='Active').length,'status','Active')}${kc('Sponsored',v.filter(s=>s.sponsored).length,'sponsored','yes')}${kc('Drop out',v.filter(s=>stOf(s)=='Dropped').length,'status','Dropped')}${kc('Teachers',T.length,'','')}</div>
+ <div class="gr"><div class="card"><h2 style="margin-bottom:10px">Student status</h2><div class="dnw">${donut(seg,v.length)}<div style="flex:1;min-width:130px">${seg.map(s=>`<div class="lg" style="cursor:pointer" data-act="sf" data-kind="status" data-val="${s.k||s.l}"><i style="background:${s.c}"></i><span>${s.l}</span><b>${s.v}</b></div>`).join('')}</div></div></div>
  <div class="card"><h2 style="margin-bottom:6px">Students by center</h2>${hbars(byC)}</div>
  <div class="card wide"><h2 style="margin-bottom:6px">${TT('Students by grade')}</h2>
   ${byG.length?hbars(byG.map((x,i)=>({...x,c:i<12?'#3b6fb6':'#c98a14'}))):'<div class="empty">'+TT('No grade data yet. Set Student grade on student profiles.')+'</div>'}
@@ -345,7 +370,17 @@ dash(){const all=S.students.filter(s=>campus=='All'||s.center==campus);
  <div class="card"><h2 style="margin-bottom:6px">Top projects by beneficiaries</h2>${pj.length?hbars(pj.map(x=>({...x,c:'#2f9e6e'}))):'<div class="empty">No data yet.</div>'}</div></div>
  <div class="card"><div class="bar"><h2><span class="ic" aria-hidden="true">🆕</span>Latest students</h2><span><button class="link" data-v="students" style="color:var(--green);font-weight:500">Open records</button> ${xbtns('stu')}</span></div>
  ${v.length?v.slice().reverse().slice(0,5).map(s=>`<div class="row" data-det="${S.students.indexOf(s)}">${av(s)}${who(s)}<span class="sub">${s.bday?age(s.bday)+' yrs':''}</span></div>`).join(''):'<div class="empty">No students at this campus yet. Add one from the Students page.</div>'}</div></div>`},
-students(){return `<h1><span class="ic" aria-hidden="true">🎓</span>Students</h1><p class="sub" style="margin:0 0 4px">Manage records and add new students.</p><p class="sub" style="margin:0 0 14px;font-size:13px">${storLine()}</p>${datebar()}
+students(){
+  const base=S.students.filter(s=>(campus=='All'||s.center==campus)&&inR(s.enroll,DF.from,DF.to));
+  const sc={Active:0,Graduated:0,Dropped:0,Died:0,POSTPONE:0,PST:0};
+  base.forEach(s=>{const k=stOf(s);if(sc[k]!==undefined)sc[k]++});
+  const groups=[{k:'Active',l:TT('Active'),ic:'✅'},{k:'Graduated',l:TT('Graduated'),ic:'✔️'},{k:'Dropped',l:TT('Drop out'),ic:'⚠️'},{k:'Died',l:TT('Died'),ic:'🖤'},{k:'POSTPONE',l:TT('POSTPONE'),ic:'⏸️'},{k:'PST',l:TT('PST'),ic:'🎓'}];
+  return `<h1><span class="ic" aria-hidden="true">🎓</span>Students</h1><p class="sub" style="margin:0 0 4px">Manage records and add new students.</p><p class="sub" style="margin:0 0 14px;font-size:13px">${storLine()}</p>${datebar()}
+ ${filterChip()}
+ <div class="cards" style="margin-bottom:14px">
+   <div class="card" style="cursor:pointer" data-act="sfclear"><span class="sub"><span class="ic">🎓</span>${TT('Total')}</span><span class="n" data-count="${base.length}">${num(base.length)}</span></div>
+   ${groups.map(g=>`<div class="card" style="cursor:pointer${sf&&sf.kind==='status'&&sf.val===g.k?';outline:2px solid var(--green)':''}" data-act="sf" data-kind="status" data-val="${g.k}"><span class="sub"><span class="ic">${g.ic}</span>${g.l}</span><span class="n" data-count="${sc[g.k]}">${num(sc[g.k])}</span></div>`).join('')}
+ </div>
  <div class="card" style="margin-bottom:14px">
    <h2 style="margin:0 0 8px">${TT('Import from spreadsheet')}</h2>
    <p class="sub" style="margin:0 0 10px">${TT('Upload the template Excel file. Existing students are updated; new ones are created.')}</p>
@@ -356,7 +391,8 @@ students(){return `<h1><span class="ic" aria-hidden="true">🎓</span>Students</
  <div class="bar"><span></span><span>${xbtns('stu')} <button class="btn" data-act="add"><span class="ic" aria-hidden="true">➕</span>Add student</button></span></div>
  <div class="scroll"><table><thead><tr><th>Student</th><th><button class="link" data-act="sid" style="color:var(--muted);font-weight:500" title="Sort">ID<span aria-hidden="true">${sstu=='id'?(ord=='asc'?' ▲':' ▼'):' ⇅'}</span></button></th><th>Sex</th><th>Age</th><th>Center</th><th>Class</th><th>Status</th><th></th></tr></thead><tbody id="tb">${stRows()}</tbody></table></div></div>`},
 sponsor(){
-  const list=S.students.filter(s=>(campus=='All'||s.center==campus)&&s.sponsored);
+  const listAll=S.students.filter(s=>(campus=='All'||s.center==campus)&&s.sponsored);
+  const list=listAll.filter(matchSf);
   const stOf=s=>{
     const raw=String(s.status||'').trim().toUpperCase();
     if(s.dropout||isDrop(s)||/DROP/.test(raw))return 'Dropped';
@@ -377,8 +413,8 @@ sponsor(){
   ];
   const counts={}; groups.forEach(g=>counts[g.k]=0);
   let other=0;
-  list.forEach(s=>{const k=stOf(s); if(counts[k]!==undefined)counts[k]++; else other++;});
-  const total=list.length;
+  listAll.forEach(s=>{const k=stOf(s); if(counts[k]!==undefined)counts[k]++; else other++;});
+  const total=listAll.length;
   const seg=groups.map(g=>({l:g.l,v:counts[g.k],c:g.c})).filter(x=>x.v>0);
   if(other)seg.push({l:TT('Other'),v:other,c:'#888'});
   const rows=list.length?sorted(list).map(s=>{
@@ -393,11 +429,12 @@ sponsor(){
   }).join(''):`<tr><td colspan="8" class="muted" style="text-align:center;padding:24px">${TT('No sponsored students yet.')}</td></tr>`;
   return `<h1><span class="ic" aria-hidden="true">🤝</span>${TT('Sponsorship Program')}</h1>
   <p class="sub" style="margin:0 0 14px">${TT('Students who have a sponsor. Data is linked to the Students page.')}</p>
+  ${filterChip()}
 
   <div class="${animDash?'anim':''}">
     <div class="cards" style="margin-bottom:16px">
-      <div class="card"><span class="sub"><span class="ic" aria-hidden="true">🤝</span>${TT('Total')}</span><span class="n" data-count="${total}">${num(total)}</span></div>
-      ${groups.map(g=>`<div class="card"><span class="sub"><span class="ic" aria-hidden="true">${g.ic}</span>${g.l}</span><span class="n" data-count="${counts[g.k]}">${num(counts[g.k])}</span></div>`).join('')}
+      <div class="card" style="cursor:pointer" data-act="sfclear"><span class="sub"><span class="ic" aria-hidden="true">🤝</span>${TT('Total')}</span><span class="n" data-count="${total}">${num(total)}</span></div>
+      ${groups.map(g=>`<div class="card" style="cursor:pointer${sf&&sf.kind==='status'&&sf.val===g.k?';outline:2px solid var(--green)':''}" data-act="sf" data-kind="status" data-val="${g.k}"><span class="sub"><span class="ic" aria-hidden="true">${g.ic}</span>${g.l}</span><span class="n" data-count="${counts[g.k]}">${num(counts[g.k])}</span></div>`).join('')}
     </div>
     <div class="gr" style="margin-bottom:16px">
       <div class="card"><h2 style="margin-bottom:10px">${TT('Sponsorship status')}</h2>
@@ -439,53 +476,69 @@ outlines(){return `<h1><span class="ic" aria-hidden="true">📚</span>Course Out
  <div class="card"><div class="bar"><input id="oq" type="search" placeholder="Search lessons" value="${esc(oq)}" aria-label="Search lessons"><label>Class <select id="ocls"><option value="">All classes</option>${allCls().map(c=>`<option value="${esc(c)}"${ocls==c?' selected':''}>${esc(c)}</option>`).join('')}</select></label></div><div id="ores">${oRes()}</div></div>`},
 roster(){
   const logs=S.worklog||[], sch=S.schedule||[];
-  const f=DF.from,x=DF.to;
-  const filtered=logs.filter(L=>inR(L.date,f,x)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  const done=filtered.filter(L=>L.done).length;
-  const open=filtered.length-done;
-  const byPos={};filtered.forEach(L=>{const p=L.position||'Other';byPos[p]=(byPos[p]||0)+1});
-  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const y=calY, m=calM;
+  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const first=new Date(y,m,1), startPad=(first.getDay()+6)%7; // Mon=0
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const today=new Date(); const todayStr=today.toISOString().slice(0,10);
+  const logsByDate={};
+  logs.forEach((L,i)=>{const d=L.date;if(!d)return;if(!logsByDate[d])logsByDate[d]=[];logsByDate[d].push({L,i});});
+  let cells='';
+  for(let i=0;i<startPad;i++)cells+=`<div class="cal-cell empty"></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const items=logsByDate[ds]||[];
+    const done=items.filter(x=>x.L.done).length;
+    const isToday=ds===todayStr;
+    cells+=`<div class="cal-cell${isToday?' today':''}${items.length?' has':''}" data-act="calday" data-date="${ds}">
+      <div class="cal-num">${d}</div>
+      ${items.length?`<div class="cal-badges"><span class="cal-b">${items.length} ${TT('reports')}</span>${done?`<span class="cal-b ok">${done} ✓</span>`:''}</div>`:''}
+      ${items.slice(0,2).map(x=>`<div class="cal-item">${esc((x.L.person||x.L.action||'').slice(0,18))}</div>`).join('')}
+      ${items.length>2?`<div class="cal-more">+${items.length-2}</div>`:''}
+    </div>`;
+  }
   const schRows=sch.length?sch.map((s,i)=>`<tr>
     <td>${esc(s.day||'')}</td><td>${esc(s.person||'')}</td><td>${esc(s.position||'')}</td>
     <td>${esc(s.subject||s.task||'')}</td><td>${esc(s.time||'')}</td><td>${esc(s.center||'')}</td>
-    <td style="white-space:nowrap"><button class="link" data-act="schedit" data-i="${i}">Edit</button>
-      <button class="link" data-act="schdel" data-i="${i}" style="color:#c0392b">Del</button></td></tr>`).join(''):`<tr><td colspan="7" class="muted" style="text-align:center;padding:16px">${TT('No schedule yet. Add teaching or work shifts.')}</td></tr>`;
-  const logRows=filtered.length?filtered.map((L,idx2)=>{
-    const i=logs.indexOf(L);
-    return `<tr>
-      <td>${esc(L.date||'')}</td><td>${esc(L.person||'')}</td><td>${esc(L.position||'')}</td>
-      <td>${esc(L.action||'')}</td><td>${esc(L.problem||'')}</td><td>${esc(L.solving||'')}</td>
-      <td>${esc(L.goal||'')}</td>
-      <td><button class="ghost" data-act="logtoggle" data-i="${i}">${L.done?'✅':'⬜'}</button></td>
-      <td style="white-space:nowrap"><button class="link" data-act="logedit" data-i="${i}">Edit</button>
-        <button class="link" data-act="logdel" data-i="${i}" style="color:#c0392b">Del</button></td></tr>`;
-  }).join(''):`<tr><td colspan="9" class="muted" style="text-align:center;padding:16px">${TT('No daily reports in this date range.')}</td></tr>`;
-  return `<h1><span class="ic" aria-hidden="true">📋</span>${TT('Staff & schedule')}</h1>
-  <p class="sub" style="margin:0 0 14px">${TT('Teacher and staff teaching schedule, work by position, and daily activity reports.')}</p>
-  ${datebar()}
+    <td style="white-space:nowrap"><button type="button" class="link" data-act="schedit" data-i="${i}">${TT('Edit')}</button>
+      <button type="button" class="link" data-act="schdel" data-i="${i}" style="color:#c0392b">${TT('Del')}</button></td></tr>`).join('')
+    :`<tr><td colspan="7" class="muted" style="text-align:center;padding:16px">${TT('No teaching shifts yet. Add a shift below.')}</td></tr>`;
+  const monthLogs=logs.filter(L=>{if(!L.date)return false;const p=L.date.split('-');return +p[0]===y&&+p[1]===(m+1)});
+  return `<h1><span class="ic" aria-hidden="true">📋</span>${TT('Roster')}</h1>
+  <p class="sub" style="margin:0 0 14px">${TT('Calendar of daily staff reports. Click a date to add or edit. Teaching shifts are below.')}</p>
   <div class="${animDash?'anim':''}" style="margin-bottom:14px">
     <div class="cards">
-      <div class="card"><span class="sub"><span class="ic">📅</span>${TT('Schedule rows')}</span><span class="n" data-count="${sch.length}">${num(sch.length)}</span></div>
-      <div class="card"><span class="sub"><span class="ic">📝</span>${TT('Daily reports')}</span><span class="n" data-count="${filtered.length}">${num(filtered.length)}</span></div>
-      <div class="card"><span class="sub"><span class="ic">✅</span>${TT('Finished')}</span><span class="n" data-count="${done}">${num(done)}</span></div>
-      <div class="card"><span class="sub"><span class="ic">⬜</span>${TT('In progress')}</span><span class="n" data-count="${open}">${num(open)}</span></div>
+      <div class="card"><span class="sub"><span class="ic">📅</span>${TT('This month reports')}</span><span class="n" data-count="${monthLogs.length}">${num(monthLogs.length)}</span></div>
+      <div class="card"><span class="sub"><span class="ic">✅</span>${TT('Finished')}</span><span class="n" data-count="${monthLogs.filter(L=>L.done).length}">${num(monthLogs.filter(L=>L.done).length)}</span></div>
+      <div class="card"><span class="sub"><span class="ic">👩‍🏫</span>${TT('Teaching shifts')}</span><span class="n" data-count="${sch.length}">${num(sch.length)}</span></div>
+      <div class="card"><span class="sub"><span class="ic">📝</span>${TT('All reports')}</span><span class="n" data-count="${logs.length}">${num(logs.length)}</span></div>
     </div>
   </div>
   <div class="card" style="margin-bottom:14px">
-    <div class="bar"><h2 style="margin:0">${TT('Weekly teaching & work schedule')}</h2>
-      <button type="button" class="primary" data-act="schadd">+ ${TT('Add schedule')}</button></div>
-    <p class="sub" style="margin:8px 0 10px">${TT('Plan who teaches or works by weekday, subject/task, time and center.')}</p>
+    <div class="bar" style="margin-bottom:12px">
+      <h2 style="margin:0">${TT('Daily report calendar')}</h2>
+      <span class="tl" style="margin:0;gap:6px;flex-wrap:wrap">
+        <button type="button" class="ghost" data-act="calprev">‹</button>
+        <b style="min-width:140px;text-align:center">${TT(monthNames[m])} ${y}</b>
+        <button type="button" class="ghost" data-act="calnext">›</button>
+        <button type="button" class="ghost" data-act="caltoday">${TT('Today')}</button>
+        <button type="button" class="primary" data-act="logadd">${TT('+ Report')}</button>
+      </span>
+    </div>
+    <div class="cal-grid-head">
+      ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div class="cal-h">${TT(d)}</div>`).join('')}
+    </div>
+    <div class="cal-grid">${cells}</div>
+    <p class="sub" style="margin-top:10px">${TT('Click any date to view and update daily reports for teachers and staff.')}</p>
+  </div>
+  <div class="card" id="caldetail" style="margin-bottom:14px;display:none"></div>
+  <div class="card">
+    <div class="bar"><h2 style="margin:0">${TT('Teaching shift roster')}</h2>
+      <button type="button" class="primary" data-act="schadd">+ ${TT('Add shift')}</button></div>
+    <p class="sub" style="margin:8px 0 10px">${TT('Weekly teaching and work shifts by teacher/staff, subject, time and center.')}</p>
     <div class="scroll"><table class="data"><thead><tr>
       <th>${TT('Day')}</th><th>${TT('Name')}</th><th>${TT('Position')}</th><th>${TT('Subject / task')}</th><th>${TT('Time')}</th><th>${TT('Center')}</th><th></th>
     </tr></thead><tbody>${schRows}</tbody></table></div>
-  </div>
-  <div class="card">
-    <div class="bar"><h2 style="margin:0">${TT('Daily work reports')}</h2>
-      <button type="button" class="primary" data-act="logadd">+ ${TT('Add daily report')}</button></div>
-    <p class="sub" style="margin:8px 0 10px">${TT('Record date, action, problem, solving and goal. Filter by day, month or year above. Mark finished when done.')}</p>
-    <div class="scroll"><table class="data"><thead><tr>
-      <th>${TT('Date')}</th><th>${TT('Name')}</th><th>${TT('Position')}</th><th>${TT('Action')}</th><th>${TT('Problem')}</th><th>${TT('Solving')}</th><th>${TT('Goal')}</th><th>${TT('Done')}</th><th></th>
-    </tr></thead><tbody>${logRows}</tbody></table></div>
   </div>`;
 },
 projects(){const f=DF.from,x=DF.to,T=tot(f,x),A=tot();
@@ -782,14 +835,20 @@ document.addEventListener('click',e=>{
   if(b.dataset.act==='sf'){
     const kind=b.dataset.kind,val=b.dataset.val;
     if(!kind)return;
-    if(sf&&sf.kind===kind&&sf.val===val)sf=null;else sf={kind,val};
+    if(kind==='project'){view='projects';animDash=true;render();return}
+    if(sf&&sf.kind===kind&&String(sf.val)===String(val))sf=null;
+    else if(val===''||val===undefined)sf=null;
+    else sf={kind,val};
     if(kind==='sponsored')view='sponsor';
     else if(kind==='status'||kind==='center'||kind==='grade'){if(view!=='students'&&view!=='sponsor')view='students'}
-    else if(kind==='project')view='projects';
     animDash=true;render();return;
   }
   if(b.dataset.act==='sfclear'){sf=null;render();return}
-  if(b.dataset.act==='logadd'){openLogForm(-1);return}
+  if(b.dataset.act==='calday'){openDayPanel(b.dataset.date);return}
+  if(b.dataset.act==='calprev'){calM--;if(calM<0){calM=11;calY--}render();return}
+  if(b.dataset.act==='calnext'){calM++;if(calM>11){calM=0;calY++}render();return}
+  if(b.dataset.act==='caltoday'){const n=new Date();calY=n.getFullYear();calM=n.getMonth();render();return}
+  if(b.dataset.act==='logadd'){openLogForm(-1,b.dataset.date||'');return}
   if(b.dataset.act==='logedit'){openLogForm(+b.dataset.i);return}
   if(b.dataset.act==='logdel'){if(confirm(TT('Delete this daily report?'))){S.worklog.splice(+b.dataset.i,1);save();render()}return}
   if(b.dataset.act==='logtoggle'){const L=S.worklog[+b.dataset.i];if(L){L.done=!L.done;save();render()}return}
@@ -1063,9 +1122,32 @@ F.onsubmit=e=>{
   save();$('#dlg').close();render();
 };
 
-function openLogForm(i){
+
+function openDayPanel(ds){
   S.worklog=S.worklog||[];
-  const L=i>=0?S.worklog[i]:{date:new Date().toISOString().slice(0,10),person:'',position:'',action:'',problem:'',solving:'',goal:'',done:false};
+  const items=S.worklog.map((L,i)=>({L,i})).filter(x=>x.L.date===ds);
+  const el=$('#caldetail');
+  if(!el){openLogForm(-1,ds);return}
+  el.style.display='block';
+  el.innerHTML=`<div class="bar"><h2 style="margin:0">${TT('Reports for')} ${esc(ds)}</h2>
+    <button type="button" class="primary" data-act="logadd" data-date="${ds}">+ ${TT('Add report')}</button></div>
+    ${items.length?`<table class="data" style="margin-top:10px"><thead><tr>
+      <th>${TT('Name')}</th><th>${TT('Position')}</th><th>${TT('Action')}</th><th>${TT('Problem')}</th>
+      <th>${TT('Solving')}</th><th>${TT('Goal')}</th><th>${TT('Done')}</th><th></th></tr></thead>
+      <tbody>${items.map(({L,i})=>`<tr>
+        <td>${esc(L.person||'')}</td><td>${esc(L.position||'')}</td><td>${esc(L.action||'')}</td>
+        <td>${esc(L.problem||'')}</td><td>${esc(L.solving||'')}</td><td>${esc(L.goal||'')}</td>
+        <td><button type="button" class="ghost" data-act="logtoggle" data-i="${i}">${L.done?'✅':'⬜'}</button></td>
+        <td><button type="button" class="link" data-act="logedit" data-i="${i}">${TT('Edit')}</button>
+          <button type="button" class="link" data-act="logdel" data-i="${i}" style="color:#c0392b">${TT('Del')}</button></td></tr>`).join('')}</tbody></table>`
+      :`<p class="sub" style="margin-top:10px">${TT('No reports this day yet. Click Add report.')}</p>`}
+    <p class="sub" style="margin-top:8px"><button type="button" class="ghost" onclick="document.getElementById('caldetail').style.display='none'">${TT('Close')}</button></p>`;
+  try{el.scrollIntoView({behavior:'smooth',block:'nearest'})}catch(e){}
+}
+
+function openLogForm(i,datePreset){
+  S.worklog=S.worklog||[];
+  const L=i>=0?S.worklog[i]:{date:datePreset||new Date().toISOString().slice(0,10),person:'',position:'',action:'',problem:'',solving:'',goal:'',done:false};
   const date=prompt(TT('Date')+' (YYYY-MM-DD)',L.date||''); if(date===null)return;
   const person=prompt(TT('Name'),L.person||''); if(person===null)return;
   const position=prompt(TT('Position')+' (Teacher, Admin, HR, Finance…)',L.position||''); if(position===null)return;
