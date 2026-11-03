@@ -224,7 +224,7 @@ let warned=0;const save=()=>{
   try{localStorage.setItem('hvto-v2',JSON.stringify(S))}catch(e){if(!warned){warned=1;alert(TT('Could not save: browser storage is full. Remove old outlines or photos.'))}}
   saveToCloud(S);
 };
-let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='';
+let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null;
 const $=s=>document.querySelector(s);
 const SALT='hvto.v1.k9q2',AUTH='4cc26f7b837c3a7be51c25ba6b916f92e2e4e71171f2fcdc0fc34cd963f9f711';let fails=0,lockUntil=0;
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
@@ -275,6 +275,33 @@ const kpi=(l,v)=>`<div class="card"><span class="sub"><span class="ic" aria-hidd
 const who=s=>`<div class="grow"><div>${esc(s.en)}</div><small>${esc(s.km)} · ${esc(CENTERS[s.center]||s.center)}</small></div>`;
 const isDrop=s=>s.dropout||s.status=='Dropped';
 
+
+const stOf=s=>{
+  const raw=String(s.status||'').trim().toUpperCase();
+  if(s.dropout||s.status==='Dropped'||/^DROP/.test(raw))return 'Dropped';
+  if(/GRAD/.test(raw))return 'Graduated';
+  if(/DIED|DEATH|PASSED/.test(raw))return 'Died';
+  if(/POSTPONE|POSTPONED|HOLD/.test(raw))return 'POSTPONE';
+  if(raw==='PST'||/^PST\b/.test(raw)||/POST\s*SECONDARY/.test(raw))return 'PST';
+  if(/ACTIVE/.test(raw)||!raw)return 'Active';
+  return raw?raw.charAt(0)+raw.slice(1).toLowerCase():'Active';
+};
+const matchSf=s=>{
+  if(!sf)return true;
+  if(sf.kind==='status')return stOf(s)===sf.val;
+  if(sf.kind==='sponsored')return !!s.sponsored===(sf.val==='yes');
+  if(sf.kind==='center')return s.center===sf.val;
+  if(sf.kind==='grade'){
+    const g=String(s.grade||'').trim();
+    const low=g.toLowerCase().replace(/\s+/g,'');
+    if(sf.val==='Year1')return /^(year\s*1|y1|1st|freshman|year1)$/i.test(low);
+    if(sf.val==='Year2')return /^(year\s*2|y2|2nd|sophomore|year2)$/i.test(low);
+    if(sf.val==='Year3')return /^(year\s*3|y3|3rd|junior|year3)$/i.test(low);
+    if(sf.val==='Year4')return /^(year\s*4|y4|4th|senior|year4)$/i.test(low);
+    return String(parseInt(g,10))===sf.val||g===sf.val;
+  }
+  return true;
+};
 const VIEWS={
 dash(){const all=S.students.filter(s=>campus=='All'||s.center==campus);
  const v=(!DF.from&&!DF.to)?all:all.filter(s=>inR(s.enroll,DF.from,DF.to));
@@ -420,7 +447,8 @@ projects(){const f=DF.from,x=DF.to,T=tot(f,x),A=tot();
  <div class="scroll"><table><thead><tr><th>#</th><th>Project</th><th>Completed</th><th>Beneficiaries</th><th>Funds (USD)</th><th>Last update</th><th></th></tr></thead><tbody>
  ${L.map(({p,i,s,a})=>`<tr><td>${i+1}</td><td style="min-width:220px">${esc(p.n)}${a.note?`<br><small>${esc(a.note.slice(0,80))}</small>`:''}</td><td>${num(s.count)}</td><td>${num(s.ben)}</td><td>${num(s.funds)}</td><td>${a.date||'<span class="muted">No update yet</span>'}</td><td style="white-space:nowrap"><button class="btn" style="padding:7px 16px" data-act="upd" data-i="${i}">Update</button> <button class="link" data-act="hist" data-i="${i}">History (${p.entries.length})</button></td></tr>`).join('')}</tbody></table></div></div>`},
 reports(){
-  const P=S.projects||[], f=DF.from, x=DF.to;
+  try{
+  const P=(S.projects&&S.projects.length?S.projects:PN.map(n=>({n,entries:[]}))), f=DF.from, x=DF.to;
   const C=P.map(p=>sumP(p,f,x));
   const projBen=C.reduce((n,c)=>n+(+c.ben||0),0);
   const tf=C.reduce((n,c)=>n+(+c.funds||0),0);
@@ -517,7 +545,9 @@ reports(){
   <div class="card scroll"><h2 style="margin-bottom:8px">${TT('Students by center')}</h2>
     <table><thead><tr><th>${TT('Center')}</th><th>${TT('Students')}</th><th>${TT('Active')}</th><th>${TT('Sponsored')}</th><th>${TT('Drop out')}</th></tr></thead>
     <tbody>${Object.keys(CENTERS).map(c=>{const l=v.filter(s=>s.center==c);return `<tr><td>${esc(c)}</td><td>${l.length}</td><td>${l.filter(s=>stOf(s)=='Active').length}</td><td>${l.filter(s=>s.sponsored).length}</td><td>${l.filter(s=>stOf(s)=='Dropped').length}</td></tr>`}).join('')}</tbody></table>
-  </div>`},
+  </div>`;
+  }catch(err){console.error('Reports error',err);return '<h1>Reports</h1><p class="err">'+String(err&&err.message||err)+'</p>';}
+,
 about(){
   const A=S.about||(S.about={text:'',photos:[],files:[]});
   const photos=(A.photos||[]).map((p,i)=>`<div class="card" style="padding:8px"><img src="${p.data}" alt="" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;cursor:pointer" data-act="aboutimg" data-i="${i}"><div class="bar" style="margin-top:6px"><small class="sub">${esc(p.name||'')}</small><button type="button" class="ghost" data-act="aboutdelphoto" data-i="${i}" style="color:#c0392b">${TT('Delete')}</button></div></div>`).join('');
@@ -544,7 +574,7 @@ about(){
   </div>`}
 
 };
-const sumP=(p,f,x)=>{const E=p.entries.filter(e=>inR(e.date,f,x)).sort((a,b)=>a.date.localeCompare(b.date)),l=E[E.length-1]||{},s=k=>E.reduce((n,e)=>n+(+e[k]||0),0);return{count:s('count'),ben:s('ben'),funds:s('funds'),date:l.date||'',note:l.note||''}};
+const sumP=(p,f,x)=>{const E=(p&&p.entries?p.entries:[]).filter(e=>inR(e.date,f,x)).sort((a,b)=>a.date.localeCompare(b.date)),l=E[E.length-1]||{},s=k=>E.reduce((n,e)=>n+(+e[k]||0),0);return{count:s('count'),ben:s('ben'),funds:s('funds'),date:l.date||'',note:l.note||''}};
 const tot=(f,x)=>S.projects.reduce((n,p)=>{const c=sumP(p,f,x);n.count+=c.count;n.ben+=c.ben;n.funds+=c.funds;return n},{count:0,ben:0,funds:0});
 const datebar=()=>`<div class="bar fl"><label>From <input type="date" id="dfrom" value="${DF.from}"></label><label>To <input type="date" id="dto" value="${DF.to}"></label><span>${[['all','All time'],['day','Today'],['month','This month'],['year','This year']].map(([k,l])=>`<button class="ghost" data-act="pre" data-k="${k}">${l}</button>`).join(' ')}</span></div>`;
 const ordSel=()=>`<label>Order <select id="ord"><option value="desc"${ord=='desc'?' selected':''}>Descending</option><option value="asc"${ord=='asc'?' selected':''}>Ascending</option></select></label>`;
