@@ -463,7 +463,7 @@ const save=()=>{
     }
   }
 };
-let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null,schCenterFilter='All',rosterQ='',rosterPerson='',calY=new Date().getFullYear(),calM=new Date().getMonth();
+let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null,addrF={province:'',district:'',commune:'',village:''},onlySponsoredOutside=false,schCenterFilter='All',rosterQ='',rosterPerson='',calY=new Date().getFullYear(),calM=new Date().getMonth();
 const $=s=>document.querySelector(s);
 const SALT='hvto.v1.k9q2',AUTH='4cc26f7b837c3a7be51c25ba6b916f92e2e4e71171f2fcdc0fc34cd963f9f711';let fails=0,lockUntil=0;
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
@@ -488,6 +488,20 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const age=b=>{if(!b)return'';const d=new Date(b),n=new Date();let a=n.getFullYear()-d.getFullYear();if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate()))a--;return a};
 const dur=(a,b)=>{if(!a)return'';const s=new Date(a),e=b?new Date(b):new Date();let m=(e.getFullYear()-s.getFullYear())*12+e.getMonth()-s.getMonth();if(e.getDate()<s.getDate())m--;if(m<0)return'Not started yet';const y=Math.floor(m/12),r=m%12;return[y&&y+(y>1?' years':' year'),r&&r+(r>1?' months':' month')].filter(Boolean).join(' ')||'Less than 1 month'};
 const inR=(d,f,x)=>(!f||(d||'')>=f)&&(!x||(d||'')<=x);
+
+const matchAddr=s=>{
+  const a=addrF||{};
+  const chk=(val,field)=>{
+    if(!val)return true;
+    const hay=String(s[field]||s.addr||'').toLowerCase();
+    return hay.includes(String(val).toLowerCase().trim());
+  };
+  return chk(a.province,'province')&&chk(a.district,'district')&&chk(a.commune,'commune')&&chk(a.village,'village');
+};
+const isHvtoCenter=c=>{
+  const t=String(c||'').toLowerCase();
+  return t.includes('hvto')&&t.includes('free education');
+};
 const matchQ=s=>{
   if(!q||!String(q).trim())return true;
   const terms=String(q).toLowerCase().trim().split(/\s+/).filter(Boolean);
@@ -501,7 +515,7 @@ const matchQ=s=>{
     return false;
   });
 };
-const vis=()=>S.students.filter(s=>(campus=='All'||s.center==campus)&&inR(s.enroll,DF.from,DF.to)&&matchSf(s)&&matchQ(s));
+const vis=()=>S.students.filter(s=>(campus=='All'||s.center==campus)&&inR(s.enroll,DF.from,DF.to)&&matchSf(s)&&matchQ(s)&&matchAddr(s)&&(!onlySponsoredOutside||(s.sponsored&&!isHvtoCenter(s.center))));
 const visSponsored=()=>vis().filter(s=>s.sponsored);
 const sorted=v=>{const f={enroll:s=>s.enroll||'',name:s=>s.en.toLowerCase(),age:s=>+age(s.bday)||0,center:s=>s.center,id:s=>+((/(\d+)\s*$/.exec(s.id||'')||[])[1]||0)}[sstu],r=v.slice().sort((a,b)=>{const x=f(a),y=f(b);return x<y?-1:x>y?1:0});return ord=='asc'?r:r.reverse()};
 const av=s=>`<span class="av">${s.photo?`<img src="${s.photo}" alt="">`:esc((s.en||'?')[0])}</span>`;
@@ -616,7 +630,7 @@ students(){
   base.forEach(s=>{const k=stOf(s);if(sc[k]!==undefined)sc[k]++});
   const groups=[{k:'Active',l:TT('Active'),ic:'✅'},{k:'Graduated',l:TT('Graduated'),ic:'✔️'},{k:'Dropped',l:TT('Drop out'),ic:'⚠️'},{k:'Died',l:TT('Died'),ic:'🖤'},{k:'POSTPONE',l:TT('POSTPONE'),ic:'⏸️'},{k:'PST',l:TT('PST'),ic:'🎓'}];
   return `<h1><span class="ic" aria-hidden="true">🎓</span>Students</h1><p class="sub" style="margin:0 0 4px">Manage records and add new students.</p><p class="sub" style="margin:0 0 14px;font-size:13px">${storLine()}</p>${datebar()}
- ${filterChip()}
+ ${filterChip()}${addrFilterBar()}
  <div class="cards" style="margin-bottom:14px">
    <div class="card" style="cursor:pointer" data-act="sfclear"><span class="sub"><span class="ic">🎓</span>${TT('Total')}</span><span class="n" data-count="${base.length}">${num(base.length)}</span></div>
    ${groups.map(g=>`<div class="card" style="cursor:pointer${sf&&sf.kind==='status'&&sf.val===g.k?';outline:2px solid var(--green)':''}" data-act="sf" data-kind="status" data-val="${g.k}"><span class="sub"><span class="ic">${g.ic}</span>${g.l}</span><span class="n" data-count="${sc[g.k]}">${num(sc[g.k])}</span></div>`).join('')}
@@ -632,7 +646,7 @@ students(){
  <div class="scroll"><table><thead><tr><th>Student</th><th><button class="link" data-act="sid" style="color:var(--muted);font-weight:500" title="Sort">ID<span aria-hidden="true">${sstu=='id'?(ord=='asc'?' ▲':' ▼'):' ⇅'}</span></button></th><th>Sex</th><th>Age</th><th>Center</th><th>Class</th><th>Status</th><th></th></tr></thead><tbody id="tb">${stRows()}</tbody></table></div></div>`},
 sponsor(){
   const listAll=S.students.filter(s=>(campus=='All'||s.center==campus)&&s.sponsored);
-  const list=listAll.filter(s=>matchSf(s)&&matchQ(s));
+  const list=listAll.filter(s=>matchSf(s)&&matchQ(s)&&matchAddr(s)&&(!onlySponsoredOutside||(s.sponsored&&!isHvtoCenter(s.center))));
   const stOf=s=>{
     const raw=String(s.status||'').trim().toUpperCase();
     if(s.dropout||isDrop(s)||/DROP/.test(raw))return 'Dropped';
@@ -669,7 +683,7 @@ sponsor(){
   }).join(''):`<tr><td colspan="8" class="muted" style="text-align:center;padding:24px">${TT('No sponsored students yet.')}</td></tr>`;
   return `<h1><span class="ic" aria-hidden="true">🤝</span>${TT('Sponsorship Program')}</h1>
   <p class="sub" style="margin:0 0 14px">${TT('Students who have a sponsor. Data is linked to the Students page.')}</p>
-  ${filterChip()}
+  ${filterChip()}${addrFilterBar()}
 
   <div class="${animDash?'anim':''}">
     <div class="cards" style="margin-bottom:16px">
@@ -1137,18 +1151,48 @@ let pi=-1,hi=-1;
 const metr=[['count','Completed'],['ben','Beneficiaries'],['funds','Funds (USD)']];
 function pstate(){const f=$('#pf'),per=f.per.value;$('#ld').hidden=per!='day';$('#lm').hidden=per!='month';$('#ly').hidden=per!='year';f.dday.required=per=='day';f.dmon.required=per=='month';f.dyr.required=per=='year';
  const c=sumP(S.projects[pi]);$('#pn').textContent=TT('Current total')+' → '+TT('New total after saving')+'\n'+metr.map(([k,l])=>TT(l)+': '+num(c[k])+' → '+num(c[k]+(+f[k].value||0))).join('\n')}
-function openUpd(i){pi=i;const f=$('#pf');f.reset();$('#pt').textContent=S.projects[i].n;f.per.value='day';f.dday.value=today();f.dmon.value=today().slice(0,7);f.dyr.value=today().slice(0,4);f.count.value=0;f.ben.value=0;f.funds.value=0;pstate();trAll();$('#pd').showModal()}
+let peEdit=null;
+function openUpd(i,entryId){
+  pi=i;peEdit=entryId||null;
+  const f=$('#pf');f.reset();
+  $('#pt').textContent=(peEdit?TT('Edit update')+': ':'')+S.projects[i].n;
+  const sub=$('#pd').querySelector('.sub');
+  if(sub)sub.textContent=peEdit?TT('Correct this update. Values replace the old numbers (not added again).'):TT('Numbers you enter are added to the current totals. Use a negative number to correct a mistake.');
+  const e=peEdit?(S.projects[i].entries||[]).find(x=>x.id===peEdit):null;
+  if(e){
+    f.per.value=e.per||'day';
+    const d=e.date||today();
+    f.dday.value=d;f.dmon.value=d.slice(0,7);f.dyr.value=d.slice(0,4);
+    f.count.value=e.count||0;f.ben.value=e.ben||0;f.funds.value=e.funds||0;
+    if(f.note)f.note.value=e.note||'';
+  } else {
+    f.per.value='day';f.dday.value=today();f.dmon.value=today().slice(0,7);f.dyr.value=today().slice(0,4);
+    f.count.value=0;f.ben.value=0;f.funds.value=0;if(f.note)f.note.value='';
+  }
+  pstate();trAll();$('#pd').showModal();
+}
 $('#pf').oninput=pstate;$('#pf').onchange=pstate;$('#pcx').onclick=()=>$('#pd').close();
 $('#pf').onsubmit=e=>{e.preventDefault();const f=e.target,per=f.per.value,date=per=='day'?f.dday.value:per=='month'?f.dmon.value+'-01':f.dyr.value+'-01-01';
  if(!/^\d{4}-\d\d-\d\d$/.test(date))return;
- S.projects[pi].entries.push({id:Math.random().toString(36).slice(2,9),date,per,count:+f.count.value||0,ben:+f.ben.value||0,funds:+f.funds.value||0,note:f.note.value.trim()});save();$('#pd').close();render()};
+ const payload={date,per,count:+f.count.value||0,ben:+f.ben.value||0,funds:+f.funds.value||0,note:(f.note&&f.note.value||'').trim()};
+ if(peEdit){
+   const list=S.projects[pi].entries||[];
+   const ix=list.findIndex(x=>x.id===peEdit);
+   if(ix>=0)S.projects[pi].entries[ix]=Object.assign({},list[ix],payload);
+   peEdit=null;
+ } else {
+   S.projects[pi].entries.push(Object.assign({id:Math.random().toString(36).slice(2,9)},payload));
+ }
+ save();$('#pd').close();render();
+ if(typeof hi==='number'&&hi===pi)showHist(pi);
+};
 function showHist(i){hi=i;const p=S.projects[i],L=p.entries.slice().sort((a,b)=>b.date.localeCompare(a.date)),T=sumP(p);
-$('#hc').innerHTML=`<h2>${esc(p.n)}</h2><p class="sub">Update history</p>${L.length?`<div class="scroll"><table style="min-width:560px"><thead><tr><th>Period</th><th>Completed</th><th>Beneficiaries</th><th>Funds</th><th>Notes</th><th></th></tr></thead><tbody>${L.map(e=>`<tr><td>${plab(e)}</td><td>${num(e.count)}</td><td>${num(e.ben)}</td><td>${num(e.funds)}</td><td>${esc(e.note)}</td><td><button class="link" data-act="hdel" data-id="${e.id}" data-d="${plab(e)}">Delete</button></td></tr>`).join('')}<tr><td><b>Total</b></td><td><b>${num(T.count)}</b></td><td><b>${num(T.ben)}</b></td><td><b>${num(T.funds)}</b></td><td></td><td></td></tr></tbody></table></div>`:'<div class="empty">No updates yet. Use Update to add the first one.</div>'}`;trAll();if(!$('#hd').open)$('#hd').showModal()}
+$('#hc').innerHTML=`<h2>${esc(p.n)}</h2><p class="sub">Update history</p>${L.length?`<div class="scroll"><table style="min-width:560px"><thead><tr><th>Period</th><th>Completed</th><th>Beneficiaries</th><th>Funds</th><th>Notes</th><th></th></tr></thead><tbody>${L.map(e=>`<tr><td>${plab(e)}</td><td>${num(e.count)}</td><td>${num(e.ben)}</td><td>${num(e.funds)}</td><td>${esc(e.note)}</td><td style="white-space:nowrap"><button class="link" data-act="hedit" data-id="${e.id}">${TT('Edit')}</button> <button class="link" data-act="hdel" data-id="${e.id}" data-d="${plab(e)}" style="color:#c0392b">${TT('Delete')}</button></td></tr>`).join('')}<tr><td><b>Total</b></td><td><b>${num(T.count)}</b></td><td><b>${num(T.ben)}</b></td><td><b>${num(T.funds)}</b></td><td></td><td></td></tr></tbody></table></div>`:'<div class="empty">No updates yet. Use Update to add the first one.</div>'}`;trAll();if(!$('#hd').open)$('#hd').showModal()}
 $('#hx').onclick=()=>$('#hd').close();
 
 function spRows(){
   const listAll=S.students.filter(s=>(campus=='All'||s.center==campus)&&s.sponsored);
-  const list=listAll.filter(s=>matchSf(s)&&matchQ(s));
+  const list=listAll.filter(s=>matchSf(s)&&matchQ(s)&&matchAddr(s)&&(!onlySponsoredOutside||(s.sponsored&&!isHvtoCenter(s.center))));
   if(!list.length)return `<tr><td colspan="8" class="muted" style="text-align:center;padding:24px">${TT('No sponsored students yet.')}</td></tr>`;
   return sorted(list).map(s=>{
     const i=S.students.indexOf(s);
@@ -1178,6 +1222,7 @@ document.addEventListener('click',e=>{
     else if(kind==='status'||kind==='center'||kind==='grade'){if(view!=='students'&&view!=='sponsor')view='students'}
     animDash=true;render();return;
   }
+  if(b.dataset.act==='afclear'){addrF={province:'',district:'',commune:'',village:''};onlySponsoredOutside=false;render();return}
   if(b.dataset.act==='sfclear'){sf=null;render();return}
   if(b.dataset.act==='calday'){openDayPanel(b.dataset.date);return}
   if(b.dataset.act==='calprev'){calM--;if(calM<0){calM=11;calY--}render();return}
@@ -1217,6 +1262,7 @@ document.addEventListener('click',e=>{
   if(a=='theme'){const r=document.documentElement;r.dataset.theme=r.dataset.theme=='dark'?'light':'dark';saveUI();render()}
   if(a=='add')openForm(-1);
   if(a=='upd')openUpd(i);if(a=='hist')showHist(i);
+  if(a=='hedit'){openUpd(hi,b.dataset.id);return}
   if(a=='hdel'&&confirm(TT('Delete')+' '+b.dataset.d+'?')){S.projects[hi].entries=S.projects[hi].entries.filter(x=>x.id!=b.dataset.id);save();showHist(hi);render()}
   if(a=='sid'){if(sstu=='id')ord=ord=='asc'?'desc':'asc';else{sstu='id';ord='asc'}render()}
   if(a=='tt'){ttab=b.dataset.t;render()}
@@ -1257,6 +1303,8 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id=='camp'){campus=t.value;render()}
+  if(t.id=='af_prov'){addrF=addrF||{};addrF.province=t.value;render()}
+  if(t.id=='af_out'){onlySponsoredOutside=!!t.checked;render()}
   if(t.id=='schcf'){schCenterFilter=t.value;render()}
   if(t.id=='aboutphoto'||t.id=='aboutfile'){
     const files=[...t.files];t.value='';if(!files.length)return;
@@ -1453,6 +1501,16 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('input',e=>{
   const t=e.target;
+  if(t.id=='af_dist'||t.id=='af_com'||t.id=='af_vil'){
+    addrF=addrF||{};
+    if(t.id=='af_dist')addrF.district=t.value;
+    if(t.id=='af_com')addrF.commune=t.value;
+    if(t.id=='af_vil')addrF.village=t.value;
+    const sy=window.scrollY,sx=window.scrollX,start=t.selectionStart,end=t.selectionEnd,id=t.id;
+    render();
+    requestAnimationFrame(()=>{const n=document.getElementById(id);if(n){n.focus();try{n.setSelectionRange(start,end)}catch(e){}}window.scrollTo(sx,sy)});
+    return;
+  }
   if(t.id=='rq'){
     rosterQ=t.value;
     const sy=window.scrollY,sx=window.scrollX,start=t.selectionStart,end=t.selectionEnd;
@@ -1492,6 +1550,24 @@ F.center.innerHTML=Object.keys(CENTERS).map(c=>`<option>${c}</option>`).join('')
 const sync=()=>{const a=age(F.bday.value);$('#age').hidden=a==='';$('#age').textContent=a+' yrs';$('#spg').hidden=!F.sponsored.checked;$('#dog').hidden=!F.dropout.checked;$('#hl').textContent=dur(F.enroll.value,F.dropout.checked&&F.dropdate.value?F.dropdate.value:null)||'–'};
 F.addEventListener('change',e=>{if(e.target.name=='dropout'&&F.dropout.checked)F.status.value='Dropped';sync()});
 const setP=d=>{photo=d;$('#pimg').src=d;$('#pimg').hidden=false;$('#pcrop').hidden=false};$('#pfile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)openCrop(f,setP)};$('#pcrop').onclick=()=>openCrop(photo,setP);
+
+function addrFilterBar(){
+  const a=addrF||{};
+  const provs=[...new Set(S.students.map(s=>(s.province||'').trim()).filter(Boolean))].sort();
+  return `<div class="card" style="margin-bottom:12px"><div class="bar search-bar" style="flex-wrap:wrap;gap:8px;align-items:flex-end">
+    <label class="sub">${TT('Province')}<select id="af_prov"><option value="">${TT('All')}</option>${provs.map(p=>`<option value="${esc(p)}"${a.province===p?' selected':''}>${esc(p)}</option>`).join('')}</select></label>
+    <label class="sub">${TT('District')}<input id="af_dist" type="search" value="${esc(a.district||'')}" placeholder="${TT('District')}" style="min-width:110px"></label>
+    <label class="sub">${TT('Commune')}<input id="af_com" type="search" value="${esc(a.commune||'')}" placeholder="${TT('Commune')}" style="min-width:110px"></label>
+    <label class="sub">${TT('Village')}<input id="af_vil" type="search" value="${esc(a.village||'')}" placeholder="${TT('Village')}" style="min-width:110px"></label>
+    <label class="sub" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+      <input type="checkbox" id="af_out" ${onlySponsoredOutside?'checked':''}> ${TT('Sponsored, not at HVTO center')}
+    </label>
+    <button type="button" class="ghost" data-act="afclear">${TT('Clear address')}</button>
+  </div>
+  <p class="sub" style="margin:6px 0 0">${TT('Filter students by home address. “Sponsored, not at HVTO center” shows sponsored students whose center is not HVTO Free Education Center I–III.')}</p>
+  </div>`;
+}
+
 function openForm(i){
   edit=i;F.reset();$('#clslist').innerHTML=classes().map(c=>`<option value="${esc(c)}">`).join('');photo='';$('#ferr').textContent='';$('#dt').textContent=i<0?'Add student':'Edit student';
   const s=i<0?{id:nextId(S.students,'HVTO-'),enroll:new Date().toISOString().slice(0,10)}:S.students[i];
