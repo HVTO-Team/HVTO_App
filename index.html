@@ -388,7 +388,7 @@ function migrate(p){if(!p.entries){p.entries=(p.count||p.ben||p.funds||p.desc)?[
 if(!S.v3){let c=0,b=0,f=0;p.entries.sort((x,y)=>x.date.localeCompare(y.date)).forEach(e=>{const a=[e.count,e.ben,e.funds];e.count-=c;e.ben-=b;e.funds-=f;[c,b,f]=a})}
 p.entries.forEach(e=>{e.id=e.id||Math.random().toString(36).slice(2,9);e.per=e.per||'day'})}
 const OLD={'West Sreth':CN[0],'Rumdeng':CN[1],'Sophy':CN[2]};
-const NAV=[['dash','Dashboard'],['students','Students'],['sponsor','Sponsorship Program'],['teachers','Teachers'],['grades','Gradebook'],['outlines','Course Outlines'],['roster','Roster'],['msgs','Messages'],['reports','Reports'],['projects','HVTO Projects Tracker'],['about','About Us']];
+const NAV=[['dash','Dashboard'],['students','Students'],['sponsor','Sponsorship Program'],['proposal','Create Proposal'],['teachers','Teachers'],['grades','Gradebook'],['outlines','Course Outlines'],['roster','Roster'],['msgs','Messages'],['reports','Reports'],['projects','HVTO Projects Tracker'],['about','About Us']];
 const PN=['Institutional and Human Resource Development','HVTO FINANCE','Eco-Tourism','Homestay Volunteers','HVTO Education Center','Free Classes for English and Computer Trainings','Sponsorship for Education Program','Vocational Training','Clean Water Pump Project','Bio Sand Filter Program','HVTO Toilet for Household','Community and Development','HVTO House Charity Project','Food Relief Program'];
 const STRUCT=[[8,'Clean water pumps'],[9,'Bio sand filters'],[10,'Household toilets'],[12,'Charity houses']];
 const mk=(id,en,km,sex,b,c,st,sp,dr)=>({id,en,km,sex,bday:b,center:c,status:st,sponsored:sp,sponsor:sp?'Sponsor on file':'',dropout:dr,howlong:dr?'3 months':'',pstat:'New',level:'Beginner',enroll:'2025-09-01'});
@@ -463,7 +463,7 @@ const save=()=>{
     }
   }
 };
-let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null,addrF={province:'',district:'',commune:'',village:''},onlySponsoredOutside=false,schCenterFilter='All',rosterQ='',rosterPerson='',calY=new Date().getFullYear(),calM=new Date().getMonth();
+let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null,propEdit=-1,propDraft=null,addrF={province:'',district:'',commune:'',village:''},onlySponsoredOutside=false,schCenterFilter='All',rosterQ='',rosterPerson='',calY=new Date().getFullYear(),calM=new Date().getMonth();
 const $=s=>document.querySelector(s);
 const SALT='hvto.v1.k9q2',AUTH='4cc26f7b837c3a7be51c25ba6b916f92e2e4e71171f2fcdc0fc34cd963f9f711';let fails=0,lockUntil=0;
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
@@ -989,7 +989,42 @@ about(){
     <p class="sub" style="margin:0 0 10px">${TT('Upload PDF or Office files (org chart, handbook, reports).')}</p>
     <input type="file" id="aboutfile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg" multiple style="width:auto">
     <div style="margin-top:12px">${files||'<div class="empty">'+TT('No files yet.')+'</div>'}</div>
-  </div>`}
+  </div>`},
+
+proposal(){
+  S.proposals=S.proposals||[];
+  const list=S.proposals.slice().reverse();
+  if(propEdit>=0 || propDraft){
+    return proposalEditor();
+  }
+  return `<h1><span class="ic">📄</span>${TT('Create Proposal')}</h1>
+  <p class="sub" style="margin:0 0 14px">${TT('Build sponsorship proposals for donors: student short bios, budget table, and agreement. Export to PDF or Word.')}</p>
+  <div class="bar" style="margin-bottom:14px">
+    <button type="button" class="primary" data-act="propnew">+ ${TT('New proposal')}</button>
+  </div>
+  <div class="card">
+    <h2 style="margin:0 0 10px">${TT('Saved proposals')}</h2>
+    ${list.length?`<div class="scroll"><table class="data"><thead><tr>
+      <th>${TT('Title')}</th><th>${TT('Students')}</th><th>${TT('Sponsors')}</th><th>${TT('Status')}</th><th>${TT('Updated')}</th><th></th>
+    </tr></thead><tbody>${list.map(P=>{
+      const i=S.proposals.indexOf(P);
+      const st=P.status||'draft';
+      const badge=st==='success'?'✅':st==='fail'?'❌':'📝';
+      return `<tr>
+        <td><b>${esc(P.title||TT('Untitled'))}</b></td>
+        <td>${(P.students||[]).length}</td>
+        <td>${(P.sponsors||[]).filter(s=>s.name).length}</td>
+        <td>${badge} ${esc(st)}</td>
+        <td>${esc((P.updated||'').slice(0,16).replace('T',' '))}</td>
+        <td style="white-space:nowrap">
+          <button type="button" class="link" data-act="propedit" data-i="${i}">${TT('Edit')}</button>
+          <button type="button" class="link" data-act="proppreview" data-i="${i}">${TT('Preview')}</button>
+          <button type="button" class="link" data-act="propdel" data-i="${i}" style="color:#c0392b">${TT('Del')}</button>
+        </td></tr>`;
+    }).join('')}</tbody></table></div>`
+    :`<div class="empty">${TT('No proposals yet. Click New proposal.')}</div>`}
+  </div>`;
+},
 
 };
 const sumP=(p,f,x)=>{const E=(p&&p.entries?p.entries:[]).filter(e=>inR(e.date,f,x)).sort((a,b)=>a.date.localeCompare(b.date)),l=E[E.length-1]||{},s=k=>E.reduce((n,e)=>n+(+e[k]||0),0);return{count:s('count'),ben:s('ben'),funds:s('funds'),date:l.date||'',note:l.note||''}};
@@ -1222,6 +1257,52 @@ document.addEventListener('click',e=>{
     else if(kind==='status'||kind==='center'||kind==='grade'){if(view!=='students'&&view!=='sponsor')view='students'}
     animDash=true;render();return;
   }
+  if(b.dataset.act==='propnew'){propEdit=-1;propDraft=emptyProposal();view='proposal';render();return}
+  if(b.dataset.act==='propedit'){propEdit=+b.dataset.i;propDraft=JSON.parse(JSON.stringify(S.proposals[propEdit]||emptyProposal()));view='proposal';render();return}
+  if(b.dataset.act==='propcancel'){propEdit=-1;propDraft=null;render();return}
+  if(b.dataset.act==='propsave'){
+    const P=collectPropDraftFromDOM();
+    S.proposals=S.proposals||[];
+    if(propEdit>=0)S.proposals[propEdit]=P; else {S.proposals.push(P);propEdit=S.proposals.length-1}
+    save();propDraft=JSON.parse(JSON.stringify(P));
+    alert(TT('Proposal saved.'));render();return
+  }
+  if(b.dataset.act==='propdel'){
+    if(!confirm(TT('Delete this proposal?')))return;
+    S.proposals.splice(+b.dataset.i,1);save();propEdit=-1;propDraft=null;render();return
+  }
+  if(b.dataset.act==='proppreview'){
+    let P;
+    if(propDraft)P=collectPropDraftFromDOM();
+    else if(b.dataset.i!==''&&b.dataset.i!=null&&+b.dataset.i>=0)P=S.proposals[+b.dataset.i];
+    if(!P){alert(TT('Nothing to preview'));return}
+    openProposalPreview(P);return
+  }
+  if(b.dataset.act==='propword'){
+    let P;
+    if(propDraft)P=collectPropDraftFromDOM();
+    else if(b.dataset.i!==''&&+b.dataset.i>=0)P=S.proposals[+b.dataset.i];
+    if(!P)return;
+    exportProposalWord(P);return
+  }
+  if(b.dataset.act==='propstuadd'){
+    collectPropDraftFromDOM();
+    propDraft.students.push(emptyPropStudent());render();return
+  }
+  if(b.dataset.act==='propstudel'){
+    collectPropDraftFromDOM();
+    propDraft.students.splice(+b.dataset.i,1);
+    if(!propDraft.students.length)propDraft.students.push(emptyPropStudent());
+    render();return
+  }
+  if(b.dataset.act==='propspadd'){
+    collectPropDraftFromDOM();
+    if((propDraft.sponsors||[]).length>=5)return;
+    propDraft.sponsors.push({name:'',email:'',address:''});render();return
+  }
+  if(b.dataset.act==='propfromstu'){
+    openFillFromStudent(+b.dataset.i);return
+  }
   if(b.dataset.act==='afclear'){addrF={province:'',district:'',commune:'',village:''};onlySponsoredOutside=false;render();return}
   if(b.dataset.act==='sfclear'){sf=null;render();return}
   if(b.dataset.act==='calday'){openDayPanel(b.dataset.date);return}
@@ -1303,9 +1384,24 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id=='camp'){campus=t.value;render()}
+  if(t.dataset&&t.dataset.prop==='grade'){collectPropDraftFromDOM();render();return}
+  if(t.id=='propstatus'||t.id=='propyear'){collectPropDraftFromDOM();render();return}
   if(t.id=='af_prov'){addrF=addrF||{};addrF.province=t.value;render()}
   if(t.id=='af_out'){onlySponsoredOutside=!!t.checked;render()}
   if(t.id=='schcf'){schCenterFilter=t.value;render()}
+  if(t.dataset && t.dataset.propphoto!=null){
+    const i=+t.dataset.propphoto;
+    const file=t.files&&t.files[0]; if(!file)return;
+    const reader=new FileReader();
+    reader.onload=()=>{collectPropDraftFromDOM();if(propDraft.students[i])propDraft.students[i].photo=reader.result;render()};
+    reader.readAsDataURL(file);return;
+  }
+  if(t.id=='propcostimg'||t.id=='propcashimg'){
+    const file=t.files&&t.files[0]; if(!file)return;
+    const reader=new FileReader();
+    reader.onload=()=>{collectPropDraftFromDOM();if(t.id=='propcostimg')propDraft.costImg=reader.result;else propDraft.cashImg=reader.result;render()};
+    reader.readAsDataURL(file);return;
+  }
   if(t.id=='aboutphoto'||t.id=='aboutfile'){
     const files=[...t.files];t.value='';if(!files.length)return;
     S.about=S.about||{text:'',photos:[],files:[]};const isPhoto=t.id==='aboutphoto';
@@ -1870,6 +1966,384 @@ function openSchForm(i){
     timeEl.placeholder='e.g. 8-10 or 2-4 → 08:00-10:00 / 14:00-16:00';
   }
 }
+
+/* ========== SPONSORSHIP PROPOSAL ========== */
+function emptyPropStudent(){
+  return {photo:'',name:'',sex:'Male',bday:'',village:'',commune:'',district:'',province:'Siem Reap',country:'Cambodia',
+    grade:'',note:'',father:'',fatherOcc:'Farmer',mother:'',motherOcc:'Farmer',family:'',freetime:'Reading books and discovering',
+    english:'',goal:''};
+}
+function emptyProposal(){
+  return {
+    title:'HVTO Sponsorship Proposal',
+    status:'draft',
+    academicYear:String(new Date().getFullYear()+1),
+    note:'The sponsor will have the opportunity to become better acquainted with the students once they enrolled in the sponsorship program for their higher education. HVTO proposes a 10-year sponsorship; however, the sponsor may choose to extend or shorten this period based on the ongoing progress, communication, and development of the relationship between the sponsors and the students.',
+    students:[emptyPropStudent()],
+    sponsors:[{name:'',email:'',address:''}],
+    costImg:'', cashImg:'',
+    updated:new Date().toISOString()
+  };
+}
+function gradeFee(g){
+  const t=String(g||'').toLowerCase();
+  if(/univ|year\s*[1-5]|year1|year2|year3|year4|freshman|sophomore|junior|senior/.test(t))return 800;
+  const n=parseInt(t,10);
+  if(n>=1&&n<=12)return 412;
+  if(/grade\s*(\d+)/i.test(t)){const m=+RegExp.$1;if(m>=1&&m<=12)return 412}
+  return 412;
+}
+function isUniGrade(g){
+  const t=String(g||'').toLowerCase();
+  return /univ|year\s*[1-5]|year1|year2|year3|year4|freshman|sophomore|junior|senior/.test(t);
+}
+function formatBdayProp(b){
+  if(!b)return '';
+  try{
+    const d=new Date(b+'T12:00:00');
+    if(isNaN(d))return b;
+    const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return d.getDate()+'/'+months[d.getMonth()]+'/'+d.getFullYear();
+  }catch(e){return b}
+}
+function placeOfBirth(s){
+  const parts=[];
+  if(s.village)parts.push(s.village+( /village/i.test(s.village)?'':' Village'));
+  if(s.commune)parts.push(s.commune+( /commune/i.test(s.commune)?'':' Commune'));
+  if(s.district)parts.push(s.district+( /district/i.test(s.district)?'':' District'));
+  if(s.province)parts.push(s.province+( /province/i.test(s.province)?'':' Province'));
+  parts.push(s.country||'Cambodia');
+  return parts.filter(Boolean).join(', ');
+}
+function buildBudgetRows(students, startYear){
+  // Project up to 10 years: each student advances grade each year until uni year 4
+  const y0=+(startYear||new Date().getFullYear()+1);
+  const feeG=412, feeU=800;
+  function parseStart(g){
+    const t=String(g||'').trim();
+    const um=/year\s*([1-5])|year([1-5])/i.exec(t);
+    if(um)return {type:'u', n:+(um[1]||um[2])};
+    const n=parseInt(t,10);
+    if(n>=1&&n<=12)return {type:'g', n};
+    if(/univ/i.test(t))return {type:'u', n:1};
+    return {type:'g', n:7};
+  }
+  const years={};
+  students.forEach(s=>{
+    let st=parseStart(s.grade);
+    for(let y=0;y<10;y++){
+      const year=y0+y;
+      let label='', fee=0, active=true;
+      if(st.type==='g'){
+        if(st.n>12){st={type:'u',n:1};}
+        if(st.type==='g'){
+          label='Grade '+st.n;
+          fee=feeG;
+          st={type:'g',n:st.n+1};
+          if(st.n>12)st={type:'u',n:1};
+        }
+      }
+      if(st.type==='u' && label===''){
+        if(st.n>4){active=false;}
+        else {
+          label='University Year '+st.n;
+          fee=feeU;
+          st={type:'u',n:st.n+1};
+        }
+      }
+      if(!active)continue;
+      if(!years[year])years[year]={};
+      if(!years[year][label])years[year][label]={count:0,fee};
+      years[year][label].count++;
+    }
+  });
+  const rows=[];
+  let grand=0;
+  Object.keys(years).map(Number).sort((a,b)=>a-b).forEach(year=>{
+    const labels=Object.keys(years[year]);
+    let ytotal=0;
+    labels.forEach((lab,i)=>{
+      const {count,fee}=years[year][lab];
+      const sub=count*fee;
+      ytotal+=sub;
+      rows.push({year:i===0?year:'', grades:lab, count, fees:sub, ytotal:0, isSub:true});
+    });
+    if(labels.length){
+      rows.push({year:'', grades:'Total', count:'', fees:ytotal, ytotal, isTotal:true});
+      grand+=ytotal;
+    }
+  });
+  return {rows, grand};
+}
+function proposalEditor(){
+  const P=propDraft||emptyProposal();
+  propDraft=P;
+  const stus=P.students||[];
+  const sps=P.sponsors||[{name:'',email:'',address:''}];
+  const budget=buildBudgetRows(stus, P.academicYear);
+  const stuBlocks=stus.map((s,i)=>`
+    <div class="card" style="margin-bottom:12px;border:1px solid var(--solid,#ddd)">
+      <div class="bar"><h3 style="margin:0">👤 ${TT('Student')} ${i+1}</h3>
+        <button type="button" class="ghost" data-act="propstudel" data-i="${i}" style="color:#c0392b">${TT('Remove')}</button></div>
+      <div class="g">
+        <label class="w">${TT('Photo')}
+          <div class="photo" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            ${s.photo?`<img src="${s.photo}" alt="" style="width:90px;height:110px;object-fit:cover;border-radius:8px">`:'<span class="sub">No photo</span>'}
+            <input type="file" accept="image/*" data-propphoto="${i}" style="width:auto">
+          </div>
+        </label>
+        <label>${TT('Name')}<input data-prop="name" data-i="${i}" value="${esc(s.name||'')}"></label>
+        <label>${TT('Sex')}<select data-prop="sex" data-i="${i}"><option${s.sex==='Male'?' selected':''}>Male</option><option${s.sex==='Female'?' selected':''}>Female</option><option${s.sex==='Other'?' selected':''}>Other</option></select></label>
+        <label>${TT('Date of Birth')}<input type="date" data-prop="bday" data-i="${i}" value="${esc(s.bday||'')}"></label>
+        <label>${TT('Village')}<input data-prop="village" data-i="${i}" value="${esc(s.village||'')}"></label>
+        <label>${TT('Commune')}<input data-prop="commune" data-i="${i}" value="${esc(s.commune||'')}"></label>
+        <label>${TT('District')}<input data-prop="district" data-i="${i}" value="${esc(s.district||'')}"></label>
+        <label>${TT('Province')}<input data-prop="province" data-i="${i}" value="${esc(s.province||'Siem Reap')}"></label>
+        <label>${TT('Country')}<input data-prop="country" data-i="${i}" value="${esc(s.country||'Cambodia')}"></label>
+        <label>${TT('Student in (Grade / University)')}<input data-prop="grade" data-i="${i}" value="${esc(s.grade||'')}" placeholder="e.g. 7 or University Year 1" list="propgrades"></label>
+        <label>${TT('Note')}<input data-prop="note" data-i="${i}" value="${esc(s.note||'')}" placeholder="Academic Year ${P.academicYear||''}"></label>
+        <label>${TT("Father's Name")}<input data-prop="father" data-i="${i}" value="${esc(s.father||'')}"></label>
+        <label>${TT('Occupation')}<input data-prop="fatherOcc" data-i="${i}" value="${esc(s.fatherOcc||'')}"></label>
+        <label>${TT("Mother's Name")}<input data-prop="mother" data-i="${i}" value="${esc(s.mother||'')}"></label>
+        <label>${TT('Occupation')}<input data-prop="motherOcc" data-i="${i}" value="${esc(s.motherOcc||'')}"></label>
+        <label class="w">${TT('Members in family')}<input data-prop="family" data-i="${i}" value="${esc(s.family||'')}"></label>
+        <label class="w">${TT('Free Time')}<input data-prop="freetime" data-i="${i}" value="${esc(s.freetime||'')}"></label>
+        <label class="w">${TT('English Level')}<input data-prop="english" data-i="${i}" value="${esc(s.english||'')}"></label>
+        <label class="w">${TT('Goal')}<input data-prop="goal" data-i="${i}" value="${esc(s.goal||'')}"></label>
+      </div>
+      <p class="sub" style="margin-top:8px"><button type="button" class="ghost" data-act="propfromstu" data-i="${i}">${TT('Fill from existing student…')}</button></p>
+    </div>`).join('');
+  const spBlocks=sps.map((sp,i)=>`
+    <div class="g" style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--solid,#eee)">
+      <label>${TT('Sponsor')} ${i+1} ${TT('Name')}<input data-sp="name" data-i="${i}" value="${esc(sp.name||'')}"></label>
+      <label>${TT('Email')}<input type="email" data-sp="email" data-i="${i}" value="${esc(sp.email||'')}"></label>
+      <label class="w">${TT('Address')}<input data-sp="address" data-i="${i}" value="${esc(sp.address||'')}"></label>
+    </div>`).join('');
+  const budRows=budget.rows.map(r=>`<tr style="${r.isTotal?'font-weight:700;background:rgba(47,158,110,.08)':''}">
+    <td>${r.year||''}</td><td>${esc(r.grades)}</td><td>${r.count!==''?r.count:''}</td><td>${r.fees!==''?'$'+num(r.fees):''}</td>
+  </tr>`).join('');
+  return `<h1><span class="ic">📄</span>${propEdit>=0?TT('Edit proposal'):TT('New proposal')}</h1>
+  <div class="bar" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <button type="button" class="ghost" data-act="propcancel">${TT('Back')}</button>
+    <button type="button" class="primary" data-act="propsave">${TT('Save')}</button>
+    <button type="button" class="ghost" data-act="proppreview" data-i="${propEdit}">${TT('Preview / Print')}</button>
+    <label class="sub">${TT('Status')}
+      <select id="propstatus">
+        <option value="draft"${P.status==='draft'?' selected':''}>📝 ${TT('Draft')}</option>
+        <option value="success"${P.status==='success'?' selected':''}>✅ ${TT('Success confirmed')}</option>
+        <option value="fail"${P.status==='fail'?' selected':''}>❌ ${TT('Fail')}</option>
+      </select>
+    </label>
+  </div>
+  <datalist id="propgrades"><option value="1"><option value="2"><option value="3"><option value="4"><option value="5"><option value="6"><option value="7"><option value="8"><option value="9"><option value="10"><option value="11"><option value="12"><option value="University Year 1"><option value="University Year 2"><option value="University Year 3"><option value="University Year 4"></datalist>
+  <div class="card" style="margin-bottom:14px">
+    <div class="g">
+      <label class="w">${TT('Proposal title')}<input id="proptitle" value="${esc(P.title||'')}"></label>
+      <label>${TT('Academic Year start')}<input id="propyear" value="${esc(P.academicYear||'')}" placeholder="2027"></label>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="bar"><h2 style="margin:0">${TT('Short Bio of Students')}</h2>
+      <button type="button" class="primary" data-act="propstuadd">+ ${TT('Add student')}</button></div>
+    <p class="sub">${TT('Students in this proposal')}: <b>${stus.length}</b></p>
+    ${stuBlocks}
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <h2 style="margin:0 0 8px">${TT('Note')}</h2>
+    <textarea id="propnote" rows="4" style="width:100%">${esc(P.note||'')}</textarea>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <h2 style="margin:0 0 8px">${TT('Sample cost / Cash flow (optional images)')}</h2>
+    <div class="g">
+      <label>${TT('Sample cost image')}<input type="file" id="propcostimg" accept="image/*" style="width:auto">${P.costImg?`<img src="${P.costImg}" style="max-width:100%;max-height:160px;margin-top:6px;border-radius:8px">`:''}</label>
+      <label>${TT('Cash flow image')}<input type="file" id="propcashimg" accept="image/*" style="width:auto">${P.cashImg?`<img src="${P.cashImg}" style="max-width:100%;max-height:160px;margin-top:6px;border-radius:8px">`:''}</label>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <h2 style="margin:0 0 8px">${TT('Basic Budget Proposal')} — ${stus.length} ${TT('students')}</h2>
+    <p class="sub">${TT('Auto-calculated: Grade 1–12 = $412/year · University Year 1–4 = $800/year (includes 13% HVTO admin).')}</p>
+    <div class="scroll"><table class="data"><thead><tr><th>${TT('Year')}</th><th>${TT('Grades')}</th><th>${TT('No. of Students')}</th><th>${TT('Yearly Fees USD')}</th></tr></thead>
+    <tbody>${budRows||'<tr><td colspan="4" class="muted">Add students with grades to see budget</td></tr>'}
+    <tr style="font-weight:800;background:rgba(47,158,110,.15)"><td colspan="3">${TT('GRAND TOTAL')}</td><td>$${num(budget.grand)}</td></tr>
+    </tbody></table></div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="bar"><h2 style="margin:0">${TT('Sponsorship Agreement — Sponsors')}</h2>
+      <button type="button" class="ghost" data-act="propspadd" ${sps.length>=5?'disabled':''}>+ ${TT('Add sponsor')} (max 5)</button></div>
+    ${spBlocks}
+  </div>
+  <div class="bar" style="margin:16px 0;flex-wrap:wrap;gap:8px">
+    <button type="button" class="primary" data-act="propsave">${TT('Save proposal')}</button>
+    <button type="button" class="ghost" data-act="proppreview" data-i="${propEdit}">${TT('Preview / Export PDF')}</button>
+    <button type="button" class="ghost" data-act="propword" data-i="${propEdit}">${TT('Export Word')}</button>
+    <button type="button" class="ghost" data-act="propcancel">${TT('Cancel')}</button>
+  </div>`;
+}
+function collectPropDraftFromDOM(){
+  if(!propDraft)propDraft=emptyProposal();
+  const P=propDraft;
+  const t=$('#proptitle'); if(t)P.title=t.value;
+  const y=$('#propyear'); if(y)P.academicYear=y.value;
+  const n=$('#propnote'); if(n)P.note=n.value;
+  const st=$('#propstatus'); if(st)P.status=st.value;
+  document.querySelectorAll('[data-prop]').forEach(el=>{
+    const i=+el.dataset.i, key=el.dataset.prop;
+    if(!P.students[i])return;
+    P.students[i][key]=el.value;
+  });
+  document.querySelectorAll('[data-sp]').forEach(el=>{
+    const i=+el.dataset.i, key=el.dataset.sp;
+    if(!P.sponsors[i])return;
+    P.sponsors[i][key]=el.value;
+  });
+  P.updated=new Date().toISOString();
+  return P;
+}
+function proposalDocumentHTML(P){
+  const budget=buildBudgetRows(P.students||[], P.academicYear);
+  const bios=(P.students||[]).map((s,i)=>`
+    <div class="bio" style="display:flex;gap:16px;margin:18px 0;page-break-inside:avoid;border-bottom:1px solid #ddd;padding-bottom:14px">
+      <div style="flex-shrink:0">${s.photo?`<img src="${s.photo}" style="width:100px;height:120px;object-fit:cover;border:1px solid #ccc">`:`<div style="width:100px;height:120px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888">No photo</div>`}</div>
+      <div style="flex:1;font-size:13px;line-height:1.55">
+        <div><b>Name</b> : ${esc(s.name||'')}</div>
+        <div><b>Sex</b> : ${esc(s.sex||'')}</div>
+        <div><b>Date of Birth</b> : ${esc(formatBdayProp(s.bday))}</div>
+        <div><b>Place of Birth</b> : ${esc(placeOfBirth(s))}</div>
+        <div><b>Student in</b> : ${esc(s.grade||'')}${s.note?` &nbsp; (${esc(s.note)})`:''}</div>
+        <div><b>Father's Name</b> : ${esc(s.father||'')} ${s.fatherOcc?`(${esc(s.fatherOcc)})`:''}</div>
+        <div><b>Mother's Name</b> : ${esc(s.mother||'')} ${s.motherOcc?`(${esc(s.motherOcc)})`:''}</div>
+        <div><b>Members in family</b> : ${esc(s.family||'')}</div>
+        <div><b>Free Time</b> : ${esc(s.freetime||'')}</div>
+        <div><b>English Level</b> : ${esc(s.english||'')}</div>
+        <div><b>Goal</b> : ${esc(s.goal||'')}</div>
+      </div>
+    </div>`).join('');
+  const budTable=`<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:10px">
+    <thead><tr style="background:#e8f5ee">
+      <th style="border:1px solid #ccc;padding:6px;text-align:left">Year</th>
+      <th style="border:1px solid #ccc;padding:6px;text-align:left">Grades</th>
+      <th style="border:1px solid #ccc;padding:6px">No. of Students</th>
+      <th style="border:1px solid #ccc;padding:6px">Yearly Fees in US</th>
+    </tr></thead>
+    <tbody>${budget.rows.map(r=>`<tr style="${r.isTotal?'font-weight:700':''}">
+      <td style="border:1px solid #ccc;padding:5px">${r.year||''}</td>
+      <td style="border:1px solid #ccc;padding:5px">${esc(r.grades)}</td>
+      <td style="border:1px solid #ccc;padding:5px;text-align:center">${r.count!==''?r.count:''}</td>
+      <td style="border:1px solid #ccc;padding:5px;text-align:right">${r.fees!==''?'$'+Number(r.fees).toLocaleString():''}</td>
+    </tr>`).join('')}
+    <tr style="font-weight:800;background:#d4edda"><td colspan="3" style="border:1px solid #ccc;padding:6px">GRAND TOTAL</td>
+      <td style="border:1px solid #ccc;padding:6px;text-align:right">$${Number(budget.grand).toLocaleString(undefined,{minimumFractionDigits:2})}</td></tr>
+    </tbody></table>
+    <p style="font-size:11px;margin-top:6px"><i>All cost includes 13% that helps pay for HVTO Operation Cost.</i></p>`;
+  const sponsorNames=(P.sponsors||[]).filter(s=>s.name).map(s=>s.name).join(', ')||'________________';
+  const sponsorEmails=(P.sponsors||[]).filter(s=>s.email).map(s=>s.email).join('; ')||'________________';
+  const sponsorAddrs=(P.sponsors||[]).filter(s=>s.address).map(s=>s.address).join(' / ');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(P.title||'HVTO Proposal')}</title>
+  <style>
+    body{font-family:Georgia,'Times New Roman',serif;color:#222;max-width:800px;margin:24px auto;padding:0 20px;line-height:1.45}
+    h1,h2,h3{color:#1E563F;text-align:center}
+    .hdr{text-align:center;margin-bottom:20px}
+    .hdr .km{font-size:18px;color:#c45c26}
+    .page-footer{position:fixed;bottom:12px;right:24px;font-size:11px;color:#666}
+    @media print{
+      body{margin:0;padding:12mm}
+      .no-print{display:none!important}
+      .bio{page-break-inside:avoid}
+    }
+  </style></head><body>
+  <div class="no-print" style="text-align:center;margin-bottom:16px;padding:10px;background:#f5f5f5;border-radius:8px">
+    <button onclick="window.print()" style="padding:10px 20px;font-size:15px;cursor:pointer;margin:4px">🖨️ Print / Save as PDF</button>
+    <button onclick="window.close()" style="padding:10px 20px;font-size:15px;cursor:pointer;margin:4px">Close</button>
+  </div>
+  <div class="hdr">
+    <img src="${L1}" alt="HVTO logo" style="width:90px;height:90px;object-fit:contain;margin:0 auto 8px;display:block">
+    <div style="font-size:22px;font-weight:700;color:#1E563F">H.V.T.O</div>
+    <div class="km">អង្គការស្នាក់នៅស្ម័គ្រចិត្តជួយបង្រៀន</div>
+    <div>Homestay Volunteer Teachers Organization</div>
+    <div style="font-weight:700;margin-top:8px;text-decoration:underline">HVTO Sponsorship Program for Education</div>
+  </div>
+  <h2 style="text-align:left;border-bottom:2px solid #1E563F;padding-bottom:4px">Short Bio of Students</h2>
+  ${bios}
+  <p style="font-size:13px;margin:16px 0"><b>Note:</b> ${esc(P.note||'')}</p>
+  ${P.costImg?`<h3>Sample cost of HVTO Sponsorship for Education</h3><img src="${P.costImg}" style="max-width:100%">`:''}
+  ${P.cashImg?`<h3>Cash Flow Example</h3><img src="${P.cashImg}" style="max-width:100%">`:''}
+  <h2 style="text-align:left;margin-top:28px">Basic Budget Proposal for ${(P.students||[]).length} Students</h2>
+  ${budTable}
+  <h2 style="text-align:left;margin-top:28px">Sponsorship Agreement between HVTO and Sponsor</h2>
+  <p style="font-size:13px">This Sponsorship Agreement ("Agreement") is entered into by and between <b>HVTO</b> ("Organization") and <b>${esc(sponsorNames)}</b>${sponsorEmails?`, email: <b>${esc(sponsorEmails)}</b>`:''}${sponsorAddrs?`; Address: ${esc(sponsorAddrs)}`:''} ("Sponsors"). This Agreement shall be effective upon signature of both parties or upon receipt of an email sent to HVTO's official contact below:</p>
+  <ul style="font-size:13px">
+    <li><b>Dr. Sim Piseth – Founder &amp; President</b> – Email: sim2piseth@gmail.com</li>
+    <li><b>Mr. Seaknam Meng – Executive Director</b> – Email: mseaknam@gmail.com</li>
+    <li><b>Mr. Song Sinh – Sponsorship Supervisor</b> – Email: hvtosponsorship@gmail.com</li>
+  </ul>
+  <p style="font-size:12px"><b>1. Validity of the Agreement</b><br>This Agreement becomes binding once signed by both parties or upon written acceptance via email to HVTO's official contact.</p>
+  <p style="font-size:12px"><b>2. Triangle Transparent Communication and Supervision</b><br>
+  a. For students under 18 years of age, all correspondence shall be conducted solely with HVTO Coordination.<br>
+  b. For students aged 18 or older, direct communication is permitted but remains under HVTO supervision.<br>
+  c. All materials must be documented in the students' hard folders at HVTO Center.</p>
+  <p style="font-size:12px"><b>3. Financial Support</b><br>
+  a. Grade 1–12: $30 per month from Sponsor's Administrative Trust Account.<br>
+  b. University: $702 annually for fees; remaining funds to the student.<br>
+  c. 13% management fee deducted for administration and operational costs.</p>
+  <p style="font-size:12px"><b>4. Confidentiality</b><br>This proposal is exclusively shared with the named sponsors and must not be disclosed to the public.</p>
+  <div style="margin-top:36px;font-size:13px">
+    <p><b>Signatures of Acceptance</b></p>
+    <p>Name of Sponsor: ${esc(sponsorNames)}<br>Date: __________ &nbsp; Signature: __________</p>
+    <p style="margin-top:24px"><b>HVTO Representative</b><br>
+    Date: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}<br>
+    <b>Dr. Sim Piseth</b><br>HVTO Founder &amp; Chairman of the Board of Directors<br>
+    Tel: +855974506969<br>
+    Homestay Volunteer Teachers Organization<br>
+    East Sreth village, Kontreang commune, Prasat Bakong district, Siem Reap province – Cambodia<br>
+    Email: sim@hvto.org | Website: www.hvto.org</p>
+  </div>
+  </body></html>`;
+}
+function openProposalPreview(P){
+  const html=proposalDocumentHTML(P);
+  const w=window.open('','_blank');
+  if(!w){alert(TT('Please allow pop-ups to preview/print the proposal.'));return}
+  w.document.write(html);
+  w.document.close();
+}
+function exportProposalWord(P){
+  const html=proposalDocumentHTML(P);
+  // Word opens HTML with MS Word MIME
+  const blob=new Blob(['\ufeff',html],{type:'application/msword'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(P.title||'HVTO-Proposal').replace(/[^\w\-]+/g,'_')+'.doc';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),800);
+}
+function openFillFromStudent(stuIndex){
+  const sponsored=S.students.filter(s=>s.sponsored);
+  if(!sponsored.length){alert(TT('No sponsored students found.'));return}
+  const pick=prompt(TT('Type student English name or ID to fill:')+'\n'+sponsored.slice(0,15).map(s=>s.id+' — '+s.en).join('\n'));
+  if(!pick)return;
+  const q=pick.trim().toLowerCase();
+  const s=sponsored.find(x=>(x.en||'').toLowerCase().includes(q)||(x.id||'').toLowerCase().includes(q)||(x.km||'').includes(pick.trim()));
+  if(!s){alert(TT('Student not found'));return}
+  collectPropDraftFromDOM();
+  const t=propDraft.students[stuIndex];
+  if(!t)return;
+  t.name=s.en||s.km||'';
+  t.sex=s.sex||'Male';
+  t.bday=s.bday||'';
+  t.village=s.village||'';
+  t.commune=s.commune||'';
+  t.district=s.district||'';
+  t.province=s.province||'Siem Reap';
+  t.country=s.country||'Cambodia';
+  t.grade=s.grade||'';
+  t.father=s.father||'';
+  t.mother=s.mother||'';
+  t.english=s.level||'';
+  t.photo=s.photo||'';
+  t.note='Academic Year '+(propDraft.academicYear||'');
+  render();
+}
+
 /* ========== CLOUD SYNC BOOTSTRAP ========== */
 (async function bootstrapCloud(){
   S.grades = S.grades || [];
@@ -1883,6 +2357,7 @@ function openSchForm(i){
   S.worklog = S.worklog || [];
   S.schedule = S.schedule || [];
   S.about = S.about || {text:'',photos:[],files:[]};
+  S.proposals = S.proposals || [];
 
   const cloud = await loadFromCloud();
   if (cloud && typeof cloud === 'object') {
@@ -1898,7 +2373,7 @@ function openSchForm(i){
     S.worklog = cloud.worklog || S.worklog || [];
     S.schedule = cloud.schedule || S.schedule || [];
     S.about = cloud.about || S.about || {text:'',photos:[],files:[]};
-    S.about = cloud.about || S.about || {text:'',photos:[],files:[]};
+    S.proposals = cloud.proposals || S.proposals || [];
     try { localStorage.setItem('hvto-v2', JSON.stringify(S)); } catch(e) {}
     console.log('Loaded shared data from Supabase');
   } else if (sb && !SUPABASE_ANON_KEY.includes('YOUR_ANON')) {
