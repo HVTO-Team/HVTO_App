@@ -682,6 +682,10 @@ sponsor(){
     <td style="white-space:nowrap"><button class="link" data-act="edit" data-i="${i}">Edit</button></td></tr>`;
   }).join(''):`<tr><td colspan="8" class="muted" style="text-align:center;padding:24px">${TT('No sponsored students yet.')}</td></tr>`;
   return `<h1><span class="ic" aria-hidden="true">🤝</span>${TT('Sponsorship Program')}</h1>
+  <div class="bar" style="margin:0 0 14px;gap:8px;flex-wrap:wrap">
+    <button type="button" class="primary" data-act="sptab" data-tab="list">${TT('Sponsored students')}</button>
+    <button type="button" class="ghost" data-act="sptab" data-tab="proposal">${TT('Create Proposal')}</button>
+  </div>
   <p class="sub" style="margin:0 0 14px">${TT('Students who have a sponsor. Data is linked to the Students page.')}</p>
   ${filterChip()}${addrFilterBar()}
 
@@ -992,9 +996,10 @@ about(){
   </div>`},
 
 proposal(){
+  sponsorTab='proposal';view='sponsor';setTimeout(render,0);return '';
   S.proposals=S.proposals||[];
   const list=S.proposals.slice().reverse();
-  if(propEdit>=0 || propDraft){
+  if(false&&(propEdit>=0 || propDraft)){
     return proposalEditor();
   }
   return `<h1><span class="ic">📄</span>${TT('Create Proposal')}</h1>
@@ -1257,9 +1262,14 @@ document.addEventListener('click',e=>{
     else if(kind==='status'||kind==='center'||kind==='grade'){if(view!=='students'&&view!=='sponsor')view='students'}
     animDash=true;render();return;
   }
-  if(b.dataset.act==='propnew'){propEdit=-1;propDraft=emptyProposal();view='proposal';render();return}
-  if(b.dataset.act==='propedit'){propEdit=+b.dataset.i;propDraft=JSON.parse(JSON.stringify(S.proposals[propEdit]||emptyProposal()));view='proposal';render();return}
-  if(b.dataset.act==='propcancel'){propEdit=-1;propDraft=null;render();return}
+  if(b.dataset.act==='sptab'){
+    sponsorTab=b.dataset.tab||'list';
+    if(sponsorTab==='list'){propDraft=null;propEdit=-1}
+    view='sponsor';render();return
+  }
+  if(b.dataset.act==='propnew'){propEdit=-1;propDraft=emptyProposal();sponsorTab='proposal';view='sponsor';render();return}
+  if(b.dataset.act==='propedit'){propEdit=+b.dataset.i;propDraft=JSON.parse(JSON.stringify(S.proposals[propEdit]||emptyProposal()));sponsorTab='proposal';view='sponsor';render();return}
+  if(b.dataset.act==='propcancel'){propEdit=-1;propDraft=null;sponsorTab='proposal';render();return}
   if(b.dataset.act==='propsave'){
     const P=collectPropDraftFromDOM();
     S.proposals=S.proposals||[];
@@ -1299,6 +1309,17 @@ document.addEventListener('click',e=>{
     collectPropDraftFromDOM();
     if((propDraft.sponsors||[]).length>=5)return;
     propDraft.sponsors.push({name:'',email:'',address:''});render();return
+  }
+  if(b.dataset.act==='propcrop'){
+    const i=+b.dataset.i;
+    collectPropDraftFromDOM();
+    const ph=propDraft&&propDraft.students[i]&&propDraft.students[i].photo;
+    if(!ph){alert(TT('No photo to crop'));return}
+    openCrop(ph, dataUrl=>{
+      if(propDraft&&propDraft.students[i])propDraft.students[i].photo=dataUrl;
+      render();
+    });
+    return
   }
   if(b.dataset.act==='propfromstu'){
     openFillFromStudent(+b.dataset.i);return
@@ -1392,9 +1413,12 @@ document.addEventListener('change',e=>{
   if(t.dataset && t.dataset.propphoto!=null){
     const i=+t.dataset.propphoto;
     const file=t.files&&t.files[0]; if(!file)return;
-    const reader=new FileReader();
-    reader.onload=()=>{collectPropDraftFromDOM();if(propDraft.students[i])propDraft.students[i].photo=reader.result;render()};
-    reader.readAsDataURL(file);return;
+    openCrop(file, dataUrl=>{
+      collectPropDraftFromDOM();
+      if(propDraft&&propDraft.students[i])propDraft.students[i].photo=dataUrl;
+      render();
+    });
+    return;
   }
   if(t.id=='propcostimg'||t.id=='propcashimg'){
     const file=t.files&&t.files[0]; if(!file)return;
@@ -2090,6 +2114,7 @@ function proposalEditor(){
           <div class="photo" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             ${s.photo?`<img src="${s.photo}" alt="" style="width:90px;height:110px;object-fit:cover;border-radius:8px">`:'<span class="sub">No photo</span>'}
             <input type="file" accept="image/*" data-propphoto="${i}" style="width:auto">
+            ${s.photo?`<button type="button" class="ghost" data-act="propcrop" data-i="${i}">${TT('Crop / Edit photo')}</button>`:''}
           </div>
         </label>
         <label>${TT('Name')}<input data-prop="name" data-i="${i}" value="${esc(s.name||'')}"></label>
