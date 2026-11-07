@@ -388,7 +388,7 @@ function migrate(p){if(!p.entries){p.entries=(p.count||p.ben||p.funds||p.desc)?[
 if(!S.v3){let c=0,b=0,f=0;p.entries.sort((x,y)=>x.date.localeCompare(y.date)).forEach(e=>{const a=[e.count,e.ben,e.funds];e.count-=c;e.ben-=b;e.funds-=f;[c,b,f]=a})}
 p.entries.forEach(e=>{e.id=e.id||Math.random().toString(36).slice(2,9);e.per=e.per||'day'})}
 const OLD={'West Sreth':CN[0],'Rumdeng':CN[1],'Sophy':CN[2]};
-const NAV=[['dash','Dashboard'],['students','Students'],['sponsor','Sponsorship Program'],['proposal','Create Proposal'],['teachers','Teachers'],['grades','Gradebook'],['outlines','Course Outlines'],['roster','Roster'],['msgs','Messages'],['reports','Reports'],['projects','HVTO Projects Tracker'],['about','About Us']];
+const NAV=[['dash','Dashboard'],['students','Students'],['sponsor','Sponsorship Program'],['teachers','Teachers'],['grades','Gradebook'],['outlines','Course Outlines'],['roster','Roster'],['msgs','Messages'],['reports','Reports'],['projects','HVTO Projects Tracker'],['about','About Us']];
 const PN=['Institutional and Human Resource Development','HVTO FINANCE','Eco-Tourism','Homestay Volunteers','HVTO Education Center','Free Classes for English and Computer Trainings','Sponsorship for Education Program','Vocational Training','Clean Water Pump Project','Bio Sand Filter Program','HVTO Toilet for Household','Community and Development','HVTO House Charity Project','Food Relief Program'];
 const STRUCT=[[8,'Clean water pumps'],[9,'Bio sand filters'],[10,'Household toilets'],[12,'Charity houses']];
 const mk=(id,en,km,sex,b,c,st,sp,dr)=>({id,en,km,sex,bday:b,center:c,status:st,sponsored:sp,sponsor:sp?'Sponsor on file':'',dropout:dr,howlong:dr?'3 months':'',pstat:'New',level:'Beginner',enroll:'2025-09-01'});
@@ -645,6 +645,44 @@ students(){
  <div class="bar"><span></span><span>${xbtns('stu')} <button class="btn" data-act="add"><span class="ic" aria-hidden="true">➕</span>Add student</button></span></div>
  <div class="scroll"><table><thead><tr><th>Student</th><th><button class="link" data-act="sid" style="color:var(--muted);font-weight:500" title="Sort">ID<span aria-hidden="true">${sstu=='id'?(ord=='asc'?' ▲':' ▼'):' ⇅'}</span></button></th><th>Sex</th><th>Age</th><th>Center</th><th>Class</th><th>Status</th><th></th></tr></thead><tbody id="tb">${stRows()}</tbody></table></div></div>`},
 sponsor(){
+  if(sponsorTab==='proposal'){
+    const tabs=`<div class="bar" style="margin:0 0 14px;gap:8px;flex-wrap:wrap">
+      <button type="button" class="ghost" data-act="sptab" data-tab="list">${TT('Sponsored students')}</button>
+      <button type="button" class="primary" data-act="sptab" data-tab="proposal">${TT('Create Proposal')}</button>
+    </div>`;
+    if(propEdit>=0||propDraft){
+      return `<h1><span class="ic" aria-hidden="true">🤝</span>${TT('Sponsorship Program')}</h1>${tabs}${proposalEditor()}`;
+    }
+    S.proposals=S.proposals||[];
+    const list=S.proposals.slice().reverse();
+    return `<h1><span class="ic" aria-hidden="true">🤝</span>${TT('Sponsorship Program')}</h1>${tabs}
+    <p class="sub" style="margin:0 0 14px">${TT('Build sponsorship proposals for donors: student short bios, budget table, and agreement. Export to PDF or Word.')}</p>
+    <div class="bar" style="margin-bottom:14px">
+      <button type="button" class="primary" data-act="propnew">+ ${TT('New proposal')}</button>
+    </div>
+    <div class="card">
+      <h2 style="margin:0 0 10px">${TT('Saved proposals')}</h2>
+      ${list.length?`<div class="scroll"><table class="data"><thead><tr>
+        <th>${TT('Title')}</th><th>${TT('Students')}</th><th>${TT('Sponsors')}</th><th>${TT('Status')}</th><th>${TT('Updated')}</th><th></th>
+      </tr></thead><tbody>${list.map(P=>{
+        const i=S.proposals.indexOf(P);
+        const st=P.status||'draft';
+        const badge=st==='success'?'✅':st==='fail'?'❌':'📝';
+        return `<tr>
+          <td><b>${esc(P.title||TT('Untitled'))}</b></td>
+          <td>${(P.students||[]).length}</td>
+          <td>${(P.sponsors||[]).filter(s=>s.name).length}</td>
+          <td>${badge} ${esc(st)}</td>
+          <td>${esc((P.updated||'').slice(0,16).replace('T',' '))}</td>
+          <td style="white-space:nowrap">
+            <button type="button" class="link" data-act="propedit" data-i="${i}">${TT('Edit')}</button>
+            <button type="button" class="link" data-act="proppreview" data-i="${i}">${TT('Preview')}</button>
+            <button type="button" class="link" data-act="propdel" data-i="${i}" style="color:#c0392b">${TT('Del')}</button>
+          </td></tr>`;
+      }).join('')}</tbody></table></div>`
+      :`<div class="empty">${TT('No proposals yet. Click New proposal.')}</div>`}
+    </div>`;
+  }
   const listAll=S.students.filter(s=>(campus=='All'||s.center==campus)&&s.sponsored);
   const list=listAll.filter(s=>matchSf(s)&&matchQ(s)&&matchAddr(s)&&(!onlySponsoredOutside||(s.sponsored&&!isHvtoCenter(s.center))));
   const stOf=s=>{
@@ -995,41 +1033,7 @@ about(){
     <div style="margin-top:12px">${files||'<div class="empty">'+TT('No files yet.')+'</div>'}</div>
   </div>`},
 
-proposal(){
-  sponsorTab='proposal';view='sponsor';setTimeout(render,0);return '';
-  S.proposals=S.proposals||[];
-  const list=S.proposals.slice().reverse();
-  if(false&&(propEdit>=0 || propDraft)){
-    return proposalEditor();
-  }
-  return `<h1><span class="ic">📄</span>${TT('Create Proposal')}</h1>
-  <p class="sub" style="margin:0 0 14px">${TT('Build sponsorship proposals for donors: student short bios, budget table, and agreement. Export to PDF or Word.')}</p>
-  <div class="bar" style="margin-bottom:14px">
-    <button type="button" class="primary" data-act="propnew">+ ${TT('New proposal')}</button>
-  </div>
-  <div class="card">
-    <h2 style="margin:0 0 10px">${TT('Saved proposals')}</h2>
-    ${list.length?`<div class="scroll"><table class="data"><thead><tr>
-      <th>${TT('Title')}</th><th>${TT('Students')}</th><th>${TT('Sponsors')}</th><th>${TT('Status')}</th><th>${TT('Updated')}</th><th></th>
-    </tr></thead><tbody>${list.map(P=>{
-      const i=S.proposals.indexOf(P);
-      const st=P.status||'draft';
-      const badge=st==='success'?'✅':st==='fail'?'❌':'📝';
-      return `<tr>
-        <td><b>${esc(P.title||TT('Untitled'))}</b></td>
-        <td>${(P.students||[]).length}</td>
-        <td>${(P.sponsors||[]).filter(s=>s.name).length}</td>
-        <td>${badge} ${esc(st)}</td>
-        <td>${esc((P.updated||'').slice(0,16).replace('T',' '))}</td>
-        <td style="white-space:nowrap">
-          <button type="button" class="link" data-act="propedit" data-i="${i}">${TT('Edit')}</button>
-          <button type="button" class="link" data-act="proppreview" data-i="${i}">${TT('Preview')}</button>
-          <button type="button" class="link" data-act="propdel" data-i="${i}" style="color:#c0392b">${TT('Del')}</button>
-        </td></tr>`;
-    }).join('')}</tbody></table></div>`
-    :`<div class="empty">${TT('No proposals yet. Click New proposal.')}</div>`}
-  </div>`;
-},
+proposal(){sponsorTab='proposal';view='sponsor';setTimeout(function(){render()},0);return '<p class="sub">…</p>';},
 
 };
 const sumP=(p,f,x)=>{const E=(p&&p.entries?p.entries:[]).filter(e=>inR(e.date,f,x)).sort((a,b)=>a.date.localeCompare(b.date)),l=E[E.length-1]||{},s=k=>E.reduce((n,e)=>n+(+e[k]||0),0);return{count:s('count'),ben:s('ben'),funds:s('funds'),date:l.date||'',note:l.note||''}};
@@ -1406,7 +1410,7 @@ document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id=='camp'){campus=t.value;render()}
   if(t.dataset&&t.dataset.prop==='grade'){collectPropDraftFromDOM();render();return}
-  if(t.id=='propstatus'||t.id=='propyear'){collectPropDraftFromDOM();render();return}
+  if(t.id=='propstatus'||t.id=='propyear'||t.id=='propfeeg'||t.id=='propfeeu'){collectPropDraftFromDOM();render();return}
   if(t.id=='af_prov'){addrF=addrF||{};addrF.province=t.value;render()}
   if(t.id=='af_out'){onlySponsoredOutside=!!t.checked;render()}
   if(t.id=='schcf'){schCenterFilter=t.value;render()}
@@ -2006,6 +2010,11 @@ function emptyProposal(){
     students:[emptyPropStudent()],
     sponsors:[{name:'',email:'',address:''}],
     costImg:'', cashImg:'',
+    feeGrade:412,
+    feeUni:800,
+    feeNote:'All cost includes 13% for HVTO administration and communication',
+    cashFlow:'Sponsor → Student Trust Account (ABC) → Monthly Stipend → Sponsored Student → Balance',
+    cashFlowNote:'Sample cost of HVTO Sponsorship for Education — Cash Flow Example',
     updated:new Date().toISOString()
   };
 }
@@ -2039,10 +2048,10 @@ function placeOfBirth(s){
   parts.push(s.country||'Cambodia');
   return parts.filter(Boolean).join(', ');
 }
-function buildBudgetRows(students, startYear){
+function buildBudgetRows(students, startYear, feeG, feeU){
   // Project up to 10 years: each student advances grade each year until uni year 4
   const y0=+(startYear||new Date().getFullYear()+1);
-  const feeG=412, feeU=800;
+  feeG=+(feeG||412); feeU=+(feeU||800);
   function parseStart(g){
     const t=String(g||'').trim();
     const um=/year\s*([1-5])|year([1-5])/i.exec(t);
@@ -2104,7 +2113,7 @@ function proposalEditor(){
   propDraft=P;
   const stus=P.students||[];
   const sps=P.sponsors||[{name:'',email:'',address:''}];
-  const budget=buildBudgetRows(stus, P.academicYear);
+  const budget=buildBudgetRows(stus, P.academicYear, P.feeGrade, P.feeUni);
   const stuBlocks=stus.map((s,i)=>`
     <div class="card" style="margin-bottom:12px;border:1px solid var(--solid,#ddd)">
       <div class="bar"><h3 style="margin:0">👤 ${TT('Student')} ${i+1}</h3>
@@ -2178,10 +2187,27 @@ function proposalEditor(){
     <textarea id="propnote" rows="4" style="width:100%">${esc(P.note||'')}</textarea>
   </div>
   <div class="card" style="margin-bottom:14px">
-    <h2 style="margin:0 0 8px">${TT('Sample cost / Cash flow (optional images)')}</h2>
+    <h2 style="margin:0 0 8px">${TT('Sample cost of HVTO Sponsorship for Education')}</h2>
+    <p class="sub">${TT('Editable yearly fees — used in budget calculation and printed proposal. Update anytime.')}</p>
     <div class="g">
-      <label>${TT('Sample cost image')}<input type="file" id="propcostimg" accept="image/*" style="width:auto">${P.costImg?`<img src="${P.costImg}" style="max-width:100%;max-height:160px;margin-top:6px;border-radius:8px">`:''}</label>
-      <label>${TT('Cash flow image')}<input type="file" id="propcashimg" accept="image/*" style="width:auto">${P.cashImg?`<img src="${P.cashImg}" style="max-width:100%;max-height:160px;margin-top:6px;border-radius:8px">`:''}</label>
+      <label>${TT('Fee Grade 1–12 (USD / year)')}<input type="number" step="0.01" id="propfeeg" value="${esc(String(P.feeGrade!=null?P.feeGrade:412))}"></label>
+      <label>${TT('Fee University Year 1–4 (USD / year)')}<input type="number" step="0.01" id="propfeeu" value="${esc(String(P.feeUni!=null?P.feeUni:800))}"></label>
+      <label class="w">${TT('Fee note')}<input id="propfeenote" value="${esc(P.feeNote||'All cost includes 13% for HVTO administration and communication')}"></label>
+    </div>
+    <div class="scroll" style="margin-top:10px"><table class="data"><thead><tr><th>${TT('Grade')}</th><th>${TT('Yearly fee in USD')}</th></tr></thead>
+    <tbody>
+      ${[7,8,9,10,11,12].map(g=>`<tr><td>Grade ${g}th</td><td>$ ${num(P.feeGrade!=null?P.feeGrade:412)}</td></tr>`).join('')}
+      ${[1,2,3,4].map(y=>`<tr><td>University Year ${y}</td><td>$ ${num(P.feeUni!=null?P.feeUni:800)}</td></tr>`).join('')}
+    </tbody></table></div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <h2 style="margin:0 0 8px">${TT('Cash Flow Example')}</h2>
+    <label class="w">${TT('Cash flow path')}<input id="propcashflow" value="${esc(P.cashFlow||'Sponsor → Student Trust Account → Monthly Stipend → Sponsored Student → Balance')}"></label>
+    <label class="w" style="margin-top:8px;display:block">${TT('Cash flow note')}<input id="propcashnote" value="${esc(P.cashFlowNote||'')}"></label>
+    <p class="sub" style="margin-top:8px">${TT('Optional images')} — ${TT('Sample cost image')} / ${TT('Cash flow image')}</p>
+    <div class="g">
+      <label>${TT('Sample cost image')}<input type="file" id="propcostimg" accept="image/*" style="width:auto">${P.costImg?`<img src="${P.costImg}" style="max-width:100%;max-height:120px;margin-top:6px;border-radius:8px">`:''}</label>
+      <label>${TT('Cash flow image')}<input type="file" id="propcashimg" accept="image/*" style="width:auto">${P.cashImg?`<img src="${P.cashImg}" style="max-width:100%;max-height:120px;margin-top:6px;border-radius:8px">`:''}</label>
     </div>
   </div>
   <div class="card" style="margin-bottom:14px">
@@ -2211,6 +2237,11 @@ function collectPropDraftFromDOM(){
   const y=$('#propyear'); if(y)P.academicYear=y.value;
   const n=$('#propnote'); if(n)P.note=n.value;
   const st=$('#propstatus'); if(st)P.status=st.value;
+  const fg=$('#propfeeg'); if(fg)P.feeGrade=+fg.value||412;
+  const fu=$('#propfeeu'); if(fu)P.feeUni=+fu.value||800;
+  const fn=$('#propfeenote'); if(fn)P.feeNote=fn.value;
+  const cf=$('#propcashflow'); if(cf)P.cashFlow=cf.value;
+  const cn=$('#propcashnote'); if(cn)P.cashFlowNote=cn.value;
   document.querySelectorAll('[data-prop]').forEach(el=>{
     const i=+el.dataset.i, key=el.dataset.prop;
     if(!P.students[i])return;
@@ -2225,96 +2256,138 @@ function collectPropDraftFromDOM(){
   return P;
 }
 function proposalDocumentHTML(P){
-  const budget=buildBudgetRows(P.students||[], P.academicYear);
+  const feeG=+(P.feeGrade!=null?P.feeGrade:412), feeU=+(P.feeUni!=null?P.feeUni:800);
+  const budget=buildBudgetRows(P.students||[], P.academicYear, feeG, feeU);
   const bios=(P.students||[]).map((s,i)=>`
-    <div class="bio" style="display:flex;gap:16px;margin:18px 0;page-break-inside:avoid;border-bottom:1px solid #ddd;padding-bottom:14px">
-      <div style="flex-shrink:0">${s.photo?`<img src="${s.photo}" style="width:100px;height:120px;object-fit:cover;border:1px solid #ccc">`:`<div style="width:100px;height:120px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888">No photo</div>`}</div>
-      <div style="flex:1;font-size:13px;line-height:1.55">
-        <div><b>Name</b> : ${esc(s.name||'')}</div>
-        <div><b>Sex</b> : ${esc(s.sex||'')}</div>
-        <div><b>Date of Birth</b> : ${esc(formatBdayProp(s.bday))}</div>
-        <div><b>Place of Birth</b> : ${esc(placeOfBirth(s))}</div>
-        <div><b>Student in</b> : ${esc(s.grade||'')}${s.note?` &nbsp; (${esc(s.note)})`:''}</div>
-        <div><b>Father's Name</b> : ${esc(s.father||'')} ${s.fatherOcc?`(${esc(s.fatherOcc)})`:''}</div>
-        <div><b>Mother's Name</b> : ${esc(s.mother||'')} ${s.motherOcc?`(${esc(s.motherOcc)})`:''}</div>
-        <div><b>Members in family</b> : ${esc(s.family||'')}</div>
-        <div><b>Free Time</b> : ${esc(s.freetime||'')}</div>
-        <div><b>English Level</b> : ${esc(s.english||'')}</div>
-        <div><b>Goal</b> : ${esc(s.goal||'')}</div>
+    <div class="bio">
+      <div class="bio-photo">${s.photo?`<img src="${s.photo}" alt="">`:`<div class="nophoto">No photo</div>`}</div>
+      <div class="bio-text">
+        <div><span class="lbl">Name</span> : <b>${esc(s.name||'')}</b></div>
+        <div><span class="lbl">Sex</span> : ${esc(s.sex||'')}</div>
+        <div><span class="lbl">Date of Birth</span> : ${esc(formatBdayProp(s.bday))}</div>
+        <div><span class="lbl">Place of Birth</span> : ${esc(placeOfBirth(s))}</div>
+        <div><span class="lbl">Student in</span> : ${esc(s.grade||'')}${s.note?` &nbsp; <i>(${esc(s.note)})</i>`:''}</div>
+        <div><span class="lbl">Father's Name</span> : ${esc(s.father||'')}${s.fatherOcc?` &nbsp; (${esc(s.fatherOcc)})`:''}</div>
+        <div><span class="lbl">Mother's Name</span> : ${esc(s.mother||'')}${s.motherOcc?` &nbsp; (${esc(s.motherOcc)})`:''}</div>
+        <div><span class="lbl">Members in family</span> : ${esc(s.family||'')}</div>
+        <div><span class="lbl">Free Time</span> : ${esc(s.freetime||'')}</div>
+        <div><span class="lbl">English Level</span> : ${esc(s.english||'')}</div>
+        <div><span class="lbl">Goal</span> : ${esc(s.goal||'')}</div>
       </div>
     </div>`).join('');
-  const budTable=`<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:10px">
-    <thead><tr style="background:#e8f5ee">
-      <th style="border:1px solid #ccc;padding:6px;text-align:left">Year</th>
-      <th style="border:1px solid #ccc;padding:6px;text-align:left">Grades</th>
-      <th style="border:1px solid #ccc;padding:6px">No. of Students</th>
-      <th style="border:1px solid #ccc;padding:6px">Yearly Fees in US</th>
-    </tr></thead>
-    <tbody>${budget.rows.map(r=>`<tr style="${r.isTotal?'font-weight:700':''}">
-      <td style="border:1px solid #ccc;padding:5px">${r.year||''}</td>
-      <td style="border:1px solid #ccc;padding:5px">${esc(r.grades)}</td>
-      <td style="border:1px solid #ccc;padding:5px;text-align:center">${r.count!==''?r.count:''}</td>
-      <td style="border:1px solid #ccc;padding:5px;text-align:right">${r.fees!==''?'$'+Number(r.fees).toLocaleString():''}</td>
+  const sampleCostRows=[7,8,9,10,11,12].map(g=>`<tr><td>Grade ${g}th</td><td style="text-align:right">$ ${Number(feeG).toLocaleString(undefined,{minimumFractionDigits:0})}</td></tr>`).join('')+
+    [1,2,3,4].map(y=>`<tr><td>University Year ${y}</td><td style="text-align:right">$ ${Number(feeU).toLocaleString(undefined,{minimumFractionDigits:0})}</td></tr>`).join('');
+  const budTable=`<table class="tbl">
+    <thead><tr><th>Year</th><th>Grades</th><th>No. of Students</th><th>Yearly Fees in US</th></tr></thead>
+    <tbody>${budget.rows.map(r=>`<tr class="${r.isTotal?'tot':''}">
+      <td>${r.year||''}</td><td>${esc(r.grades)}</td>
+      <td style="text-align:center">${r.count!==''?r.count:''}</td>
+      <td style="text-align:right">${r.fees!==''?'$'+Number(r.fees).toLocaleString():''}</td>
     </tr>`).join('')}
-    <tr style="font-weight:800;background:#d4edda"><td colspan="3" style="border:1px solid #ccc;padding:6px">GRAND TOTAL</td>
-      <td style="border:1px solid #ccc;padding:6px;text-align:right">$${Number(budget.grand).toLocaleString(undefined,{minimumFractionDigits:2})}</td></tr>
+    <tr class="grand"><td colspan="3">GRAND TOTAL</td>
+      <td style="text-align:right">$${Number(budget.grand).toLocaleString(undefined,{minimumFractionDigits:2})}</td></tr>
     </tbody></table>
-    <p style="font-size:11px;margin-top:6px"><i>All cost includes 13% that helps pay for HVTO Operation Cost.</i></p>`;
+    <p class="fine"><i>${esc(P.feeNote||'All cost includes 13% that helps pay for HVTO Operation Cost.')}</i></p>`;
   const sponsorNames=(P.sponsors||[]).filter(s=>s.name).map(s=>s.name).join(', ')||'________________';
   const sponsorEmails=(P.sponsors||[]).filter(s=>s.email).map(s=>s.email).join('; ')||'________________';
   const sponsorAddrs=(P.sponsors||[]).filter(s=>s.address).map(s=>s.address).join(' / ');
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(P.title||'HVTO Proposal')}</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Moul&family=Noto+Sans+Khmer:wght@400;600&family=Times+New+Roman&display=swap">
   <style>
-    body{font-family:Georgia,'Times New Roman',serif;color:#222;max-width:800px;margin:24px auto;padding:0 20px;line-height:1.45}
-    h1,h2,h3{color:#1E563F;text-align:center}
-    .hdr{text-align:center;margin-bottom:20px}
-    .hdr .km{font-size:18px;color:#c45c26}
-    .page-footer{position:fixed;bottom:12px;right:24px;font-size:11px;color:#666}
+    @page{margin:18mm 16mm 22mm 16mm}
+    *{box-sizing:border-box}
+    body{font-family:Georgia,'Times New Roman',Times,serif;color:#222;max-width:800px;margin:0 auto;padding:16px 20px 40px;line-height:1.5;font-size:13px;position:relative}
+    .km-moul{font-family:'Moul','Noto Sans Khmer',serif;font-weight:400;letter-spacing:0.02em}
+    .hdr{text-align:center;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #1E563F}
+    .hdr img.logo{width:88px;height:88px;object-fit:contain;margin:0 auto 6px;display:block}
+    .hdr .org-en{font-size:13px;color:#1E563F;font-weight:600;margin-top:2px}
+    .hdr .org-km{font-size:20px;color:#c45c26;margin:4px 0;line-height:1.35}
+    .hdr .org-line{font-size:12px;color:#444}
+    .hdr .prog{font-weight:700;margin-top:8px;text-decoration:underline;font-size:15px;color:#1E563F}
+    h2.sec{color:#1E563F;text-align:left;border-bottom:2px solid #1E563F;padding-bottom:4px;font-size:16px;margin:22px 0 12px}
+    h3{color:#1E563F;font-size:14px;margin:16px 0 8px}
+    .bio{display:flex;gap:16px;margin:14px 0;page-break-inside:avoid;border-bottom:1px solid #ddd;padding-bottom:12px}
+    .bio-photo img{width:100px;height:120px;object-fit:cover;border:1px solid #ccc}
+    .nophoto{width:100px;height:120px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:11px;color:#888}
+    .bio-text{flex:1;font-size:13px;line-height:1.55}
+    .bio-text .lbl{display:inline-block;min-width:140px;font-weight:600}
+    .tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+    .tbl th,.tbl td{border:1px solid #999;padding:6px 8px}
+    .tbl th{background:#e8f5ee;text-align:left}
+    .tbl tr.tot{font-weight:700;background:#f7fbf8}
+    .tbl tr.grand{font-weight:800;background:#d4edda}
+    .fine{font-size:11px;margin-top:6px;color:#444}
+    .cashbox{border:1px solid #1E563F;padding:12px 14px;margin:10px 0;background:#f9fcfa;font-size:13px;text-align:center}
+    .page-foot{position:running(footer)}
+    .doc-footer{margin-top:36px;padding-top:12px;border-top:1px solid #1E563F;font-size:11px;color:#1E563F;text-align:center}
+    .doc-footer .brand{font-weight:700;font-size:12px}
+    .sig{margin-top:28px;font-size:13px}
     @media print{
-      body{margin:0;padding:12mm}
+      body{margin:0;padding:0;max-width:none}
       .no-print{display:none!important}
       .bio{page-break-inside:avoid}
+      .doc-footer{position:fixed;bottom:0;left:0;right:0;padding:6px 16px;background:#fff}
     }
   </style></head><body>
-  <div class="no-print" style="text-align:center;margin-bottom:16px;padding:10px;background:#f5f5f5;border-radius:8px">
+  <div class="no-print" style="text-align:center;margin-bottom:14px;padding:10px;background:#f0f4f1;border-radius:8px">
     <button onclick="window.print()" style="padding:10px 20px;font-size:15px;cursor:pointer;margin:4px">🖨️ Print / Save as PDF</button>
     <button onclick="window.close()" style="padding:10px 20px;font-size:15px;cursor:pointer;margin:4px">Close</button>
+    <p style="font-size:12px;margin:8px 0 0;color:#555">Page numbers: use browser print dialog → Headers and footers (Chrome: More settings → Headers and footers)</p>
   </div>
+
   <div class="hdr">
-    <img src="${L1}" alt="HVTO logo" style="width:90px;height:90px;object-fit:contain;margin:0 auto 8px;display:block">
-    <div style="font-size:22px;font-weight:700;color:#1E563F">H.V.T.O</div>
-    <div class="km">អង្គការស្នាក់នៅស្ម័គ្រចិត្តជួយបង្រៀន</div>
-    <div>Homestay Volunteer Teachers Organization</div>
-    <div style="font-weight:700;margin-top:8px;text-decoration:underline">HVTO Sponsorship Program for Education</div>
+    <img class="logo" src="${L1}" alt="HVTO logo">
+    <div class="org-en">HVTO — Homestay Volunteer Teachers Organization</div>
+    <div class="org-km km-moul">អង្គការស្នាក់នៅស្ម័គ្រចិត្តជួយបង្រៀន</div>
+    <div class="org-line">Homestay Volunteer Teachers Organization</div>
+    <div class="prog">HVTO Sponsorship Program for Education</div>
   </div>
-  <h2 style="text-align:left;border-bottom:2px solid #1E563F;padding-bottom:4px">Short Bio of Students</h2>
+
+  <h2 class="sec">Short Bio of Students</h2>
   ${bios}
+
   <p style="font-size:13px;margin:16px 0"><b>Note:</b> ${esc(P.note||'')}</p>
-  ${P.costImg?`<h3>Sample cost of HVTO Sponsorship for Education</h3><img src="${P.costImg}" style="max-width:100%">`:''}
-  ${P.cashImg?`<h3>Cash Flow Example</h3><img src="${P.cashImg}" style="max-width:100%">`:''}
-  <h2 style="text-align:left;margin-top:28px">Basic Budget Proposal for ${(P.students||[]).length} Students</h2>
+
+  <h2 class="sec">Sample cost of HVTO Sponsorship for Education</h2>
+  <p style="font-size:12px;margin:0 0 6px"><i>Primary School / Secondary School / High School / University</i></p>
+  <table class="tbl" style="max-width:420px">
+    <thead><tr><th>Grade</th><th>Yearly fee in USD</th></tr></thead>
+    <tbody>${sampleCostRows}
+      <tr><td colspan="2" class="fine" style="border:1px solid #999;padding:6px">${esc(P.feeNote||'All cost includes 13% for HVTO administration and communication')}</td></tr>
+    </tbody>
+  </table>
+  ${P.costImg?`<p style="margin-top:10px"><img src="${P.costImg}" style="max-width:100%"></p>`:''}
+
+  <h3>Cash Flow Example</h3>
+  <div class="cashbox"><b>${esc(P.cashFlow||'Sponsor → Student Trust Account → Monthly Stipend → Sponsored Student → Balance')}</b></div>
+  ${P.cashFlowNote?`<p class="fine">${esc(P.cashFlowNote)}</p>`:''}
+  ${P.cashImg?`<p><img src="${P.cashImg}" style="max-width:100%"></p>`:''}
+
+  <h2 class="sec">Basic Budget Proposal for ${(P.students||[]).length} Students Mentioned below</h2>
   ${budTable}
-  <h2 style="text-align:left;margin-top:28px">Sponsorship Agreement between HVTO and Sponsor</h2>
-  <p style="font-size:13px">This Sponsorship Agreement ("Agreement") is entered into by and between <b>HVTO</b> ("Organization") and <b>${esc(sponsorNames)}</b>${sponsorEmails?`, email: <b>${esc(sponsorEmails)}</b>`:''}${sponsorAddrs?`; Address: ${esc(sponsorAddrs)}`:''} ("Sponsors"). This Agreement shall be effective upon signature of both parties or upon receipt of an email sent to HVTO's official contact below:</p>
-  <ul style="font-size:13px">
+
+  <h2 class="sec">Sponsorship Agreement between HVTO and Sponsor</h2>
+  <p>This Sponsorship Agreement ("Agreement") is entered into by and between <b>HVTO</b> ("Organization") and <b>${esc(sponsorNames)}</b>${sponsorEmails?`, email: <b>${esc(sponsorEmails)}</b>`:''}${sponsorAddrs?`; Address: ${esc(sponsorAddrs)}`:''} ("Sponsors"). This Agreement shall be effective upon signature of both parties or upon receipt of an email sent to HVTO's official contact below:</p>
+  <ul>
     <li><b>Dr. Sim Piseth – Founder &amp; President</b> – Email: sim2piseth@gmail.com</li>
     <li><b>Mr. Seaknam Meng – Executive Director</b> – Email: mseaknam@gmail.com</li>
     <li><b>Mr. Song Sinh – Sponsorship Supervisor</b> – Email: hvtosponsorship@gmail.com</li>
   </ul>
-  <p style="font-size:12px"><b>1. Validity of the Agreement</b><br>This Agreement becomes binding once signed by both parties or upon written acceptance via email to HVTO's official contact.</p>
-  <p style="font-size:12px"><b>2. Triangle Transparent Communication and Supervision</b><br>
+  <p><b>1. Validity of the Agreement</b><br>This Agreement becomes binding once signed by both parties or upon written acceptance via email to HVTO's official contact.</p>
+  <p><b>2. Triangle Transparent Communication and Supervision</b><br>
   a. For students under 18 years of age, all correspondence shall be conducted solely with HVTO Coordination.<br>
   b. For students aged 18 or older, direct communication is permitted but remains under HVTO supervision.<br>
   c. All materials must be documented in the students' hard folders at HVTO Center.</p>
-  <p style="font-size:12px"><b>3. Financial Support</b><br>
-  a. Grade 1–12: $30 per month from Sponsor's Administrative Trust Account.<br>
-  b. University: $702 annually for fees; remaining funds to the student.<br>
+  <p><b>3. Financial Support</b><br>
+  a. Grade 1–12: support as pledged from the Sponsor's Administrative Trust Account.<br>
+  b. University: annual fee support per schedule above; remaining funds may go to the student.<br>
   c. 13% management fee deducted for administration and operational costs.</p>
-  <p style="font-size:12px"><b>4. Confidentiality</b><br>This proposal is exclusively shared with the named sponsors and must not be disclosed to the public.</p>
-  <div style="margin-top:36px;font-size:13px">
+  <p><b>4. Confidentiality</b><br>This proposal is exclusively shared with the named sponsors and must not be disclosed to the public.</p>
+
+  <div class="sig">
     <p><b>Signatures of Acceptance</b></p>
-    <p>Name of Sponsor: ${esc(sponsorNames)}<br>Date: __________ &nbsp; Signature: __________</p>
-    <p style="margin-top:24px"><b>HVTO Representative</b><br>
+    <p>Name of Sponsor: ${esc(sponsorNames)}<br>Date: __________ &nbsp;&nbsp; Signature: __________</p>
+    <p style="margin-top:22px"><b>HVTO Representative</b><br>
     Date: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}<br>
     <b>Dr. Sim Piseth</b><br>HVTO Founder &amp; Chairman of the Board of Directors<br>
     Tel: +855974506969<br>
@@ -2322,8 +2395,25 @@ function proposalDocumentHTML(P){
     East Sreth village, Kontreang commune, Prasat Bakong district, Siem Reap province – Cambodia<br>
     Email: sim@hvto.org | Website: www.hvto.org</p>
   </div>
+
+  <div class="doc-footer">
+    <div class="brand">HVTO — Homestay Volunteer Teachers Organization</div>
+    <div class="km-moul" style="font-size:13px;color:#c45c26;margin:2px 0">អង្គការស្នាក់នៅស្ម័គ្រចិត្តជួយបង្រៀន</div>
+    <div>www.hvto.org &nbsp;|&nbsp; sim@hvto.org &nbsp;|&nbsp; +855 97 450 6969</div>
+  </div>
+
+  <script>
+    /* Page X of Y via CSS counters where supported; print dialog also offers page numbers */
+    (function(){
+      try{
+        var css='@media print{@body{counter-reset:pg}@page{@bottom-center{content:"Page " counter(page) " / " counter(pages);font-size:10px;color:#1E563F}}@page{@bottom-left{content:"HVTO — Homestay Volunteer Teachers Organization";font-size:9px;color:#1E563F}}}';
+        var s=document.createElement('style');s.textContent=css;document.head.appendChild(s);
+      }catch(e){}
+    })();
+  <\/script>
   </body></html>`;
 }
+
 function openProposalPreview(P){
   const html=proposalDocumentHTML(P);
   const w=window.open('','_blank');
