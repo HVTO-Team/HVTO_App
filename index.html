@@ -463,7 +463,7 @@ const save=()=>{
     }
   }
 };
-let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null,propEdit=-1,propDraft=null,addrF={province:'',district:'',commune:'',village:''},onlySponsoredOutside=false,schCenterFilter='All',rosterQ='',rosterPerson='',calY=new Date().getFullYear(),calM=new Date().getMonth();
+let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null,propEdit=-1,propDraft=null,sponsorTab='list',addrF={province:'',district:'',commune:'',village:''},onlySponsoredOutside=false,schCenterFilter='All',rosterQ='',rosterPerson='',calY=new Date().getFullYear(),calM=new Date().getMonth();
 const $=s=>document.querySelector(s);
 const SALT='hvto.v1.k9q2',AUTH='4cc26f7b837c3a7be51c25ba6b916f92e2e4e71171f2fcdc0fc34cd963f9f711';let fails=0,lockUntil=0;
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
@@ -645,7 +645,7 @@ students(){
  <div class="bar"><span></span><span>${xbtns('stu')} <button class="btn" data-act="add"><span class="ic" aria-hidden="true">➕</span>Add student</button></span></div>
  <div class="scroll"><table><thead><tr><th>Student</th><th><button class="link" data-act="sid" style="color:var(--muted);font-weight:500" title="Sort">ID<span aria-hidden="true">${sstu=='id'?(ord=='asc'?' ▲':' ▼'):' ⇅'}</span></button></th><th>Sex</th><th>Age</th><th>Center</th><th>Class</th><th>Status</th><th></th></tr></thead><tbody id="tb">${stRows()}</tbody></table></div></div>`},
 sponsor(){
-  if(sponsorTab==='proposal'){
+  if((typeof sponsorTab!=='undefined'?sponsorTab:'list')==='proposal'){
     const tabs=`<div class="bar" style="margin:0 0 14px;gap:8px;flex-wrap:wrap">
       <button type="button" class="ghost" data-act="sptab" data-tab="list">${TT('Sponsored students')}</button>
       <button type="button" class="primary" data-act="sptab" data-tab="proposal">${TT('Create Proposal')}</button>
