@@ -2049,22 +2049,30 @@ function placeOfBirth(s){
   return parts.filter(Boolean).join(', ');
 }
 function buildBudgetRows(students, startYear, feeG, feeU){
-  // Project up to 10 years: each student advances grade each year until uni year 4
+  // Project until every student finishes University Year 4 (max 20 years)
   const y0=+(startYear||new Date().getFullYear()+1);
   feeG=+(feeG||412); feeU=+(feeU||800);
   function parseStart(g){
     const t=String(g||'').trim();
     const um=/year\s*([1-5])|year([1-5])/i.exec(t);
     if(um)return {type:'u', n:+(um[1]||um[2])};
+    if(/univ/i.test(t)&&/year\s*([1-5])/i.test(t))return {type:'u', n:+RegExp.$1};
+    if(/university\s*year\s*([ivx1-5]+)/i.test(t)){
+      const r=RegExp.$1.toUpperCase();
+      const map={I:1,II:2,III:3,IV:4,V:5,'1':1,'2':2,'3':3,'4':4,'5':5};
+      return {type:'u', n:map[r]||1};
+    }
     const n=parseInt(t,10);
     if(n>=1&&n<=12)return {type:'g', n};
     if(/univ/i.test(t))return {type:'u', n:1};
     return {type:'g', n:7};
   }
+  // Years needed so Grade 1 still gets full Grade1–12 + Uni I–IV
+  const MAX_YEARS=20;
   const years={};
   students.forEach(s=>{
     let st=parseStart(s.grade);
-    for(let y=0;y<10;y++){
+    for(let y=0;y<MAX_YEARS;y++){
       const year=y0+y;
       let label='', fee=0, active=true;
       if(st.type==='g'){
@@ -2084,7 +2092,7 @@ function buildBudgetRows(students, startYear, feeG, feeU){
           st={type:'u',n:st.n+1};
         }
       }
-      if(!active)continue;
+      if(!active)break; // finished University Year 4 — stop this student
       if(!years[year])years[year]={};
       if(!years[year][label])years[year][label]={count:0,fee};
       years[year][label].count++;
