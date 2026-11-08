@@ -1325,6 +1325,37 @@ document.addEventListener('click',e=>{
     });
     return
   }
+  if(b.dataset.act==='propscadd'){
+    collectPropDraftFromDOM();
+    propDraft.sampleCostRows=propDraft.sampleCostRows||[];
+    propDraft.sampleCostRows.push({grade:'Grade ',fee:propDraft.feeGrade||412});
+    render();return
+  }
+  if(b.dataset.act==='propscdel'){
+    collectPropDraftFromDOM();
+    (propDraft.sampleCostRows||[]).splice(+b.dataset.i,1);render();return
+  }
+  if(b.dataset.act==='propctxadd'){
+    collectPropDraftFromDOM();
+    propDraft.cashFlowTx=propDraft.cashFlowTx||[];
+    propDraft.cashFlowTx.push({type:'Check',date:'',memo:'',open:0,amount:0,balance:0});
+    render();return
+  }
+  if(b.dataset.act==='propctxdel'){
+    collectPropDraftFromDOM();
+    (propDraft.cashFlowTx||[]).splice(+b.dataset.i,1);render();return
+  }
+  if(b.dataset.act==='propctxrecalc'){
+    collectPropDraftFromDOM();
+    const tx=propDraft.cashFlowTx||[];
+    let bal=0;
+    tx.forEach((t,i)=>{
+      const amt=+(t.amount||0);
+      if(i===0){t.open=amt;bal=amt;t.balance=bal;}
+      else{t.open=amt;bal+=amt;t.balance=bal;}
+    });
+    render();return
+  }
   if(b.dataset.act==='propfromstu'){
     openFillFromStudent(+b.dataset.i);return
   }
@@ -2195,30 +2226,53 @@ function proposalEditor(){
     <textarea id="propnote" rows="4" style="width:100%">${esc(P.note||'')}</textarea>
   </div>
   <div class="card" style="margin-bottom:14px">
-    <h2 style="margin:0 0 8px">${TT('Sample cost of HVTO Sponsorship for Education')}</h2>
-    <p class="sub">${TT('Editable yearly fees — used in budget calculation and printed proposal. Update anytime.')}</p>
+    <div class="bar"><h2 style="margin:0">${TT('Sample cost of HVTO Sponsorship for Education')}</h2>
+      <button type="button" class="ghost" data-act="propscadd">+ ${TT('Add row')}</button></div>
+    <p class="sub">${TT('Edit grade names and fees freely (e.g. Grade 3rd, Grade 5th). Used in the printed proposal table.')}</p>
     <div class="g">
-      <label>${TT('Fee Grade 1–12 (USD / year)')}<input type="number" step="0.01" id="propfeeg" value="${esc(String(P.feeGrade!=null?P.feeGrade:412))}"></label>
-      <label>${TT('Fee University Year 1–4 (USD / year)')}<input type="number" step="0.01" id="propfeeu" value="${esc(String(P.feeUni!=null?P.feeUni:800))}"></label>
+      <label>${TT('Default Grade fee (auto budget)')}<input type="number" step="0.01" id="propfeeg" value="${esc(String(P.feeGrade!=null?P.feeGrade:412))}"></label>
+      <label>${TT('Default University fee (auto budget)')}<input type="number" step="0.01" id="propfeeu" value="${esc(String(P.feeUni!=null?P.feeUni:800))}"></label>
       <label class="w">${TT('Fee note')}<input id="propfeenote" value="${esc(P.feeNote||'All cost includes 13% for HVTO administration and communication')}"></label>
     </div>
-    <div class="scroll" style="margin-top:10px"><table class="data"><thead><tr><th>${TT('Grade')}</th><th>${TT('Yearly fee in USD')}</th></tr></thead>
-    <tbody>
-      ${[7,8,9,10,11,12].map(g=>`<tr><td>Grade ${g}th</td><td>$ ${num(P.feeGrade!=null?P.feeGrade:412)}</td></tr>`).join('')}
-      ${[1,2,3,4].map(y=>`<tr><td>University Year ${y}</td><td>$ ${num(P.feeUni!=null?P.feeUni:800)}</td></tr>`).join('')}
-    </tbody></table></div>
+    <div class="scroll" style="margin-top:10px"><table class="data"><thead><tr><th>${TT('Grade')}</th><th>${TT('Yearly fee in USD')}</th><th></th></tr></thead>
+    <tbody>${(P.sampleCostRows&&P.sampleCostRows.length?P.sampleCostRows:[{grade:'Grade 7th',fee:412},{grade:'University Year 1',fee:800}]).map((r,i)=>`<tr>
+      <td><input data-sc="grade" data-i="${i}" value="${esc(r.grade||'')}" style="width:100%"></td>
+      <td><input type="number" step="0.01" data-sc="fee" data-i="${i}" value="${esc(String(r.fee!=null?r.fee:0))}" style="width:100px"></td>
+      <td><button type="button" class="link" data-act="propscdel" data-i="${i}" style="color:#c0392b">${TT('Del')}</button></td>
+    </tr>`).join('')}</tbody></table></div>
   </div>
   <div class="card" style="margin-bottom:14px">
     <h2 style="margin:0 0 8px">${TT('Cash Flow Example')}</h2>
-    <label class="w">${TT('Cash flow path')}<input id="propcashflow" value="${esc(P.cashFlow||'Sponsor → Student Trust Account → Monthly Stipend → Sponsored Student → Balance')}"></label>
-    <label class="w" style="margin-top:8px;display:block">${TT('Cash flow note')}<input id="propcashnote" value="${esc(P.cashFlowNote||'')}"></label>
-    <p class="sub" style="margin-top:8px">${TT('Optional images')} — ${TT('Sample cost image')} / ${TT('Cash flow image')}</p>
+    <label class="w">${TT('Cash flow path')}<input id="propcashflow" value="${esc(P.cashFlow||defaultCashFlow)}"></label>
+    <div class="g" style="margin-top:8px">
+      <label>${TT('Table title')}<input id="propcashtitle" value="${esc(P.cashFlowTitle||'HOMESTAY VOLUNTEER TEACHERS ORG')}"></label>
+      <label>${TT('Subtitle')}<input id="propcashsub" value="${esc(P.cashFlowSubtitle||'Vendor Open Balance — All Transactions')}"></label>
+      <label>${TT('Account code')}<input id="propcashacct" value="${esc(P.cashFlowAccount||'200900-ABC')}"></label>
+    </div>
+    <div class="bar" style="margin-top:10px">
+      <button type="button" class="ghost" data-act="propctxadd">+ ${TT('Add transaction')}</button>
+      <button type="button" class="ghost" data-act="propctxrecalc">${TT('Recalculate balances')}</button>
+    </div>
+    <div class="scroll" style="margin-top:8px"><table class="data" style="font-size:12px"><thead><tr>
+      <th>${TT('Type')}</th><th>${TT('Date')}</th><th>${TT('Memo')}</th><th>${TT('Open Balance')}</th><th>${TT('Amount')}</th><th>${TT('Balance')}</th><th></th>
+    </tr></thead>
+    <tbody>${(P.cashFlowTx||[]).map((t,i)=>`<tr>
+      <td><input data-ctx="type" data-i="${i}" value="${esc(t.type||'')}" style="width:110px"></td>
+      <td><input data-ctx="date" data-i="${i}" value="${esc(t.date||'')}" style="width:90px"></td>
+      <td><input data-ctx="memo" data-i="${i}" value="${esc(t.memo||'')}" style="min-width:160px;width:100%"></td>
+      <td><input type="number" step="0.01" data-ctx="open" data-i="${i}" value="${t.open!=null?t.open:''}" style="width:80px"></td>
+      <td><input type="number" step="0.01" data-ctx="amount" data-i="${i}" value="${t.amount!=null?t.amount:''}" style="width:80px"></td>
+      <td><input type="number" step="0.01" data-ctx="balance" data-i="${i}" value="${t.balance!=null?t.balance:''}" style="width:80px"></td>
+      <td><button type="button" class="link" data-act="propctxdel" data-i="${i}" style="color:#c0392b">${TT('Del')}</button></td>
+    </tr>`).join('')||'<tr><td colspan="7" class="muted">'+TT('No transactions yet')+'</td></tr>'}
+    </tbody></table></div>
+    <p class="sub" style="margin-top:8px">${TT('Optional images')}</p>
     <div class="g">
       <label>${TT('Sample cost image')}<input type="file" id="propcostimg" accept="image/*" style="width:auto">${P.costImg?`<img src="${P.costImg}" style="max-width:100%;max-height:120px;margin-top:6px;border-radius:8px">`:''}</label>
       <label>${TT('Cash flow image')}<input type="file" id="propcashimg" accept="image/*" style="width:auto">${P.cashImg?`<img src="${P.cashImg}" style="max-width:100%;max-height:120px;margin-top:6px;border-radius:8px">`:''}</label>
     </div>
   </div>
-  <div class="card" style="margin-bottom:14px">
+    <div class="card" style="margin-bottom:14px">
     <h2 style="margin:0 0 8px">${TT('Basic Budget Proposal')} — ${stus.length} ${TT('students')}</h2>
     <p class="sub">${TT('Auto-calculated: Grade 1–12 = $412/year · University Year 1–4 = $800/year (includes 13% HVTO admin).')}</p>
     <div class="scroll"><table class="data"><thead><tr><th>${TT('Year')}</th><th>${TT('Grades')}</th><th>${TT('No. of Students')}</th><th>${TT('Yearly Fees USD')}</th></tr></thead>
@@ -2298,8 +2352,11 @@ function proposalDocumentHTML(P){
     </div>`;
   }).join('');
 
-  const sampleCostRows=[7,8,9,10,11,12].map(g=>`<tr><td>Grade ${g}<sup>th</sup></td><td class="num">$ ${Number(feeG).toLocaleString()}</td></tr>`).join('')+
-    [1,2,3,4].map(y=>`<tr><td>University Year ${y}</td><td class="num">$ ${Number(feeU).toLocaleString()}</td></tr>`).join('');
+  const scRows=(P.sampleCostRows&&P.sampleCostRows.length)?P.sampleCostRows:[
+    ...[7,8,9,10,11,12].map(g=>({grade:'Grade '+g+'th',fee:feeG})),
+    ...[1,2,3,4].map(y=>({grade:'University Year '+y,fee:feeU}))
+  ];
+  const sampleCostRows=scRows.map(r=>`<tr><td>${esc(r.grade||'')}</td><td class="num">$ ${Number(r.fee||0).toLocaleString()}</td></tr>`).join('');
 
   // Group budget rows by year for rowspan-style display
   const budBody=[];
@@ -2339,7 +2396,14 @@ function proposalDocumentHTML(P){
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(P.title||'HVTO Sponsorship Proposal')}</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Moul&family=Noto+Sans+Khmer:wght@400;600&display=swap">
   <style>
-    @page{size:A4;margin:16mm 14mm 18mm 14mm}
+    @page{size:A4;margin:18mm 14mm 20mm 14mm}
+    @page{
+      @top-left{content:"HVTO Sponsorship Proposal";font-size:9px;color:#666;font-family:'Times New Roman',serif}
+      @top-right{content:counter(page) " | Page";font-size:10px;color:#333;font-family:'Times New Roman',serif}
+      @bottom-left{content:"HVTO — Homestay Volunteer Teachers Organization";font-size:9px;color:#1E563F;font-family:'Times New Roman',serif}
+      @bottom-center{content:""}
+      @bottom-right{content:"Page " counter(page) " / " counter(pages);font-size:9px;color:#555;font-family:'Times New Roman',serif}
+    }
     *{box-sizing:border-box}
     body{font-family:'Times New Roman',Times,Georgia,serif;color:#222;max-width:780px;margin:0 auto;padding:12px 18px 48px;line-height:1.45;font-size:12.5px;background:#fff}
     .km{font-family:'Moul','Noto Sans Khmer',serif;font-weight:400}
@@ -2421,7 +2485,37 @@ function proposalDocumentHTML(P){
 
   <h2 class="sec">Cash Flow Example</h2>
   <p class="cash">${esc(cashFlow)}</p>
-  ${P.cashImg?`<p style="text-align:center"><img src="${P.cashImg}" style="max-width:100%;max-height:320px"></p>`:''}
+  ${(()=>{
+    const tx=P.cashFlowTx||[];
+    if(!tx.length&&!P.cashImg)return '';
+    let html='';
+    if(tx.length){
+      const totOpen=tx.reduce((s,t)=>s+(+t.open||0),0);
+      const totAmt=tx.reduce((s,t)=>s+(+t.amount||0),0);
+      const lastBal=tx.length?tx[tx.length-1].balance:0;
+      html+=`<div style="text-align:center;margin:12px 0 6px"><b>${esc(P.cashFlowTitle||'HOMESTAY VOLUNTEER TEACHERS ORG')}</b><br>
+        <span style="font-size:13px">${esc(P.cashFlowSubtitle||'Vendor Open Balance — All Transactions')}</span></div>
+        <table class="tbl" style="font-size:11px">
+          <thead><tr><th>Type</th><th>Date</th><th>Memo</th><th>Open Balance</th><th>Amount</th><th>Balance</th></tr></thead>
+          <tbody>
+            <tr style="background:#eee;font-weight:700"><td colspan="6">${esc(P.cashFlowAccount||'200900-ABC')}</td></tr>
+            ${tx.map(t=>`<tr>
+              <td>${esc(t.type||'')}</td><td>${esc(t.date||'')}</td><td>${esc(t.memo||'')}</td>
+              <td class="num">${Number(t.open||0).toFixed(2)}</td>
+              <td class="num">${Number(t.amount||0).toFixed(2)}</td>
+              <td class="num">${Number(t.balance||0).toFixed(2)}</td>
+            </tr>`).join('')}
+            <tr style="font-weight:700;background:#f5f5f5"><td colspan="3">Total ${esc(P.cashFlowAccount||'200900-ABC')}</td>
+              <td class="num">${Number(totOpen).toFixed(2)}</td><td class="num">${Number(totAmt).toFixed(2)}</td>
+              <td class="num">${Number(lastBal).toFixed(2)}</td></tr>
+            <tr style="font-weight:800"><td colspan="3">TOTAL</td>
+              <td class="num">${Number(totOpen).toFixed(2)}</td><td class="num">${Number(totAmt).toFixed(2)}</td>
+              <td class="num">${Number(lastBal).toFixed(2)}</td></tr>
+          </tbody></table>`;
+    }
+    if(P.cashImg)html+=`<p style="text-align:center;margin-top:10px"><img src="${P.cashImg}" style="max-width:100%;max-height:320px"></p>`;
+    return html;
+  })()}
 
   <h2 class="sec-left">Basic Budget Proposal for ${nStu} Students Mentioned below</h2>
   <table class="tbl">
@@ -2500,7 +2594,115 @@ function proposalDocumentHTML(P){
   (function(){
     try{
       var s=document.createElement('style');
-      s.textContent='@media print{@page{margin:16mm 14mm 18mm 14mm}@page{@top-left{content:" ";}@page{@top-right{content:" ";}@page{@bottom-left{content:"HVTO — Homestay Volunteer Teachers Organization";font-size:9px;color:#555}@page{@bottom-center{content:"Page " counter(page) " / " counter(pages);font-size:9px;color:#555}}}';
+      s.textContent=[
+        '@page{size:A4;margin:18mm 14mm 22mm 14mm}',
+        '@page{@top-right{content:counter(page) " | Page";font-size:10px;color:#333}}',
+        '@page{@bottom-left{content:"HVTO — Homestay Volunteer Teachers Organization";font-size:9px;color:#1E563F}}',
+        '@page{@bottom-right{content:"Page " counter(page) " / " counter(pages);font-size:9px;color:#555}}'
+      ].join('');
+      document.head.appendChild(s);
+    }catch(e){}
+  })();
+  <\/script>
+  </body></html>`;
+}
+
+function openProposalPreview(P){
+  const html=proposalDocumentHTML(P);
+  const w=window.open('','_blank');
+  if(!w){alert(TT('Please allow pop-ups to preview/print the proposal.'));return}
+  w.document.write(html);
+  w.document.close();
+}
+function exportProposalWord(P){
+  const html=proposalDocumentHTML(P);
+  // Word opens HTML with MS Word MIME
+  const blob=new Blob(['\ufeff',html],{type:'application/msword'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(P.title||'HVTO-Proposal').replace(/[^\w\-]+/g,'_')+'.doc';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),800);
+}
+function openFillFromStudent(stuIndex){
+  const sponsored=S.students.filter(s=>s.sponsored);
+  if(!sponsored.length){alert(TT('No sponsored students found.'));return}
+  const pick=prompt(TT('Type student English name or ID to fill:')+'\n'+sponsored.slice(0,15).map(s=>s.id+' — '+s.en).join('\n'));
+  if(!pick)return;
+  const q=pick.trim().toLowerCase();
+  const s=sponsored.find(x=>(x.en||'').toLowerCase().includes(q)||(x.id||'').toLowerCase().includes(q)||(x.km||'').includes(pick.trim()));
+  if(!s){alert(TT('Student not found'));return}
+  collectPropDraftFromDOM();
+  const t=propDraft.students[stuIndex];
+  if(!t)return;
+  t.name=s.en||s.km||'';
+  t.sex=s.sex||'Male';
+  t.bday=s.bday||'';
+  t.village=s.village||'';
+  t.commune=s.commune||'';
+  t.district=s.district||'';
+  t.province=s.province||'Siem Reap';
+  t.country=s.country||'Cambodia';
+  t.grade=s.grade||'';
+  t.father=s.father||'';
+  t.mother=s.mother||'';
+  t.english=s.level||'';
+  t.photo=s.photo||'';
+  t.note='Academic Year '+(propDraft.academicYear||'');
+  render();
+}
+
+/* ========== CLOUD SYNC BOOTSTRAP ========== */
+(async function bootstrapCloud(){
+  S.grades = S.grades || [];
+  S.att = S.att || [];
+  S.outlines = S.outlines || [];
+  S.tg = S.tg || {};
+  S.teachers = S.teachers || [];
+  S.tatt = S.tatt || [];
+  S.kpi = S.kpi || {crit:[{id:'k1',n:'Attendance & punctuality',w:25},{id:'k2',n:'Teaching quality',w:25},{id:'k3',n:'Student progress',w:25},{id:'k4',n:'Teamwork & communication',w:25}],scores:{}};
+  S.projects = S.projects || [];
+  S.worklog = S.worklog || [];
+  S.schedule = S.schedule || [];
+  S.about = S.about || {text:'',photos:[],files:[]};
+  S.proposals = S.proposals || [];
+
+  const cloud = await loadFromCloud();
+  if (cloud && typeof cloud === 'object') {
+    S.students = cloud.students || S.students;
+    S.teachers = cloud.teachers || S.teachers;
+    S.grades = cloud.grades || S.grades;
+    S.att = cloud.att || S.att;
+    S.outlines = cloud.outlines || S.outlines;
+    S.tg = cloud.tg || S.tg;
+    S.tatt = cloud.tatt || S.tatt;
+    S.kpi = cloud.kpi || S.kpi;
+    S.projects = cloud.projects || S.projects;
+    S.worklog = cloud.worklog || S.worklog || [];
+    S.schedule = cloud.schedule || S.schedule || [];
+    S.about = cloud.about || S.about || {text:'',photos:[],files:[]};
+    S.proposals = cloud.proposals || S.proposals || [];
+    try { localStorage.setItem('hvto-v2', JSON.stringify(S)); } catch(e) {}
+    console.log('Loaded shared data from Supabase');
+  } else if (sb && !SUPABASE_ANON_KEY.includes('YOUR_ANON')) {
+    console.log('No cloud data yet – uploading current local state…');
+    await saveToCloud(S);
+  }
+
+  render();
+})();
+</script>
+
+
+
+</body>
+</html>(function(){
+    try{
+      var s=document.createElement('style');
+      s.textContent='@page{size:A4;margin:18mm 14mm 22mm 14mm}'
+        +'@page{@top-right{content:counter(page) " | Page";font-size:10px;color:#333}}'
+        +'@page{@bottom-left{content:"HVTO — Homestay Volunteer Teachers Organization";font-size:9px;color:#1E563F}}'
+        +'@page{@bottom-right{content:"Page " counter(page) " / " counter(pages);font-size:9px;color:#555}}';
       document.head.appendChild(s);
     }catch(e){}
   })();
