@@ -2440,6 +2440,8 @@ function proposalDocumentHTML(P){
     .agree h3{font-size:13px;margin:14px 0 6px;text-align:center;text-decoration:underline}
     .agree ol,.agree ul{margin:6px 0 6px 18px;padding:0}
     .agree li{margin:4px 0}
+    .sig-page{page-break-before:always;break-before:page;text-align:center;padding-top:12px}
+    .sig-page .sec{text-align:center}
     .sig-table{width:320px;border-collapse:collapse;margin:16px auto 8px}
     .sig-table td{border:1px solid #333;padding:10px 12px;height:28px}
     .sig-table td.lbl{width:120px;font-weight:600;background:#fafafa}
@@ -2471,8 +2473,8 @@ function proposalDocumentHTML(P){
   <p class="note"><b>Note:</b> ${esc(P.note||'The sponsor will have the opportunity to become better acquainted with the students once they enrolled in the sponsorship program for their higher education. HVTO proposes a 10-year sponsorship; however, the sponsor may choose to extend or shorten this period based on the ongoing progress, communication, and development of the relationship between the sponsors and the students.')}</p>
   <p class="note">The following is a preliminary budget proposal covering the entire duration of their studies. The sponsor has the flexibility to make payments annually, biennially, or as a lump sum for the full amount.</p>
 
-  <h2 class="sec-left">Sample cost of HVTO Sponsorship for Education</h2>
-  <table class="tbl" style="max-width:480px;margin:8px auto">
+  <h2 class="sec">Sample cost of HVTO Sponsorship for Education</h2>
+  <table class="tbl" style="max-width:480px;margin:8px auto;text-align:left">
     <thead>
       <tr><th colspan="2">Primary School/ Secondary School/ High School/ University</th></tr>
       <tr><th>Grade</th><th>Yearly fee in USD</th></tr>
@@ -2584,6 +2586,7 @@ function proposalDocumentHTML(P){
     <p><b>10. IN WITNESS WHEREOF</b>, the parties have executed this Agreement as of the date last signed below.</p>
   </div>
 
+  <div class="sig-page">
   <h2 class="sec">Signatures of Acceptance Sponsoring for ${nStu} Students</h2>
   <p style="text-align:center;font-size:12px;color:#555;margin:4px 0 10px"><i>(To be completed by the Sponsor after accepting this proposal)</i></p>
   <table class="sig-table">
@@ -2607,6 +2610,7 @@ function proposalDocumentHTML(P){
     <div>East Sreth village, Kontreang commune,</div>
     <div>Prasat Bakong district, Siem Reap province – Cambodia</div>
     <div>Tel: +855974506969 | Email: sim@hvto.org | Website: www.hvto.org</div>
+  </div>
   </div>
 
   </body></html>`;
