@@ -2396,13 +2396,13 @@ function proposalDocumentHTML(P){
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(P.title||'HVTO Sponsorship Proposal')}</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Moul&family=Noto+Sans+Khmer:wght@400;600&display=swap">
   <style>
-    @page{size:A4;margin:18mm 14mm 20mm 14mm}
+    @page{size:A4;margin:18mm 14mm 18mm 14mm}
     @page{
-      @top-left{content:"HVTO Sponsorship Proposal";font-size:9px;color:#666;font-family:'Times New Roman',serif}
-      @top-right{content:counter(page) " | Page";font-size:10px;color:#333;font-family:'Times New Roman',serif}
-      @bottom-left{content:"HVTO — Homestay Volunteer Teachers Organization";font-size:9px;color:#1E563F;font-family:'Times New Roman',serif}
+      @top-right{content:counter(page);font-size:11px;color:#333;font-family:'Times New Roman',serif}
       @bottom-center{content:""}
-      @bottom-right{content:"Page " counter(page) " / " counter(pages);font-size:9px;color:#555;font-family:'Times New Roman',serif}
+      @bottom-left{content:""}
+      @bottom-right{content:""}
+      @top-left{content:""}
     }
     *{box-sizing:border-box}
     body{font-family:'Times New Roman',Times,Georgia,serif;color:#222;max-width:780px;margin:0 auto;padding:12px 18px 48px;line-height:1.45;font-size:12.5px;background:#fff}
@@ -2486,19 +2486,37 @@ function proposalDocumentHTML(P){
   <h2 class="sec">Cash Flow Example</h2>
   <p class="cash">${esc(cashFlow)}</p>
   ${(()=>{
-    const tx=P.cashFlowTx||[];
-    if(!tx.length&&!P.cashImg)return '';
+    const defaultTx=[
+      {type:'General Journal',date:'01/01/2024',memo:'Transfer from 300900 to 200900',open:800,amount:800,balance:800},
+      {type:'General Journal',date:'01/02/2024',memo:'Admin Cost 2024',open:-40,amount:-40,balance:760},
+      {type:'Check',date:'01/07/2024',memo:'Paid to ABC For January 2024',open:-30,amount:-30,balance:730},
+      {type:'Check',date:'02/04/2024',memo:'Paid to ABC For February 2024',open:-30,amount:-30,balance:700},
+      {type:'Check',date:'03/03/2024',memo:'Paid to ABC For March 2024',open:-30,amount:-30,balance:670},
+      {type:'Check',date:'04/04/2024',memo:'Paid to ABC For April 2024',open:-30,amount:-30,balance:640},
+      {type:'Check',date:'05/05/2024',memo:'Paid to ABC For May 2024',open:-30,amount:-30,balance:610},
+      {type:'Check',date:'06/09/2024',memo:'Paid to ABC For June 2024',open:-30,amount:-30,balance:580},
+      {type:'Check',date:'07/07/2024',memo:'Paid to ABC For July 2024',open:-30,amount:-30,balance:550},
+      {type:'Check',date:'08/11/2024',memo:'Paid to ABC For August 2024',open:-30,amount:-30,balance:520},
+      {type:'Check',date:'09/08/2024',memo:'Paid to ABC For September 2024',open:-30,amount:-30,balance:490},
+      {type:'Check',date:'10/06/2024',memo:'Paid to ABC For October 2024',open:-30,amount:-30,balance:460},
+      {type:'Check',date:'11/03/2024',memo:'Paid to ABC For November 2024',open:-30,amount:-30,balance:430},
+      {type:'Check',date:'12/08/2024',memo:'Paid to ABC For December 2024',open:-30,amount:-30,balance:400}
+    ];
+    const tx=(P.cashFlowTx&&P.cashFlowTx.length)?P.cashFlowTx:defaultTx;
     let html='';
     if(tx.length){
       const totOpen=tx.reduce((s,t)=>s+(+t.open||0),0);
       const totAmt=tx.reduce((s,t)=>s+(+t.amount||0),0);
       const lastBal=tx.length?tx[tx.length-1].balance:0;
-      html+=`<div style="text-align:center;margin:12px 0 6px"><b>${esc(P.cashFlowTitle||'HOMESTAY VOLUNTEER TEACHERS ORG')}</b><br>
-        <span style="font-size:13px">${esc(P.cashFlowSubtitle||'Vendor Open Balance — All Transactions')}</span></div>
-        <table class="tbl" style="font-size:11px">
-          <thead><tr><th>Type</th><th>Date</th><th>Memo</th><th>Open Balance</th><th>Amount</th><th>Balance</th></tr></thead>
+      html+=`<div style="text-align:center;margin:14px 0 8px;line-height:1.35">
+          <div style="font-size:14px;font-weight:700;letter-spacing:0.5px">${esc(P.cashFlowTitle||'HOMESTAY VOLUNTEER TEACHERS ORG')}</div>
+          <div style="font-size:15px;font-weight:700;margin-top:2px">Vendor Open Balance</div>
+          <div style="font-size:12px;margin-top:2px">All Transactions</div>
+        </div>
+        <table class="tbl" style="font-size:11px;width:100%">
+          <thead><tr style="background:#f3f3f3"><th>Type</th><th>Date</th><th>Memo</th><th>Open Balance</th><th>Amount</th><th>Balance</th></tr></thead>
           <tbody>
-            <tr style="background:#eee;font-weight:700"><td colspan="6">${esc(P.cashFlowAccount||'200900-ABC')}</td></tr>
+            <tr style="background:#dcdcdc;font-weight:700"><td colspan="6">${esc(P.cashFlowAccount||'200900-ABC')}</td></tr>
             ${tx.map(t=>`<tr>
               <td>${esc(t.type||'')}</td><td>${esc(t.date||'')}</td><td>${esc(t.memo||'')}</td>
               <td class="num">${Number(t.open||0).toFixed(2)}</td>
@@ -2567,14 +2585,15 @@ function proposalDocumentHTML(P){
   </div>
 
   <h2 class="sec">Signatures of Acceptance Sponsoring for ${nStu} Students</h2>
+  <p style="text-align:center;font-size:12px;color:#555;margin:4px 0 10px"><i>(To be completed by the Sponsor after accepting this proposal)</i></p>
   <table class="sig-table">
-    <tr><td class="lbl">Name of Sponsor:</td><td>${esc(sponsorNames)}</td></tr>
-    <tr><td class="lbl">Date:</td><td></td></tr>
-    <tr><td class="lbl">Signature:</td><td></td></tr>
-    <tr><td class="lbl">Full Name:</td><td></td></tr>
-    <tr><td class="lbl">Tel:</td><td></td></tr>
-    <tr><td class="lbl">Email:</td><td>${esc(sponsorEmails)}</td></tr>
-    <tr><td class="lbl">Address:</td><td>${esc(sponsorAddrs)}</td></tr>
+    <tr><td class="lbl">Name of Sponsor:</td><td style="height:28px"></td></tr>
+    <tr><td class="lbl">Date:</td><td style="height:28px"></td></tr>
+    <tr><td class="lbl">Signature:</td><td style="height:40px"></td></tr>
+    <tr><td class="lbl">Full Name:</td><td style="height:28px"></td></tr>
+    <tr><td class="lbl">Tel:</td><td style="height:28px"></td></tr>
+    <tr><td class="lbl">Email:</td><td style="height:28px"></td></tr>
+    <tr><td class="lbl">Address:</td><td style="height:48px"></td></tr>
   </table>
 
   <div class="rep">
@@ -2603,13 +2622,29 @@ function openProposalPreview(P){
 }
 
 function exportProposalWord(P){
-  const html=proposalDocumentHTML(P);
-  const blob=new Blob(['\ufeff',html],{type:'application/msword'});
+  let html=proposalDocumentHTML(P);
+  // Strip on-screen print toolbar for cleaner Word file
+  html=html.replace(/<div class="no-print"[\s\S]*?<\/div>/i,'');
+  // Word-friendly wrapper
+  const wordHtml='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+    +'<head><meta charset="utf-8"><meta name="ProgId" content="Word.Document">'
+    +'<meta name="Generator" content="Microsoft Word">'
+    +'<title>'+((P.title||'HVTO Sponsorship Proposal').replace(/</g,'&lt;'))+'</title>'
+    +'<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'
+    +'<style>'
+    +'body{font-family:"Times New Roman",Times,serif;font-size:12pt;line-height:1.4;color:#000}'
+    +'table{border-collapse:collapse}'
+    +'td,th{border:1px solid #333;padding:4pt 6pt}'
+    +'@page{size:A4;margin:2cm}'
+    +'</style></head><body>'
+    +html.replace(/^[\s\S]*<body[^>]*>/i,'').replace(/<\/body>[\s\S]*$/i,'')
+    +'</body></html>';
+  const blob=new Blob(['\ufeff',wordHtml],{type:'application/msword'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download=(P.title||'HVTO-Proposal').replace(/[^\w\-]+/g,'_')+'.doc';
   a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),800);
+  setTimeout(function(){URL.revokeObjectURL(a.href)},800);
 }
 
 function openFillFromStudent(stuIndex){
