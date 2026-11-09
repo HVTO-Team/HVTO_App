@@ -2590,33 +2590,20 @@ function proposalDocumentHTML(P){
     <div>Tel: +855974506969 | Email: sim@hvto.org | Website: www.hvto.org</div>
   </div>
 
-  <script>
-  (function(){
-    try{
-      var s=document.createElement('style');
-      s.textContent=[
-        '@page{size:A4;margin:18mm 14mm 22mm 14mm}',
-        '@page{@top-right{content:counter(page) " | Page";font-size:10px;color:#333}}',
-        '@page{@bottom-left{content:"HVTO — Homestay Volunteer Teachers Organization";font-size:9px;color:#1E563F}}',
-        '@page{@bottom-right{content:"Page " counter(page) " / " counter(pages);font-size:9px;color:#555}}'
-      ].join('');
-      document.head.appendChild(s);
-    }catch(e){}
-  })();
-  <\/script>
   </body></html>`;
 }
 
+
 function openProposalPreview(P){
   const html=proposalDocumentHTML(P);
-  const w=window.open('','_blank');
+  const w=window.open('','blank');
   if(!w){alert(TT('Please allow pop-ups to preview/print the proposal.'));return}
   w.document.write(html);
   w.document.close();
 }
+
 function exportProposalWord(P){
   const html=proposalDocumentHTML(P);
-  // Word opens HTML with MS Word MIME
   const blob=new Blob(['\ufeff',html],{type:'application/msword'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -2624,109 +2611,7 @@ function exportProposalWord(P){
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),800);
 }
-function openFillFromStudent(stuIndex){
-  const sponsored=S.students.filter(s=>s.sponsored);
-  if(!sponsored.length){alert(TT('No sponsored students found.'));return}
-  const pick=prompt(TT('Type student English name or ID to fill:')+'\n'+sponsored.slice(0,15).map(s=>s.id+' — '+s.en).join('\n'));
-  if(!pick)return;
-  const q=pick.trim().toLowerCase();
-  const s=sponsored.find(x=>(x.en||'').toLowerCase().includes(q)||(x.id||'').toLowerCase().includes(q)||(x.km||'').includes(pick.trim()));
-  if(!s){alert(TT('Student not found'));return}
-  collectPropDraftFromDOM();
-  const t=propDraft.students[stuIndex];
-  if(!t)return;
-  t.name=s.en||s.km||'';
-  t.sex=s.sex||'Male';
-  t.bday=s.bday||'';
-  t.village=s.village||'';
-  t.commune=s.commune||'';
-  t.district=s.district||'';
-  t.province=s.province||'Siem Reap';
-  t.country=s.country||'Cambodia';
-  t.grade=s.grade||'';
-  t.father=s.father||'';
-  t.mother=s.mother||'';
-  t.english=s.level||'';
-  t.photo=s.photo||'';
-  t.note='Academic Year '+(propDraft.academicYear||'');
-  render();
-}
 
-/* ========== CLOUD SYNC BOOTSTRAP ========== */
-(async function bootstrapCloud(){
-  S.grades = S.grades || [];
-  S.att = S.att || [];
-  S.outlines = S.outlines || [];
-  S.tg = S.tg || {};
-  S.teachers = S.teachers || [];
-  S.tatt = S.tatt || [];
-  S.kpi = S.kpi || {crit:[{id:'k1',n:'Attendance & punctuality',w:25},{id:'k2',n:'Teaching quality',w:25},{id:'k3',n:'Student progress',w:25},{id:'k4',n:'Teamwork & communication',w:25}],scores:{}};
-  S.projects = S.projects || [];
-  S.worklog = S.worklog || [];
-  S.schedule = S.schedule || [];
-  S.about = S.about || {text:'',photos:[],files:[]};
-  S.proposals = S.proposals || [];
-
-  const cloud = await loadFromCloud();
-  if (cloud && typeof cloud === 'object') {
-    S.students = cloud.students || S.students;
-    S.teachers = cloud.teachers || S.teachers;
-    S.grades = cloud.grades || S.grades;
-    S.att = cloud.att || S.att;
-    S.outlines = cloud.outlines || S.outlines;
-    S.tg = cloud.tg || S.tg;
-    S.tatt = cloud.tatt || S.tatt;
-    S.kpi = cloud.kpi || S.kpi;
-    S.projects = cloud.projects || S.projects;
-    S.worklog = cloud.worklog || S.worklog || [];
-    S.schedule = cloud.schedule || S.schedule || [];
-    S.about = cloud.about || S.about || {text:'',photos:[],files:[]};
-    S.proposals = cloud.proposals || S.proposals || [];
-    try { localStorage.setItem('hvto-v2', JSON.stringify(S)); } catch(e) {}
-    console.log('Loaded shared data from Supabase');
-  } else if (sb && !SUPABASE_ANON_KEY.includes('YOUR_ANON')) {
-    console.log('No cloud data yet – uploading current local state…');
-    await saveToCloud(S);
-  }
-
-  render();
-})();
-</script>
-
-
-
-</body>
-</html>(function(){
-    try{
-      var s=document.createElement('style');
-      s.textContent='@page{size:A4;margin:18mm 14mm 22mm 14mm}'
-        +'@page{@top-right{content:counter(page) " | Page";font-size:10px;color:#333}}'
-        +'@page{@bottom-left{content:"HVTO — Homestay Volunteer Teachers Organization";font-size:9px;color:#1E563F}}'
-        +'@page{@bottom-right{content:"Page " counter(page) " / " counter(pages);font-size:9px;color:#555}}';
-      document.head.appendChild(s);
-    }catch(e){}
-  })();
-  <\/script>
-  </body></html>`;
-}
-
-function openProposalPreview(P){
-  const html=proposalDocumentHTML(P);
-  const w=window.open('','_blank');
-  if(!w){alert(TT('Please allow pop-ups to preview/print the proposal.'));return}
-  w.document.write(html);
-  w.document.close();
-}
-function exportProposalWord(P){
-  const html=proposalDocumentHTML(P);
-  // Word opens HTML with MS Word MIME
-  const blob=new Blob(['\ufeff',html],{type:'application/msword'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=(P.title||'HVTO-Proposal').replace(/[^\w\-]+/g,'_')+'.doc';
-  a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),800);
-}
 function openFillFromStudent(stuIndex){
   const sponsored=S.students.filter(s=>s.sponsored);
   if(!sponsored.length){alert(TT('No sponsored students found.'));return}
