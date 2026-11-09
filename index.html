@@ -1147,19 +1147,281 @@ const classes=()=>[...new Set(S.students.map(s=>(s.cls||'').trim()).filter(Boole
 const TYPES=['Monthly test','Mid-term test','Final exam','Quiz','Homework','Other'],SUBJ=['English','Computer','Workshop','Library'],STS=['Present','Absent','Late','Excused'];
 let gq='',gcls='',gsort='name',gord='asc',gi=-1,gtab='sc';
 const uid=()=>Math.random().toString(36).slice(2,9);
-const pct=g=>g.max?g.score/g.max*100:0,gp=a=>a>=90?4:a>=80?3:a>=70?2:a>=60?1:0,letter=a=>a>=90?'A':a>=80?'B':a>=70?'C':a>=60?'D':'F';
+const pct=g=>g.max?g.score/g.max*100:0,gp=a=>a>=90?4:a>=80?3:a>=70?2:a>=60?1:0,letter=a=>a>=90?'A':a>=80?'B':a>=70?'C':a>=60?'D':a>=50?'E':'F';
 function gstats(sid,f,x,yr){const G=S.grades.filter(g=>g.sid==sid&&inR(g.date,f,x)&&(!yr||g.date.slice(0,4)==yr)),n=G.length,avg=n?G.reduce((s,g)=>s+pct(g),0)/n:null;return{n,avg,gpa:avg==null?null:gp(avg)}}
 function astats(sid,f,x){const A=S.att.filter(a=>a.sid==sid&&inR(a.date,f,x)),c=k=>A.filter(a=>a.st==k).length,e=c('Excused'),d=A.length-e;return{n:A.length,p:c('Present'),a:c('Absent'),l:c('Late'),e,rate:d>0?(c('Present')+c('Late'))/d*100:null}}
 function gbData(){if(gcls&&gcls!='__none'&&!classes().includes(gcls))gcls='';const ql=gq.toLowerCase(),ly=String(new Date().getFullYear()-1);
  const L=S.students.filter(s=>(campus=='All'||s.center==campus)&&(!gcls||(gcls=='__none'?!s.cls:s.cls==gcls))&&(!ql||(s.en+s.km+s.id).toLowerCase().includes(ql))).map(s=>({s,i:S.students.indexOf(s),g:gstats(s.id,DF.from,DF.to),ly:gstats(s.id,'','',ly),a:astats(s.id,DF.from,DF.to)}));
  const k={name:r=>r.s.en.toLowerCase(),avg:r=>r.g.avg??-1,gpa:r=>r.g.gpa??-1,att:r=>r.a.rate??-1}[gsort];
  L.sort((x,y)=>k(x)<k(y)?-1:k(x)>k(y)?1:0);return gord=='asc'?L:L.reverse()}
-function gbRows(){const L=gbData();return L.length?L.map(({s,i,g,ly,a})=>`<tr data-gb="${i}"><td><div class="row" style="border:0;padding:0">${av(s)}<div><div>${esc(s.en)}</div><small>${esc(s.km)}</small></div></div></td><td>${esc(s.cls||'–')}</td><td>${g.avg==null?'–':g.avg.toFixed(1)+'%'}</td><td>${g.gpa==null?'–':g.gpa.toFixed(1)}</td><td>${ly.gpa==null?'–':ly.gpa.toFixed(1)}</td><td>${a.rate==null?'–':a.rate.toFixed(0)+'%'}</td><td><button class="btn" style="padding:7px 16px" data-act="gb" data-i="${i}">Update</button></td></tr>`).join(''):'<tr><td colspan="7"><div class="empty">No students match. Try another name or class.</div></td></tr>'}
+function gbRows(){const L=gbData();return L.length?L.map(({s,i,g,ly,a})=>`<tr data-gb="${i}"><td><div class="row" style="border:0;padding:0;cursor:pointer" data-act="gposter" data-i="${i}" title="${TT('View result poster')}">${av(s)}<div><div style="color:var(--p);font-weight:600">${esc(s.en)}</div><small>${esc(s.km)}</small></div></div></td><td>${esc(s.cls||'–')}</td><td>${g.avg==null?'–':g.avg.toFixed(1)+'%'}</td><td>${g.gpa==null?'–':g.gpa.toFixed(1)}</td><td>${ly.gpa==null?'–':ly.gpa.toFixed(1)}</td><td>${a.rate==null?'–':a.rate.toFixed(0)+'%'}</td><td style="white-space:nowrap"><button class="btn" style="padding:7px 12px" data-act="gposter" data-i="${i}">📋 Poster</button> <button class="btn" style="padding:7px 12px" data-act="gb" data-i="${i}">Update</button></td></tr>`).join(''):'<tr><td colspan="7"><div class="empty">No students match. Try another name or class.</div></td></tr>'}
+
+/* ========== STUDENT RESULT POSTER ========== */
+let posterExam='All', posterStu=-1;
+function posterGradeData(sid, examType){
+  let G=S.grades.filter(g=>g.sid==sid);
+  if(examType && examType!=='All'){
+    const t=examType.toLowerCase();
+    G=G.filter(g=>String(g.type||'').toLowerCase().includes(t)||(t==='monthly'&&/month/i.test(g.type||''))||(t==='mid'&&/mid/i.test(g.type||''))||(t==='final'&&/final/i.test(g.type||'')));
+  }
+  const bySub={};
+  SUBJ.forEach(sub=>{
+    const list=G.filter(g=>String(g.subj||g.subject||'')===sub || String(g.subj||'').toLowerCase()===sub.toLowerCase());
+    if(list.length){
+      const avg=list.reduce((s,g)=>s+pct(g),0)/list.length;
+      bySub[sub]={avg, letter:letter(avg), n:list.length, scores:list};
+    } else {
+      bySub[sub]={avg:null, letter:'–', n:0, scores:[]};
+    }
+  });
+  const all=Object.values(bySub).filter(x=>x.avg!=null);
+  const overall=all.length?all.reduce((s,x)=>s+x.avg,0)/all.length:null;
+  return {bySub, overall, overallLetter:overall==null?'–':letter(overall), n:G.length};
+}
+function openResultPoster(i){
+  posterStu=i;
+  posterExam='All';
+  renderPosterModal();
+}
+function renderPosterModal(){
+  const s=S.students[posterStu];
+  if(!s)return;
+  const data=posterGradeData(s.id, posterExam);
+  const examOpts=['All','Monthly test','Mid-term test','Final exam'].map(t=>`<option value="${t}"${posterExam===t?' selected':''}>${t==='All'?TT('All exams'):t}</option>`).join('');
+  let dlg=document.getElementById('posterDlg');
+  if(!dlg){
+    dlg=document.createElement('dialog');
+    dlg.id='posterDlg';
+    dlg.style.cssText='border:none;border-radius:16px;padding:0;max-width:96vw;max-height:92vh;background:transparent';
+    document.body.appendChild(dlg);
+  }
+  dlg.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:720px;width:92vw;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+    <div style="padding:14px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:2">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <strong>📋 ${TT('Result Poster')}</strong>
+        <label style="font-size:13px">${TT('Exam')}: <select id="posterExamSel">${examOpts}</select></label>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" class="btn" data-pq="1">${TT('Download Small')}</button>
+        <button type="button" class="btn" data-pq="2">${TT('Download Medium')}</button>
+        <button type="button" class="primary" data-pq="3">${TT('Download High')}</button>
+        <button type="button" class="link" id="posterClose">${TT('Close')}</button>
+      </div>
+    </div>
+    <div style="padding:16px;display:flex;justify-content:center;background:#f0f2f0">
+      <div id="posterPreview" style="width:100%;max-width:560px"></div>
+    </div>
+  </div>`;
+  dlg.querySelector('#posterPreview').appendChild(buildPosterDOM(s, data, posterExam));
+  dlg.querySelector('#posterExamSel').onchange=e=>{posterExam=e.target.value;renderPosterModal()};
+  dlg.querySelector('#posterClose').onclick=()=>dlg.close();
+  dlg.querySelectorAll('[data-pq]').forEach(b=>{
+    b.onclick=()=>downloadPoster(s, data, posterExam, +b.dataset.pq);
+  });
+  if(!dlg.open)dlg.showModal();
+}
+function buildPosterDOM(s, data, examType){
+  const wrap=document.createElement('div');
+  wrap.id='posterCard';
+  wrap.style.cssText='background:linear-gradient(180deg,#f7fbf8 0%,#fff 40%);border:3px solid #1E563F;border-radius:12px;padding:28px 24px 20px;font-family:Georgia,"Times New Roman",serif;color:#1a1a1a;text-align:center';
+  const photo=s.photo?`<img src="${s.photo}" style="width:110px;height:130px;object-fit:cover;border:3px solid #1E563F;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.12)">`:`<div style="width:110px;height:130px;margin:0 auto;border:2px dashed #aaa;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">No photo</div>`;
+  const rows=SUBJ.map(sub=>{
+    const x=data.bySub[sub];
+    const sc=x.avg==null?'—':x.avg.toFixed(1)+'%';
+    const lg=x.letter;
+    const col=lg==='A'?'#1E563F':lg==='B'?'#2e7d32':lg==='C'?'#f9a825':lg==='D'?'#ef6c00':lg==='E'?'#e65100':'#c62828';
+    return `<tr>
+      <td style="text-align:left;padding:10px 12px;border-bottom:1px solid #dde8e0;font-weight:600">${sub}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #dde8e0">${sc}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #dde8e0;font-weight:800;font-size:18px;color:${col}">${lg}</td>
+    </tr>`;
+  }).join('');
+  const ov=data.overall==null?'—':data.overall.toFixed(1)+'%';
+  const ol=data.overallLetter;
+  const olCol=ol==='A'?'#1E563F':ol==='B'?'#2e7d32':ol==='C'?'#f9a825':ol==='D'?'#ef6c00':ol==='E'?'#e65100':'#c62828';
+  wrap.innerHTML=`
+    <img src="${L1}" alt="HVTO" style="width:72px;height:72px;object-fit:contain;margin:0 auto 6px;display:block">
+    <div style="font-size:13px;font-weight:700;color:#1E563F;letter-spacing:1px">H.V.T.O</div>
+    <div style="font-size:12px;color:#555;margin:2px 0 4px">Homestay Volunteer Teachers Organization</div>
+    <div style="font-size:16px;font-weight:700;text-decoration:underline;margin:10px 0 16px;color:#1E563F">Student Result Report</div>
+    <div style="margin:0 auto 12px">${photo}</div>
+    <div style="font-size:22px;font-weight:700;margin:8px 0 2px">${esc(s.en||'')}</div>
+    <div style="font-size:14px;color:#444;margin-bottom:4px">${esc(s.km||'')}</div>
+    <div style="font-size:12px;color:#666;margin-bottom:14px">
+      ${esc(s.id||'')} · ${esc(s.cls||'–')} · ${esc(s.center||'')}
+    </div>
+    <div style="display:inline-block;background:#e8f5ee;color:#1E563F;font-size:12px;font-weight:600;padding:4px 14px;border-radius:20px;margin-bottom:14px">
+      ${examType==='All'?'All exams':esc(examType)} · ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:14px">
+      <thead><tr style="background:#1E563F;color:#fff">
+        <th style="padding:10px 12px;text-align:left">Subject</th>
+        <th style="padding:10px 12px">Score</th>
+        <th style="padding:10px 12px">Grade</th>
+      </tr></thead>
+      <tbody>${rows}
+        <tr style="background:#f0f7f3">
+          <td style="text-align:left;padding:12px;font-weight:800">Overall</td>
+          <td style="padding:12px;font-weight:700">${ov}</td>
+          <td style="padding:12px;font-weight:800;font-size:20px;color:${olCol}">${ol}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="font-size:11px;color:#666;margin-top:8px;line-height:1.5">
+      Grade scale: A 90–100 · B 80–89 · C 70–79 · D 60–69 · E 50–59 · F below 50
+    </div>
+    <div style="margin-top:14px;padding-top:10px;border-top:1px solid #c5d9ce;font-size:11px;color:#1E563F">
+      HVTO Free Education Center · www.hvto.org
+    </div>`;
+  return wrap;
+}
+function downloadPoster(s, data, examType, quality){
+  // quality 1=small 900px, 2=medium 1400px, 3=high 2200px
+  const W=quality===3?2200:quality===2?1400:900;
+  const scale=W/560;
+  const H=Math.round(780*scale);
+  const canvas=document.createElement('canvas');
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  // background
+  const grd=ctx.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0,'#f7fbf8'); grd.addColorStop(0.4,'#ffffff');
+  ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#1E563F'; ctx.lineWidth=Math.max(4,6*scale);
+  ctx.strokeRect(ctx.lineWidth/2,ctx.lineWidth/2,W-ctx.lineWidth,H-ctx.lineWidth);
+
+  const cx=W/2;
+  let y=28*scale;
+  function text(str, size, color, bold, yOff){
+    ctx.fillStyle=color||'#1a1a1a';
+    ctx.font=(bold?'bold ':'')+Math.round(size*scale)+'px Georgia, "Times New Roman", serif';
+    ctx.textAlign='center';
+    ctx.fillText(str, cx, yOff!=null?yOff:y);
+  }
+  // logo
+  const logo=new Image();
+  logo.crossOrigin='anonymous';
+  const finish=(logoOk)=>{
+    if(logoOk){
+      const ls=72*scale;
+      try{ctx.drawImage(logo, cx-ls/2, y, ls, ls);}catch(e){}
+      y+=ls+8*scale;
+    } else y+=10*scale;
+    text('H.V.T.O', 13, '#1E563F', true); y+=18*scale;
+    text('Homestay Volunteer Teachers Organization', 11, '#555', false); y+=16*scale;
+    text('Student Result Report', 16, '#1E563F', true); y+=28*scale;
+    // photo
+    const pw=110*scale, ph=130*scale;
+    const drawRest=()=>{
+      y+=ph+16*scale;
+      text(s.en||'', 22, '#111', true); y+=26*scale;
+      if(s.km){text(s.km, 13, '#444', false); y+=18*scale;}
+      text((s.id||'')+' · '+(s.cls||'–')+' · '+(s.center||''), 11, '#666', false); y+=20*scale;
+      const examLabel=examType==='All'?'All exams':examType;
+      const dateStr=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+      // pill
+      ctx.fillStyle='#e8f5ee';
+      const pill=examLabel+' · '+dateStr;
+      ctx.font=Math.round(11*scale)+'px Georgia, serif';
+      const tw=ctx.measureText(pill).width+28*scale;
+      ctx.beginPath();
+      ctx.roundRect?ctx.roundRect(cx-tw/2,y-12*scale,tw,22*scale,11*scale):(ctx.fillRect(cx-tw/2,y-12*scale,tw,22*scale));
+      ctx.fill();
+      text(pill, 11, '#1E563F', true, y+2*scale); y+=28*scale;
+      // table header
+      const cols=[W*0.12, W*0.55, W*0.78];
+      const rowH=36*scale;
+      ctx.fillStyle='#1E563F';
+      ctx.fillRect(W*0.08, y, W*0.84, rowH);
+      ctx.fillStyle='#fff';
+      ctx.font='bold '+Math.round(12*scale)+'px Georgia, serif';
+      ctx.textAlign='left'; ctx.fillText('Subject', cols[0], y+rowH*0.68);
+      ctx.textAlign='center'; ctx.fillText('Score', cols[1], y+rowH*0.68);
+      ctx.fillText('Grade', cols[2], y+rowH*0.68);
+      y+=rowH;
+      SUBJ.forEach((sub,i)=>{
+        if(i%2){ctx.fillStyle='#f5faf7';ctx.fillRect(W*0.08,y,W*0.84,rowH);}
+        const x=data.bySub[sub];
+        const sc=x.avg==null?'—':x.avg.toFixed(1)+'%';
+        const lg=x.letter;
+        const col=lg==='A'?'#1E563F':lg==='B'?'#2e7d32':lg==='C'?'#f9a825':lg==='D'?'#ef6c00':lg==='E'?'#e65100':(lg==='F'?'#c62828':'#333');
+        ctx.fillStyle='#111';
+        ctx.font='bold '+Math.round(13*scale)+'px Georgia, serif';
+        ctx.textAlign='left'; ctx.fillText(sub, cols[0], y+rowH*0.68);
+        ctx.font=Math.round(13*scale)+'px Georgia, serif';
+        ctx.textAlign='center'; ctx.fillText(sc, cols[1], y+rowH*0.68);
+        ctx.fillStyle=col;
+        ctx.font='bold '+Math.round(16*scale)+'px Georgia, serif';
+        ctx.fillText(lg, cols[2], y+rowH*0.68);
+        ctx.strokeStyle='#dde8e0'; ctx.beginPath(); ctx.moveTo(W*0.08,y+rowH); ctx.lineTo(W*0.92,y+rowH); ctx.stroke();
+        y+=rowH;
+      });
+      // overall
+      ctx.fillStyle='#e8f5ee'; ctx.fillRect(W*0.08,y,W*0.84,rowH+4*scale);
+      const ov=data.overall==null?'—':data.overall.toFixed(1)+'%';
+      const ol=data.overallLetter;
+      const olCol=ol==='A'?'#1E563F':ol==='B'?'#2e7d32':ol==='C'?'#f9a825':ol==='D'?'#ef6c00':ol==='E'?'#e65100':'#c62828';
+      ctx.fillStyle='#111'; ctx.font='bold '+Math.round(14*scale)+'px Georgia, serif';
+      ctx.textAlign='left'; ctx.fillText('Overall', cols[0], y+rowH*0.7);
+      ctx.textAlign='center'; ctx.fillText(ov, cols[1], y+rowH*0.7);
+      ctx.fillStyle=olCol; ctx.font='bold '+Math.round(18*scale)+'px Georgia, serif';
+      ctx.fillText(ol, cols[2], y+rowH*0.7);
+      y+=rowH+20*scale;
+      ctx.fillStyle='#666'; ctx.font=Math.round(10*scale)+'px Georgia, serif';
+      ctx.textAlign='center';
+      ctx.fillText('Grade scale: A 90–100 · B 80–89 · C 70–79 · D 60–69 · E 50–59 · F below 50', cx, y);
+      y+=22*scale;
+      ctx.strokeStyle='#c5d9ce'; ctx.beginPath(); ctx.moveTo(W*0.2,y); ctx.lineTo(W*0.8,y); ctx.stroke();
+      y+=18*scale;
+      ctx.fillStyle='#1E563F'; ctx.font=Math.round(11*scale)+'px Georgia, serif';
+      ctx.fillText('HVTO Free Education Center · www.hvto.org', cx, y);
+      // download
+      canvas.toBlob(blob=>{
+        if(!blob){alert('Could not create image');return}
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        const qn=quality===3?'high':quality===2?'medium':'small';
+        a.download=((s.en||s.id||'student')+'-result-'+qn).replace(/[^\w\-]+/g,'_')+'.png';
+        a.click();
+        setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+      },'image/png');
+    };
+    if(s.photo){
+      const img=new Image();
+      img.crossOrigin='anonymous';
+      img.onload=()=>{
+        ctx.save();
+        ctx.strokeStyle='#1E563F'; ctx.lineWidth=3*scale;
+        ctx.strokeRect(cx-pw/2, y, pw, ph);
+        try{ctx.drawImage(img, cx-pw/2, y, pw, ph);}catch(e){}
+        ctx.restore();
+        drawRest();
+      };
+      img.onerror=()=>{
+        ctx.strokeStyle='#aaa'; ctx.strokeRect(cx-pw/2,y,pw,ph);
+        ctx.fillStyle='#888'; ctx.font=Math.round(12*scale)+'px sans-serif';
+        ctx.fillText('No photo', cx, y+ph/2);
+        drawRest();
+      };
+      img.src=s.photo;
+    } else {
+      ctx.strokeStyle='#aaa'; ctx.setLineDash([6,4]); ctx.strokeRect(cx-pw/2,y,pw,ph); ctx.setLineDash([]);
+      ctx.fillStyle='#888'; ctx.font=Math.round(12*scale)+'px sans-serif';
+      ctx.fillText('No photo', cx, y+ph/2);
+      drawRest();
+    }
+  };
+  logo.onload=()=>finish(true);
+  logo.onerror=()=>finish(false);
+  try{logo.src=L1;}catch(e){finish(false);}
+}
+
+
 function openGB(i){gi=i;gtab='sc';drawGB();$('#gd').showModal()}
 function addAtt(sid,date,st,note){S.att=S.att.filter(x=>!(x.sid==sid&&x.date==date));S.att.push({id:uid(),sid,date,st,note:note||''});save();drawGB();render()}
 function drawGB(){const s=S.students[gi],id=s.id,srt=(a,b)=>b.date.localeCompare(a.date),G=S.grades.filter(g=>g.sid==id).sort(srt),A=S.att.filter(a=>a.sid==id).sort(srt),at=astats(id),yrs=[...new Set(G.map(g=>g.date.slice(0,4)))].sort().reverse();
  const tab=(k,l)=>`<button class="ghost${gtab==k?' on':''}" data-act="gt" data-t="${k}"><span class="ic" aria-hidden="true">${{sc:'📝',at:'🗓️'}[k]}</span>${l}</button>`;
- let h=`<div class="row" style="border:0;padding:0">${av(s)}<div><h2>${esc(s.en)}</h2><div class="sub">${esc(s.km)} · ${esc(s.cls||'–')} · ${esc(s.center)}</div></div></div><div class="bar" style="margin:14px 0 4px"><span class="tl" style="margin:0">${tab('sc','Scores')}${tab('at','Attendance')}</span></div>`;
+ let h=`<div class="row" style="border:0;padding:0">${av(s)}<div><h2>${esc(s.en)}</h2><div class="sub">${esc(s.km)} · ${esc(s.cls||'–')} · ${esc(s.center)}</div></div><button type="button" class="btn" data-act="gposter" data-i="${gi}" style="margin-left:auto">📋 ${TT('Result Poster')}</button></div><div class="bar" style="margin:14px 0 4px"><span class="tl" style="margin:0">${tab('sc','Scores')}${tab('at','Attendance')}</span></div>`;
  if(gtab=='sc'){
   h+=(yrs.length?`<h2 style="font-size:18px;margin:12px 0 6px">GPA by year</h2><div class="scroll"><table style="min-width:380px"><thead><tr><th>Year</th><th>Scores</th><th>Average</th><th>GPA</th></tr></thead><tbody>${yrs.map(y=>{const q=gstats(id,'','',y);return `<tr><td>${y}</td><td>${q.n}</td><td>${q.avg.toFixed(1)}%</td><td>${q.gpa.toFixed(1)} (${letter(q.avg)})</td></tr>`}).join('')}</tbody></table></div>`:'')+
   `<form id="gsf" class="g"><label>Date<input type="date" name="date" required value="${today()}"></label><label>Test type<select name="type">${TYPES.map(x=>`<option>${x}</option>`).join('')}</select></label><label>Subject<select name="subj">${SUBJ.map(x=>`<option>${x}</option>`).join('')}</select></label><label>Score<input type="number" name="score" step="0.1" min="0" required></label><label>Out of<input type="number" name="max" step="0.1" min="1" value="100" required></label><label>Note<input name="note"></label><div class="w"><button class="btn">Add score</button></div></form>`+
@@ -1254,6 +1516,7 @@ function stRows(){const v=sorted(vis());return v.length?v.map(s=>{const i=S.stud
 /* events */
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-v],[data-act]');if(!b){const r=e.target.closest('[data-det]'),g=e.target.closest('[data-gb]'),w=e.target.closest('[data-trow]');if(r)showDet(+r.dataset.det);else if(g)openGB(+g.dataset.gb);else if(w)openT(+w.dataset.trow);return}
+  if(b.dataset.act==='gposter'){openResultPoster(+b.dataset.i);return}
   if(b.dataset.v){view=b.dataset.v;animDash=true;closeMenu();render();return}
   if(b.dataset.act==='sf'){
     const kind=b.dataset.kind,val=b.dataset.val;
