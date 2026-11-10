@@ -1244,40 +1244,80 @@ function buildPosterDOM(s, data, examType){
     :`<div style="width:120px;height:140px;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px;background:#f5f5f5">No photo</div>`;
   const photo=`<div style="width:120px;height:140px;border:3px solid #1E563F;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12);flex-shrink:0">${photoInner}</div>`;
   const badge=ol && ol!=='–'
-    ?`<div style="width:108px;height:108px;margin-left:-18px;flex-shrink:0;position:relative;z-index:2;filter:drop-shadow(0 6px 14px rgba(0,0,0,.25))">
-        <svg viewBox="0 0 120 120" width="108" height="108" aria-hidden="true">
+    ?`<div style="width:120px;height:140px;margin-left:-22px;flex-shrink:0;position:relative;z-index:2;filter:drop-shadow(0 8px 16px rgba(0,0,0,.28))">
+        <svg viewBox="0 0 140 160" width="120" height="140" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <radialGradient id="gGold" cx="40%" cy="30%" r="70%">
+            <radialGradient id="pbGold" cx="38%" cy="28%" r="72%">
+              <stop offset="0%" stop-color="#ffe9a0"/>
+              <stop offset="40%" stop-color="#ffc107"/>
+              <stop offset="78%" stop-color="#f9a825"/>
+              <stop offset="100%" stop-color="#e65100"/>
+            </radialGradient>
+            <radialGradient id="pbNavy" cx="45%" cy="35%" r="65%">
+              <stop offset="0%" stop-color="#1e3a6e"/>
+              <stop offset="55%" stop-color="#0d1b33"/>
+              <stop offset="100%" stop-color="#060d18"/>
+            </radialGradient>
+            <linearGradient id="pbShine" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+              <stop offset="40%" stop-color="#ffffff" stop-opacity="0"/>
+            </linearGradient>
+            <linearGradient id="pbLetter" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stop-color="#ffe082"/>
-              <stop offset="45%" stop-color="#ffc107"/>
+              <stop offset="45%" stop-color="#ffd54f"/>
+              <stop offset="100%" stop-color="#f9a825"/>
+            </linearGradient>
+            <linearGradient id="pbRibbon" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ffd54f"/>
               <stop offset="100%" stop-color="#f57f17"/>
-            </radialGradient>
-            <radialGradient id="gBlue" cx="50%" cy="40%" r="60%">
-              <stop offset="0%" stop-color="#1a3a6b"/>
-              <stop offset="100%" stop-color="#0a1628"/>
-            </radialGradient>
+            </linearGradient>
           </defs>
-          <!-- scalloped outer seal -->
-          <circle cx="60" cy="60" r="56" fill="url(#gGold)"/>
-          <circle cx="60" cy="60" r="52" fill="none" stroke="#fff3c4" stroke-width="1.5"/>
-          <!-- jagged ring via star-like path -->
-          <circle cx="60" cy="60" r="48" fill="url(#gGold)" stroke="#e65100" stroke-width="1"/>
-          <!-- dark blue center -->
-          <circle cx="60" cy="60" r="40" fill="url(#gBlue)"/>
-          <circle cx="60" cy="60" r="38" fill="none" stroke="#c9a227" stroke-width="1.5"/>
+          <!-- scalloped outer medal -->
+          <path fill="url(#pbGold)" d="M70,8
+            ${Array.from({length:28},(_,i)=>{
+              const a=(i/28)*Math.PI*2-Math.PI/2;
+              const a2=((i+0.5)/28)*Math.PI*2-Math.PI/2;
+              const R=58,r=52;
+              return `L${(70+Math.cos(a)*R).toFixed(1)},${(68+Math.sin(a)*R).toFixed(1)} L${(70+Math.cos(a2)*r).toFixed(1)},${(68+Math.sin(a2)*r).toFixed(1)}`;
+            }).join(' ')} Z"/>
+          <!-- inner gold ring -->
+          <circle cx="70" cy="68" r="46" fill="#ffb300"/>
+          <circle cx="70" cy="68" r="43" fill="url(#pbNavy)"/>
+          <!-- glossy highlight -->
+          <ellipse cx="70" cy="48" rx="28" ry="14" fill="url(#pbShine)"/>
+          <!-- gold rim on navy -->
+          <circle cx="70" cy="68" r="43" fill="none" stroke="#c9a227" stroke-width="1.8"/>
+          <circle cx="70" cy="68" r="40" fill="none" stroke="#a67c00" stroke-width="0.6" opacity="0.5"/>
           <!-- laurel left -->
-          <path d="M32,70 Q28,55 34,42 Q38,52 36,62 Q34,68 32,70" fill="none" stroke="#ffd54f" stroke-width="2.2"/>
-          <path d="M36,68 Q33,54 38,44" fill="none" stroke="#ffc107" stroke-width="1.5"/>
+          <g fill="none" stroke="#ffd54f" stroke-linecap="round">
+            <path d="M38,88 Q30,70 36,48" stroke-width="2.4"/>
+            <path d="M34,82 Q28,64 33,52" stroke-width="1.6" opacity="0.85"/>
+            <path d="M42,84 Q36,68 40,54" stroke-width="1.4" opacity="0.7"/>
+            <path d="M36,58 q-4,-2 -2,-6" stroke-width="1.2"/>
+            <path d="M34,66 q-4,-2 -2,-6" stroke-width="1.2"/>
+            <path d="M33,74 q-4,-2 -2,-5" stroke-width="1.2"/>
+          </g>
           <!-- laurel right -->
-          <path d="M88,70 Q92,55 86,42 Q82,52 84,62 Q86,68 88,70" fill="none" stroke="#ffd54f" stroke-width="2.2"/>
-          <path d="M84,68 Q87,54 82,44" fill="none" stroke="#ffc107" stroke-width="1.5"/>
+          <g fill="none" stroke="#ffd54f" stroke-linecap="round">
+            <path d="M102,88 Q110,70 104,48" stroke-width="2.4"/>
+            <path d="M106,82 Q112,64 107,52" stroke-width="1.6" opacity="0.85"/>
+            <path d="M98,84 Q104,68 100,54" stroke-width="1.4" opacity="0.7"/>
+            <path d="M104,58 q4,-2 2,-6" stroke-width="1.2"/>
+            <path d="M106,66 q4,-2 2,-6" stroke-width="1.2"/>
+            <path d="M107,74 q4,-2 2,-5" stroke-width="1.2"/>
+          </g>
           <!-- letter -->
-          <text x="60" y="58" text-anchor="middle" dominant-baseline="middle" font-family="Georgia,Times New Roman,serif" font-size="36" font-weight="700" fill="#ffd54f" stroke="#f9a825" stroke-width="0.5">${ol}</text>
-          <!-- GRADE label -->
-          <text x="60" y="82" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" letter-spacing="2" fill="#ffd54f">GRADE</text>
+          <text x="70" y="72" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="38" font-weight="700" fill="url(#pbLetter)" style="paint-order:stroke fill">${ol}</text>
+          <!-- GRADE -->
+          <text x="70" y="92" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="8" font-weight="700" letter-spacing="2.5" fill="#ffd54f">GRADE</text>
+          <!-- bottom ribbon banner -->
+          <path d="M28,118 L40,110 L100,110 L112,118 L100,126 L40,126 Z" fill="url(#pbRibbon)" stroke="#e65100" stroke-width="0.8"/>
+          <path d="M28,118 L34,122 L40,118" fill="#f9a825"/>
+          <path d="M112,118 L106,122 L100,118" fill="#f9a825"/>
         </svg>
       </div>`
-    :`<div style="width:90px;height:108px;flex-shrink:0"></div>`;
+    :`<div style="width:100px;height:140px;flex-shrink:0"></div>`;
+
   const rows=SUBJ.map(sub=>{
     const x=data.bySub[sub];
     const sc=x.avg==null?'—':x.avg.toFixed(1)+'%';
@@ -1295,8 +1335,8 @@ function buildPosterDOM(s, data, examType){
     <div style="font-size:15px;font-weight:800;color:#1a4a8a;letter-spacing:0.5px">H.V.T.O Free Education Center</div>
     <div style="font-size:13px;color:#c9a227;margin:4px 0 2px;font-family:'Noto Sans Khmer','Khmer OS',sans-serif;font-weight:600">មជ្ឈមណ្ឌលអប់រំដោយឥតគិតថ្លៃ អេចជ៍ វី ធី អូ</div>
     <div style="font-size:16px;font-weight:700;text-decoration:underline;margin:10px 0 16px;color:#1E563F">Student Result Report</div>
-    <div style="display:flex;align-items:center;justify-content:center;gap:0;margin:0 auto 14px;max-width:360px;position:relative">
-      <div style="width:70px;flex-shrink:0"></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:0;margin:0 auto 16px;max-width:380px;position:relative">
+      <div style="width:50px;flex-shrink:0"></div>
       ${photo}
       ${badge}
     </div>
@@ -1378,10 +1418,10 @@ async function downloadPoster(s, data, examType, quality){
   text('Student Result Report', 16, '#1E563F', true); y+=28;
 
   // Photo + grade badge row (fixed sizes)
-  const pw=120, ph=140, badgeR=52;
+  const pw=120, ph=140, badgeR=54;
   const photoX=cx-pw/2;
   const photoY=y;
-  const badgeCX=cx+pw/2+8+badgeR*0.55;
+  const badgeCX=cx+pw/2+6+badgeR*0.45;
   const badgeCY=photoY+ph/2;
 
   // left spacer balance: badge on right only
@@ -1413,79 +1453,110 @@ async function downloadPoster(s, data, examType, quality){
   ctx.strokeStyle='#1E563F'; ctx.lineWidth=3;
   ctx.strokeRect(photoX, photoY, pw, ph);
 
-  // Seal medal badge (gold rim + navy center) overlapping photo on the right
+  // Premium gold seal medal with navy center + ribbon (overlaps photo right)
   const ol=data.overallLetter;
   if(ol && ol!=='–'){
-    const br=52;
-    // soft shadow
+    const br=54;
+    // shadow
     ctx.save();
     ctx.beginPath();
-    ctx.arc(badgeCX+2, badgeCY+3, br, 0, Math.PI*2);
-    ctx.fillStyle='rgba(0,0,0,0.22)';
+    ctx.arc(badgeCX+2, badgeCY+4, br, 0, Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,0.25)';
     ctx.fill();
     ctx.restore();
-    // scalloped outer edge (points)
-    const spikes=24;
+    // scalloped rim
+    const spikes=28;
     ctx.beginPath();
     for(let i=0;i<spikes;i++){
       const a0=(i/spikes)*Math.PI*2-Math.PI/2;
       const a1=((i+0.5)/spikes)*Math.PI*2-Math.PI/2;
-      const r0=br, r1=br-5;
-      const x0=badgeCX+Math.cos(a0)*r0, y0=badgeCY+Math.sin(a0)*r0;
-      const x1=badgeCX+Math.cos(a1)*r1, y1=badgeCY+Math.sin(a1)*r1;
+      const x0=badgeCX+Math.cos(a0)*br, y0=badgeCY+Math.sin(a0)*br;
+      const x1=badgeCX+Math.cos(a1)*(br-6), y1=badgeCY+Math.sin(a1)*(br-6);
       if(i===0)ctx.moveTo(x0,y0); else ctx.lineTo(x0,y0);
       ctx.lineTo(x1,y1);
     }
     ctx.closePath();
-    const gold=ctx.createRadialGradient(badgeCX-10, badgeCY-12, 2, badgeCX, badgeCY, br);
-    gold.addColorStop(0,'#ffe082');
-    gold.addColorStop(0.5,'#ffc107');
-    gold.addColorStop(1,'#f57f17');
+    const gold=ctx.createRadialGradient(badgeCX-12, badgeCY-14, 2, badgeCX, badgeCY, br);
+    gold.addColorStop(0,'#ffe9a0');
+    gold.addColorStop(0.4,'#ffc107');
+    gold.addColorStop(0.78,'#f9a825');
+    gold.addColorStop(1,'#e65100');
     ctx.fillStyle=gold;
     ctx.fill();
-    // inner gold ring
+    // inner gold
     ctx.beginPath();
-    ctx.arc(badgeCX, badgeCY, br-8, 0, Math.PI*2);
+    ctx.arc(badgeCX, badgeCY, br-9, 0, Math.PI*2);
     ctx.fillStyle='#ffb300';
     ctx.fill();
-    // navy center
-    const navy=ctx.createRadialGradient(badgeCX, badgeCY-8, 2, badgeCX, badgeCY, br-12);
-    navy.addColorStop(0,'#1a3a6b');
-    navy.addColorStop(1,'#0a1628');
+    // navy
+    const navy=ctx.createRadialGradient(badgeCX-4, badgeCY-10, 2, badgeCX, badgeCY, br-12);
+    navy.addColorStop(0,'#1e3a6e');
+    navy.addColorStop(0.55,'#0d1b33');
+    navy.addColorStop(1,'#060d18');
     ctx.beginPath();
     ctx.arc(badgeCX, badgeCY, br-12, 0, Math.PI*2);
     ctx.fillStyle=navy;
     ctx.fill();
-    // gold border on navy
+    // gloss
+    ctx.beginPath();
+    ctx.ellipse(badgeCX, badgeCY-16, 26, 12, 0, 0, Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,0.18)';
+    ctx.fill();
+    // gold stroke on navy
     ctx.beginPath();
     ctx.arc(badgeCX, badgeCY, br-12, 0, Math.PI*2);
     ctx.strokeStyle='#c9a227';
-    ctx.lineWidth=1.5;
-    ctx.stroke();
-    // laurel-like arcs
-    ctx.strokeStyle='#ffd54f';
     ctx.lineWidth=2;
+    ctx.stroke();
+    // laurels
+    ctx.strokeStyle='#ffd54f';
+    ctx.lineWidth=2.2;
+    ctx.lineCap='round';
     ctx.beginPath();
-    ctx.arc(badgeCX-6, badgeCY+4, 22, Math.PI*0.6, Math.PI*1.35);
+    ctx.arc(badgeCX-8, badgeCY+6, 24, Math.PI*0.55, Math.PI*1.4);
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(badgeCX+6, badgeCY+4, 22, Math.PI*1.65, Math.PI*0.4);
+    ctx.arc(badgeCX+8, badgeCY+6, 24, Math.PI*1.6, Math.PI*0.45);
+    ctx.stroke();
+    ctx.lineWidth=1.3;
+    ctx.beginPath();
+    ctx.arc(badgeCX-12, badgeCY+4, 20, Math.PI*0.6, Math.PI*1.3);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(badgeCX+12, badgeCY+4, 20, Math.PI*1.7, Math.PI*0.4);
     ctx.stroke();
     // letter
     ctx.fillStyle='#ffd54f';
-    ctx.strokeStyle='#f9a825';
-    ctx.lineWidth=1;
-    ctx.font='bold 34px Georgia, "Times New Roman", serif';
+    ctx.font='bold 36px Georgia, "Times New Roman", serif';
     ctx.textAlign='center';
     ctx.textBaseline='middle';
-    ctx.fillText(ol, badgeCX, badgeCY-4);
+    ctx.fillText(ol, badgeCX, badgeCY-2);
     // GRADE
     ctx.font='bold 9px Arial, sans-serif';
-    ctx.letterSpacing='2px';
     ctx.fillStyle='#ffd54f';
     ctx.fillText('GRADE', badgeCX, badgeCY+22);
+    // ribbon banner under medal
+    const ry=badgeCY+br+2;
+    const rw=70;
+    ctx.beginPath();
+    ctx.moveTo(badgeCX-rw/2-8, ry+6);
+    ctx.lineTo(badgeCX-rw/2, ry-2);
+    ctx.lineTo(badgeCX+rw/2, ry-2);
+    ctx.lineTo(badgeCX+rw/2+8, ry+6);
+    ctx.lineTo(badgeCX+rw/2, ry+14);
+    ctx.lineTo(badgeCX-rw/2, ry+14);
+    ctx.closePath();
+    const rib=ctx.createLinearGradient(0,ry-2,0,ry+14);
+    rib.addColorStop(0,'#ffd54f');
+    rib.addColorStop(1,'#f57f17');
+    ctx.fillStyle=rib;
+    ctx.fill();
+    ctx.strokeStyle='#e65100';
+    ctx.lineWidth=0.8;
+    ctx.stroke();
     ctx.textBaseline='alphabetic';
   }
+
   y=photoY+ph+18;
 
   text(s.en||'', 22, '#111', true); y+=26;
