@@ -1244,8 +1244,8 @@ function buildPosterDOM(s, data, examType){
     :`<div style="width:120px;height:140px;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px;background:#f5f5f5">No photo</div>`;
   const photo=`<div style="width:120px;height:140px;border:3px solid #1E563F;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12);flex-shrink:0">${photoInner}</div>`;
   const badge=ol && ol!=='–'
-    ?`<div style="width:120px;height:140px;margin-left:-22px;flex-shrink:0;position:relative;z-index:2;filter:drop-shadow(0 8px 16px rgba(0,0,0,.28))">
-        <svg viewBox="0 0 140 160" width="120" height="140" xmlns="http://www.w3.org/2000/svg">
+    ?`<div style="width:120px;height:116px;margin-left:-22px;flex-shrink:0;position:relative;z-index:2;filter:drop-shadow(0 8px 16px rgba(0,0,0,.28))">
+        <svg viewBox="0 0 140 136" width="120" height="116" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <radialGradient id="pbGold" cx="38%" cy="28%" r="72%">
               <stop offset="0%" stop-color="#ffe9a0"/>
@@ -1310,10 +1310,6 @@ function buildPosterDOM(s, data, examType){
           <text x="70" y="72" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="38" font-weight="700" fill="url(#pbLetter)" style="paint-order:stroke fill">${ol}</text>
           <!-- GRADE -->
           <text x="70" y="92" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="8" font-weight="700" letter-spacing="2.5" fill="#ffd54f">GRADE</text>
-          <!-- bottom ribbon banner -->
-          <path d="M28,118 L40,110 L100,110 L112,118 L100,126 L40,126 Z" fill="url(#pbRibbon)" stroke="#e65100" stroke-width="0.8"/>
-          <path d="M28,118 L34,122 L40,118" fill="#f9a825"/>
-          <path d="M112,118 L106,122 L100,118" fill="#f9a825"/>
         </svg>
       </div>`
     :`<div style="width:100px;height:140px;flex-shrink:0"></div>`;
@@ -1535,25 +1531,6 @@ async function downloadPoster(s, data, examType, quality){
     ctx.font='bold 9px Arial, sans-serif';
     ctx.fillStyle='#ffd54f';
     ctx.fillText('GRADE', badgeCX, badgeCY+22);
-    // ribbon banner under medal
-    const ry=badgeCY+br+2;
-    const rw=70;
-    ctx.beginPath();
-    ctx.moveTo(badgeCX-rw/2-8, ry+6);
-    ctx.lineTo(badgeCX-rw/2, ry-2);
-    ctx.lineTo(badgeCX+rw/2, ry-2);
-    ctx.lineTo(badgeCX+rw/2+8, ry+6);
-    ctx.lineTo(badgeCX+rw/2, ry+14);
-    ctx.lineTo(badgeCX-rw/2, ry+14);
-    ctx.closePath();
-    const rib=ctx.createLinearGradient(0,ry-2,0,ry+14);
-    rib.addColorStop(0,'#ffd54f');
-    rib.addColorStop(1,'#f57f17');
-    ctx.fillStyle=rib;
-    ctx.fill();
-    ctx.strokeStyle='#e65100';
-    ctx.lineWidth=0.8;
-    ctx.stroke();
     ctx.textBaseline='alphabetic';
   }
 
