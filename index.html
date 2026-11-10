@@ -3137,6 +3137,30 @@ function openFillFromStudent(stuIndex){
 }
 
 /* ========== CLOUD SYNC BOOTSTRAP ========== */
+window.hvtoRestoreFromCloud = async function(){
+  const cloud = await loadFromCloud();
+  if (!cloud || !cloud.students) { alert('No student data found in Supabase.'); return; }
+  S.students = cloud.students;
+  if (cloud.teachers) S.teachers = cloud.teachers;
+  if (cloud.grades) S.grades = cloud.grades;
+  if (cloud.att) S.att = cloud.att;
+  if (cloud.outlines) S.outlines = cloud.outlines;
+  if (cloud.tg) S.tg = cloud.tg;
+  if (cloud.tatt) S.tatt = cloud.tatt;
+  if (cloud.kpi) S.kpi = cloud.kpi;
+  if (cloud.projects) S.projects = cloud.projects;
+  if (cloud.worklog) S.worklog = cloud.worklog;
+  if (cloud.schedule) S.schedule = cloud.schedule;
+  if (cloud.about) S.about = cloud.about;
+  if (cloud.proposals) S.proposals = cloud.proposals;
+  try { localStorage.setItem('hvto-v2', JSON.stringify(S)); } catch(e) {}
+  render();
+  alert('Restored from Supabase: '+(S.students||[]).length+' students');
+};
+window.hvtoForceSaveToCloud = async function(){
+  const r = await saveToCloud(S, true);
+  alert(r && r.ok ? 'Force-saved to Supabase.' : 'Save failed or blocked. Check console.');
+};
 (async function bootstrapCloud(){
   S.grades = S.grades || [];
   S.att = S.att || [];
@@ -3156,24 +3180,37 @@ function openFillFromStudent(stuIndex){
 
   const cloud = await loadFromCloud();
   if (cloud && typeof cloud === 'object') {
-    S.students = cloud.students || S.students;
-    S.teachers = cloud.teachers || S.teachers;
-    S.grades = cloud.grades || S.grades;
-    S.att = cloud.att || S.att;
-    S.outlines = cloud.outlines || S.outlines;
-    S.tg = cloud.tg || S.tg;
-    S.tatt = cloud.tatt || S.tatt;
-    S.kpi = cloud.kpi || S.kpi;
-    S.projects = cloud.projects || S.projects;
-    S.worklog = cloud.worklog || S.worklog || [];
-    S.schedule = cloud.schedule || S.schedule || [];
-    S.about = cloud.about || S.about || {text:'',photos:[],files:[]};
-    S.proposals = cloud.proposals || S.proposals || [];
-    try { localStorage.setItem('hvto-v2', JSON.stringify(S)); } catch(e) {}
-    console.log('Loaded shared data from Supabase');
+    const cloudN = (cloud.students && cloud.students.length) || 0;
+    const localN = (S.students && S.students.length) || 0;
+    // Prefer cloud when it has data (especially more students than local sample)
+    if (cloudN > 0) {
+      S.students = cloud.students;
+      if (cloud.teachers) S.teachers = cloud.teachers;
+      if (cloud.grades) S.grades = cloud.grades;
+      if (cloud.att) S.att = cloud.att;
+      if (cloud.outlines) S.outlines = cloud.outlines;
+      if (cloud.tg) S.tg = cloud.tg;
+      if (cloud.tatt) S.tatt = cloud.tatt;
+      if (cloud.kpi) S.kpi = cloud.kpi;
+      if (cloud.projects) S.projects = cloud.projects;
+      if (cloud.worklog) S.worklog = cloud.worklog;
+      if (cloud.schedule) S.schedule = cloud.schedule;
+      if (cloud.about) S.about = cloud.about;
+      if (cloud.proposals) S.proposals = cloud.proposals;
+      try { localStorage.setItem('hvto-v2', JSON.stringify(S)); } catch(e) {}
+      console.log('Loaded shared data from Supabase ('+cloudN+' students, local had '+localN+')');
+    } else {
+      console.log('Cloud has 0 students — keeping local data ('+localN+')');
+    }
   } else if (sb && !SUPABASE_ANON_KEY.includes('YOUR_ANON')) {
-    console.log('No cloud data yet – uploading current local state…');
-    await saveToCloud(S);
+    const localN = (S.students && S.students.length) || 0;
+    // Never auto-upload tiny demo sample (4 students) as the main cloud database
+    if (localN > 20) {
+      console.log('No cloud data yet – uploading current local state ('+localN+' students)…');
+      await saveToCloud(S);
+    } else {
+      console.warn('Skipped auto-upload of small local sample ('+localN+' students). Import your full list or restore from Supabase.');
+    }
   }
 
   render();
