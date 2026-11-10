@@ -286,7 +286,7 @@ img,svg,canvas{max-width:100%}
 <label class="w">Time in service<div class="ro" id="tsv">–</div></label><label class="w">Notes<textarea name="notes"></textarea></label></div>
 <p class="err" id="terr"></p><div class="bar" style="margin:8px 0 0;justify-content:flex-end"><button type="button" class="link" id="tcx">Cancel</button><button class="btn">Save teacher</button></div></form></dialog>
 <dialog id="gd"><div id="gdc"></div><div class="bar" style="margin:8px 0 0;justify-content:flex-end"><button class="link" id="gx">Close</button></div></dialog>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <dialog id="logdlg">
 <form id="logf">
 <h2 id="logdt">Daily work report</h2>
@@ -1156,13 +1156,20 @@ function gbData(){if(gcls&&gcls!='__none'&&!classes().includes(gcls))gcls='';con
  L.sort((x,y)=>k(x)<k(y)?-1:k(x)>k(y)?1:0);return gord=='asc'?L:L.reverse()}
 function gbRows(){const L=gbData();return L.length?L.map(({s,i,g,ly,a})=>`<tr data-gb="${i}"><td><div class="row" style="border:0;padding:0;cursor:pointer" data-act="gposter" data-i="${i}" title="${TT('View result poster')}">${av(s)}<div><div style="color:var(--p);font-weight:600">${esc(s.en)}</div><small>${esc(s.km)}</small></div></div></td><td>${esc(s.cls||'–')}</td><td>${g.avg==null?'–':g.avg.toFixed(1)+'%'}</td><td>${g.gpa==null?'–':g.gpa.toFixed(1)}</td><td>${ly.gpa==null?'–':ly.gpa.toFixed(1)}</td><td>${a.rate==null?'–':a.rate.toFixed(0)+'%'}</td><td style="white-space:nowrap"><button class="btn" style="padding:7px 12px" data-act="gposter" data-i="${i}">📋 Poster</button> <button class="btn" style="padding:7px 12px" data-act="gb" data-i="${i}">Update</button></td></tr>`).join(''):'<tr><td colspan="7"><div class="empty">No students match. Try another name or class.</div></td></tr>'}
 
+
 /* ========== STUDENT RESULT POSTER ========== */
 let posterExam='All', posterStu=-1;
 function posterGradeData(sid, examType){
   let G=S.grades.filter(g=>g.sid==sid);
   if(examType && examType!=='All'){
     const t=examType.toLowerCase();
-    G=G.filter(g=>String(g.type||'').toLowerCase().includes(t)||(t==='monthly'&&/month/i.test(g.type||''))||(t==='mid'&&/mid/i.test(g.type||''))||(t==='final'&&/final/i.test(g.type||'')));
+    G=G.filter(g=>{
+      const ty=String(g.type||'').toLowerCase();
+      if(t.includes('month'))return /month/i.test(ty);
+      if(t.includes('mid'))return /mid/i.test(ty);
+      if(t.includes('final'))return /final/i.test(ty);
+      return ty.includes(t);
+    });
   }
   const bySub={};
   SUBJ.forEach(sub=>{
@@ -1177,6 +1184,9 @@ function posterGradeData(sid, examType){
   const all=Object.values(bySub).filter(x=>x.avg!=null);
   const overall=all.length?all.reduce((s,x)=>s+x.avg,0)/all.length:null;
   return {bySub, overall, overallLetter:overall==null?'–':letter(overall), n:G.length};
+}
+function gradeColor(lg){
+  return lg==='A'?'#1E563F':lg==='B'?'#2e7d32':lg==='C'?'#c9a227':lg==='D'?'#ef6c00':lg==='E'?'#e65100':lg==='F'?'#c62828':'#888';
 }
 function openResultPoster(i){
   posterStu=i;
@@ -1224,12 +1234,23 @@ function buildPosterDOM(s, data, examType){
   const wrap=document.createElement('div');
   wrap.id='posterCard';
   wrap.style.cssText='background:linear-gradient(180deg,#f7fbf8 0%,#fff 40%);border:3px solid #1E563F;border-radius:12px;padding:28px 24px 20px;font-family:Georgia,"Times New Roman",serif;color:#1a1a1a;text-align:center';
-  const photo=s.photo?`<img src="${s.photo}" style="width:110px;height:130px;object-fit:cover;border:3px solid #1E563F;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.12)">`:`<div style="width:110px;height:130px;margin:0 auto;border:2px dashed #aaa;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">No photo</div>`;
+  const ol=data.overallLetter;
+  const olCol=gradeColor(ol);
+  // Fixed photo size 120x140 — never changes
+  const photoInner=s.photo
+    ?`<img src="${s.photo}" width="120" height="140" style="width:120px;height:140px;object-fit:cover;object-position:center top;display:block">`
+    :`<div style="width:120px;height:140px;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px;background:#f5f5f5">No photo</div>`;
+  const photo=`<div style="width:120px;height:140px;border:3px solid #1E563F;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12);flex-shrink:0">${photoInner}</div>`;
+  const badge=ol && ol!=='–'
+    ?`<div style="width:88px;height:88px;border-radius:50%;border:4px solid ${olCol};background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px rgba(0,0,0,.12)">
+        <span style="font-size:48px;font-weight:800;line-height:1;color:${olCol};font-family:Georgia,serif">${ol}</span>
+      </div>`
+    :`<div style="width:88px;height:88px;flex-shrink:0"></div>`;
   const rows=SUBJ.map(sub=>{
     const x=data.bySub[sub];
     const sc=x.avg==null?'—':x.avg.toFixed(1)+'%';
     const lg=x.letter;
-    const col=lg==='A'?'#1E563F':lg==='B'?'#2e7d32':lg==='C'?'#f9a825':lg==='D'?'#ef6c00':lg==='E'?'#e65100':'#c62828';
+    const col=gradeColor(lg);
     return `<tr>
       <td style="text-align:left;padding:10px 12px;border-bottom:1px solid #dde8e0;font-weight:600">${sub}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #dde8e0">${sc}</td>
@@ -1237,16 +1258,18 @@ function buildPosterDOM(s, data, examType){
     </tr>`;
   }).join('');
   const ov=data.overall==null?'—':data.overall.toFixed(1)+'%';
-  const ol=data.overallLetter;
-  const olCol=ol==='A'?'#1E563F':ol==='B'?'#2e7d32':ol==='C'?'#f9a825':ol==='D'?'#ef6c00':ol==='E'?'#e65100':'#c62828';
   wrap.innerHTML=`
     <img src="${L1}" alt="HVTO" style="width:72px;height:72px;object-fit:contain;margin:0 auto 6px;display:block">
     <div style="font-size:13px;font-weight:700;color:#1E563F;letter-spacing:1px">H.V.T.O</div>
     <div style="font-size:12px;color:#555;margin:2px 0 4px">Homestay Volunteer Teachers Organization</div>
     <div style="font-size:16px;font-weight:700;text-decoration:underline;margin:10px 0 16px;color:#1E563F">Student Result Report</div>
-    <div style="margin:0 auto 12px">${photo}</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin:0 auto 14px;max-width:360px">
+      <div style="width:88px;flex-shrink:0"></div>
+      ${photo}
+      ${badge}
+    </div>
     <div style="font-size:22px;font-weight:700;margin:8px 0 2px">${esc(s.en||'')}</div>
-    <div style="font-size:14px;color:#444;margin-bottom:4px">${esc(s.km||'')}</div>
+    <div style="font-size:16px;color:#333;margin-bottom:4px;font-family:'Noto Sans Khmer','Khmer OS',sans-serif;font-weight:600">${esc(s.km||'')}</div>
     <div style="font-size:12px;color:#666;margin-bottom:14px">
       ${esc(s.id||'')} · ${esc(s.cls||'–')} · ${esc(s.center||'')}
     </div>
@@ -1263,7 +1286,7 @@ function buildPosterDOM(s, data, examType){
         <tr style="background:#f0f7f3">
           <td style="text-align:left;padding:12px;font-weight:800">Overall</td>
           <td style="padding:12px;font-weight:700">${ov}</td>
-          <td style="padding:12px;font-weight:800;font-size:20px;color:${olCol}">${ol}</td>
+          <td style="padding:12px;font-weight:800;font-size:22px;color:${olCol}">${ol}</td>
         </tr>
       </tbody>
     </table>
@@ -1275,147 +1298,183 @@ function buildPosterDOM(s, data, examType){
     </div>`;
   return wrap;
 }
-function downloadPoster(s, data, examType, quality){
-  // quality 1=small 900px, 2=medium 1400px, 3=high 2200px
-  const W=quality===3?2200:quality===2?1400:900;
-  const scale=W/560;
-  const H=Math.round(780*scale);
+async function downloadPoster(s, data, examType, quality){
+  // Fixed design width 560; scale for quality — photo always 120x140 in design units
+  const designW=560, designH=800;
+  const scale=quality===3?4:quality===2?2.5:1.6; // high/medium/small
+  const W=Math.round(designW*scale), H=Math.round(designH*scale);
   const canvas=document.createElement('canvas');
   canvas.width=W; canvas.height=H;
   const ctx=canvas.getContext('2d');
-  // background
-  const grd=ctx.createLinearGradient(0,0,0,H);
-  grd.addColorStop(0,'#f7fbf8'); grd.addColorStop(0.4,'#ffffff');
-  ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='#1E563F'; ctx.lineWidth=Math.max(4,6*scale);
-  ctx.strokeRect(ctx.lineWidth/2,ctx.lineWidth/2,W-ctx.lineWidth,H-ctx.lineWidth);
+  ctx.scale(scale, scale);
+  // try load Khmer font
+  try{await document.fonts.load('600 16px "Noto Sans Khmer"');await document.fonts.load('700 16px "Noto Sans Khmer"');}catch(e){}
 
-  const cx=W/2;
-  let y=28*scale;
-  function text(str, size, color, bold, yOff){
+  const grd=ctx.createLinearGradient(0,0,0,designH);
+  grd.addColorStop(0,'#f7fbf8'); grd.addColorStop(0.4,'#ffffff');
+  ctx.fillStyle=grd; ctx.fillRect(0,0,designW,designH);
+  ctx.strokeStyle='#1E563F'; ctx.lineWidth=4;
+  ctx.strokeRect(2,2,designW-4,designH-4);
+
+  const cx=designW/2;
+  let y=24;
+  const text=(str,size,color,bold,font,yOff)=>{
     ctx.fillStyle=color||'#1a1a1a';
-    ctx.font=(bold?'bold ':'')+Math.round(size*scale)+'px Georgia, "Times New Roman", serif';
+    const fam=font||'Georgia, "Times New Roman", serif';
+    ctx.font=(bold?'bold ':'')+size+'px '+fam;
     ctx.textAlign='center';
     ctx.fillText(str, cx, yOff!=null?yOff:y);
-  }
-  // logo
-  const logo=new Image();
-  logo.crossOrigin='anonymous';
-  const finish=(logoOk)=>{
-    if(logoOk){
-      const ls=72*scale;
-      try{ctx.drawImage(logo, cx-ls/2, y, ls, ls);}catch(e){}
-      y+=ls+8*scale;
-    } else y+=10*scale;
-    text('H.V.T.O', 13, '#1E563F', true); y+=18*scale;
-    text('Homestay Volunteer Teachers Organization', 11, '#555', false); y+=16*scale;
-    text('Student Result Report', 16, '#1E563F', true); y+=28*scale;
-    // photo
-    const pw=110*scale, ph=130*scale;
-    const drawRest=()=>{
-      y+=ph+16*scale;
-      text(s.en||'', 22, '#111', true); y+=26*scale;
-      if(s.km){text(s.km, 13, '#444', false); y+=18*scale;}
-      text((s.id||'')+' · '+(s.cls||'–')+' · '+(s.center||''), 11, '#666', false); y+=20*scale;
-      const examLabel=examType==='All'?'All exams':examType;
-      const dateStr=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-      // pill
-      ctx.fillStyle='#e8f5ee';
-      const pill=examLabel+' · '+dateStr;
-      ctx.font=Math.round(11*scale)+'px Georgia, serif';
-      const tw=ctx.measureText(pill).width+28*scale;
-      ctx.beginPath();
-      ctx.roundRect?ctx.roundRect(cx-tw/2,y-12*scale,tw,22*scale,11*scale):(ctx.fillRect(cx-tw/2,y-12*scale,tw,22*scale));
-      ctx.fill();
-      text(pill, 11, '#1E563F', true, y+2*scale); y+=28*scale;
-      // table header
-      const cols=[W*0.12, W*0.55, W*0.78];
-      const rowH=36*scale;
-      ctx.fillStyle='#1E563F';
-      ctx.fillRect(W*0.08, y, W*0.84, rowH);
-      ctx.fillStyle='#fff';
-      ctx.font='bold '+Math.round(12*scale)+'px Georgia, serif';
-      ctx.textAlign='left'; ctx.fillText('Subject', cols[0], y+rowH*0.68);
-      ctx.textAlign='center'; ctx.fillText('Score', cols[1], y+rowH*0.68);
-      ctx.fillText('Grade', cols[2], y+rowH*0.68);
-      y+=rowH;
-      SUBJ.forEach((sub,i)=>{
-        if(i%2){ctx.fillStyle='#f5faf7';ctx.fillRect(W*0.08,y,W*0.84,rowH);}
-        const x=data.bySub[sub];
-        const sc=x.avg==null?'—':x.avg.toFixed(1)+'%';
-        const lg=x.letter;
-        const col=lg==='A'?'#1E563F':lg==='B'?'#2e7d32':lg==='C'?'#f9a825':lg==='D'?'#ef6c00':lg==='E'?'#e65100':(lg==='F'?'#c62828':'#333');
-        ctx.fillStyle='#111';
-        ctx.font='bold '+Math.round(13*scale)+'px Georgia, serif';
-        ctx.textAlign='left'; ctx.fillText(sub, cols[0], y+rowH*0.68);
-        ctx.font=Math.round(13*scale)+'px Georgia, serif';
-        ctx.textAlign='center'; ctx.fillText(sc, cols[1], y+rowH*0.68);
-        ctx.fillStyle=col;
-        ctx.font='bold '+Math.round(16*scale)+'px Georgia, serif';
-        ctx.fillText(lg, cols[2], y+rowH*0.68);
-        ctx.strokeStyle='#dde8e0'; ctx.beginPath(); ctx.moveTo(W*0.08,y+rowH); ctx.lineTo(W*0.92,y+rowH); ctx.stroke();
-        y+=rowH;
-      });
-      // overall
-      ctx.fillStyle='#e8f5ee'; ctx.fillRect(W*0.08,y,W*0.84,rowH+4*scale);
-      const ov=data.overall==null?'—':data.overall.toFixed(1)+'%';
-      const ol=data.overallLetter;
-      const olCol=ol==='A'?'#1E563F':ol==='B'?'#2e7d32':ol==='C'?'#f9a825':ol==='D'?'#ef6c00':ol==='E'?'#e65100':'#c62828';
-      ctx.fillStyle='#111'; ctx.font='bold '+Math.round(14*scale)+'px Georgia, serif';
-      ctx.textAlign='left'; ctx.fillText('Overall', cols[0], y+rowH*0.7);
-      ctx.textAlign='center'; ctx.fillText(ov, cols[1], y+rowH*0.7);
-      ctx.fillStyle=olCol; ctx.font='bold '+Math.round(18*scale)+'px Georgia, serif';
-      ctx.fillText(ol, cols[2], y+rowH*0.7);
-      y+=rowH+20*scale;
-      ctx.fillStyle='#666'; ctx.font=Math.round(10*scale)+'px Georgia, serif';
-      ctx.textAlign='center';
-      ctx.fillText('Grade scale: A 90–100 · B 80–89 · C 70–79 · D 60–69 · E 50–59 · F below 50', cx, y);
-      y+=22*scale;
-      ctx.strokeStyle='#c5d9ce'; ctx.beginPath(); ctx.moveTo(W*0.2,y); ctx.lineTo(W*0.8,y); ctx.stroke();
-      y+=18*scale;
-      ctx.fillStyle='#1E563F'; ctx.font=Math.round(11*scale)+'px Georgia, serif';
-      ctx.fillText('HVTO Free Education Center · www.hvto.org', cx, y);
-      // download
-      canvas.toBlob(blob=>{
-        if(!blob){alert('Could not create image');return}
-        const a=document.createElement('a');
-        a.href=URL.createObjectURL(blob);
-        const qn=quality===3?'high':quality===2?'medium':'small';
-        a.download=((s.en||s.id||'student')+'-result-'+qn).replace(/[^\w\-]+/g,'_')+'.png';
-        a.click();
-        setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-      },'image/png');
-    };
-    if(s.photo){
-      const img=new Image();
-      img.crossOrigin='anonymous';
-      img.onload=()=>{
-        ctx.save();
-        ctx.strokeStyle='#1E563F'; ctx.lineWidth=3*scale;
-        ctx.strokeRect(cx-pw/2, y, pw, ph);
-        try{ctx.drawImage(img, cx-pw/2, y, pw, ph);}catch(e){}
-        ctx.restore();
-        drawRest();
-      };
-      img.onerror=()=>{
-        ctx.strokeStyle='#aaa'; ctx.strokeRect(cx-pw/2,y,pw,ph);
-        ctx.fillStyle='#888'; ctx.font=Math.round(12*scale)+'px sans-serif';
-        ctx.fillText('No photo', cx, y+ph/2);
-        drawRest();
-      };
-      img.src=s.photo;
-    } else {
-      ctx.strokeStyle='#aaa'; ctx.setLineDash([6,4]); ctx.strokeRect(cx-pw/2,y,pw,ph); ctx.setLineDash([]);
-      ctx.fillStyle='#888'; ctx.font=Math.round(12*scale)+'px sans-serif';
-      ctx.fillText('No photo', cx, y+ph/2);
-      drawRest();
-    }
   };
-  logo.onload=()=>finish(true);
-  logo.onerror=()=>finish(false);
-  try{logo.src=L1;}catch(e){finish(false);}
-}
 
+  const loadImg=src=>new Promise(res=>{
+    if(!src){res(null);return}
+    const im=new Image();
+    im.crossOrigin='anonymous';
+    im.onload=()=>res(im);
+    im.onerror=()=>res(null);
+    im.src=src;
+  });
+
+  const logo=await loadImg(L1);
+  if(logo){
+    const ls=72;
+    ctx.drawImage(logo, cx-ls/2, y, ls, ls);
+    y+=ls+6;
+  }
+  text('H.V.T.O', 13, '#1E563F', true); y+=16;
+  text('Homestay Volunteer Teachers Organization', 11, '#555', false); y+=16;
+  text('Student Result Report', 16, '#1E563F', true); y+=28;
+
+  // Photo + grade badge row (fixed sizes)
+  const pw=120, ph=140, badgeR=44;
+  const photoX=cx-pw/2;
+  const photoY=y;
+  const badgeCX=cx+pw/2+20+badgeR;
+  const badgeCY=photoY+ph/2;
+
+  // left spacer balance: badge on right only
+  const img=await loadImg(s.photo);
+  ctx.save();
+  ctx.beginPath();
+  // rounded rect clip for photo
+  const r=6;
+  ctx.moveTo(photoX+r, photoY);
+  ctx.arcTo(photoX+pw, photoY, photoX+pw, photoY+ph, r);
+  ctx.arcTo(photoX+pw, photoY+ph, photoX, photoY+ph, r);
+  ctx.arcTo(photoX, photoY+ph, photoX, photoY, r);
+  ctx.arcTo(photoX, photoY, photoX+pw, photoY, r);
+  ctx.closePath();
+  ctx.clip();
+  if(img){
+    // cover fit without distorting — same as object-fit:cover
+    const ir=img.width/img.height, tr=pw/ph;
+    let sx=0,sy=0,sw=img.width,sh=img.height;
+    if(ir>tr){sw=img.height*tr;sx=(img.width-sw)/2;}
+    else{sh=img.width/tr;sy=(img.height-sh)/2;}
+    ctx.drawImage(img, sx, sy, sw, sh, photoX, photoY, pw, ph);
+  } else {
+    ctx.fillStyle='#f0f0f0'; ctx.fillRect(photoX, photoY, pw, ph);
+    ctx.fillStyle='#888'; ctx.font='13px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('No photo', photoX+pw/2, photoY+ph/2);
+  }
+  ctx.restore();
+  ctx.strokeStyle='#1E563F'; ctx.lineWidth=3;
+  ctx.strokeRect(photoX, photoY, pw, ph);
+
+  // Big overall grade badge right of photo
+  const ol=data.overallLetter;
+  if(ol && ol!=='–'){
+    const olCol=gradeColor(ol);
+    ctx.beginPath();
+    ctx.arc(badgeCX, badgeCY, badgeR, 0, Math.PI*2);
+    ctx.fillStyle='#fff';
+    ctx.fill();
+    ctx.lineWidth=4;
+    ctx.strokeStyle=olCol;
+    ctx.stroke();
+    ctx.fillStyle=olCol;
+    ctx.font='bold 48px Georgia, "Times New Roman", serif';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText(ol, badgeCX, badgeCY+2);
+    ctx.textBaseline='alphabetic';
+  }
+  y=photoY+ph+18;
+
+  text(s.en||'', 22, '#111', true); y+=26;
+  if(s.km){
+    text(s.km, 15, '#333', true, '"Noto Sans Khmer", "Khmer OS", sans-serif');
+    y+=22;
+  }
+  text((s.id||'')+' · '+(s.cls||'–')+' · '+(s.center||''), 11, '#666', false); y+=18;
+
+  const examLabel=examType==='All'?'All exams':examType;
+  const dateStr=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const pill=examLabel+' · '+dateStr;
+  ctx.font='12px Georgia, serif';
+  const tw=ctx.measureText(pill).width+28;
+  ctx.fillStyle='#e8f5ee';
+  const px=cx-tw/2, py=y-12;
+  if(ctx.roundRect){ctx.beginPath();ctx.roundRect(px,py,tw,22,11);ctx.fill();}
+  else{ctx.fillRect(px,py,tw,22);}
+  text(pill, 11, '#1E563F', true, null, y+2); y+=28;
+
+  // table
+  const cols=[designW*0.12, designW*0.55, designW*0.78];
+  const rowH=36;
+  ctx.fillStyle='#1E563F';
+  ctx.fillRect(designW*0.08, y, designW*0.84, rowH);
+  ctx.fillStyle='#fff';
+  ctx.font='bold 12px Georgia, serif';
+  ctx.textAlign='left'; ctx.fillText('Subject', cols[0], y+rowH*0.68);
+  ctx.textAlign='center'; ctx.fillText('Score', cols[1], y+rowH*0.68);
+  ctx.fillText('Grade', cols[2], y+rowH*0.68);
+  y+=rowH;
+  SUBJ.forEach((sub,i)=>{
+    if(i%2){ctx.fillStyle='#f5faf7';ctx.fillRect(designW*0.08,y,designW*0.84,rowH);}
+    const x=data.bySub[sub];
+    const sc=x.avg==null?'—':x.avg.toFixed(1)+'%';
+    const lg=x.letter;
+    const col=gradeColor(lg);
+    ctx.fillStyle='#111';
+    ctx.font='bold 13px Georgia, serif';
+    ctx.textAlign='left'; ctx.fillText(sub, cols[0], y+rowH*0.68);
+    ctx.font='13px Georgia, serif';
+    ctx.textAlign='center'; ctx.fillText(sc, cols[1], y+rowH*0.68);
+    ctx.fillStyle=col;
+    ctx.font='bold 16px Georgia, serif';
+    ctx.fillText(lg, cols[2], y+rowH*0.68);
+    ctx.strokeStyle='#dde8e0'; ctx.beginPath(); ctx.moveTo(designW*0.08,y+rowH); ctx.lineTo(designW*0.92,y+rowH); ctx.stroke();
+    y+=rowH;
+  });
+  ctx.fillStyle='#e8f5ee'; ctx.fillRect(designW*0.08,y,designW*0.84,rowH+4);
+  const ov=data.overall==null?'—':data.overall.toFixed(1)+'%';
+  const olCol=gradeColor(ol);
+  ctx.fillStyle='#111'; ctx.font='bold 14px Georgia, serif';
+  ctx.textAlign='left'; ctx.fillText('Overall', cols[0], y+rowH*0.7);
+  ctx.textAlign='center'; ctx.fillText(ov, cols[1], y+rowH*0.7);
+  ctx.fillStyle=olCol; ctx.font='bold 20px Georgia, serif';
+  ctx.fillText(ol, cols[2], y+rowH*0.7);
+  y+=rowH+20;
+  ctx.fillStyle='#666'; ctx.font='10px Georgia, serif';
+  ctx.textAlign='center';
+  ctx.fillText('Grade scale: A 90–100 · B 80–89 · C 70–79 · D 60–69 · E 50–59 · F below 50', cx, y);
+  y+=20;
+  ctx.strokeStyle='#c5d9ce'; ctx.beginPath(); ctx.moveTo(designW*0.2,y); ctx.lineTo(designW*0.8,y); ctx.stroke();
+  y+=16;
+  ctx.fillStyle='#1E563F'; ctx.font='11px Georgia, serif';
+  ctx.fillText('HVTO Free Education Center · www.hvto.org', cx, y);
+
+  canvas.toBlob(blob=>{
+    if(!blob){alert('Could not create image');return}
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    const qn=quality===3?'high':quality===2?'medium':'small';
+    a.download=((s.en||s.id||'student')+'-result-'+qn).replace(/[^\w\-]+/g,'_')+'.png';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  },'image/png');
+}
 
 function openGB(i){gi=i;gtab='sc';drawGB();$('#gd').showModal()}
 function addAtt(sid,date,st,note){S.att=S.att.filter(x=>!(x.sid==sid&&x.date==date));S.att.push({id:uid(),sid,date,st,note:note||''});save();drawGB();render()}
@@ -2956,6 +3015,9 @@ function openFillFromStudent(stuIndex){
   S.schedule = S.schedule || [];
   S.about = S.about || {text:'',photos:[],files:[]};
   S.proposals = S.proposals || [];
+
+  // Show UI immediately from local data (no waiting for network)
+  try{render();}catch(e){console.warn(e)}
 
   const cloud = await loadFromCloud();
   if (cloud && typeof cloud === 'object') {
