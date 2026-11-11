@@ -3213,6 +3213,40 @@ window.hvtoForceSaveToCloud = async function(){
     }
   }
 
+  // Live sync: when another device updates app_state, reload here
+  try {
+    if (sb && !SUPABASE_ANON_KEY.includes('YOUR_ANON')) {
+      sb.channel('app_state_sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state', filter: 'id=eq.main' }, async (payload) => {
+          try {
+            const cloud = payload.new && payload.new.data ? payload.new.data : await loadFromCloud();
+            if (!cloud || !cloud.students) return;
+            const cloudN = cloud.students.length || 0;
+            const localN = (S.students && S.students.length) || 0;
+            // Only apply if cloud has data (avoid wiping with empty)
+            if (cloudN === 0 && localN > 0) return;
+            S.students = cloud.students || S.students;
+            if (cloud.teachers) S.teachers = cloud.teachers;
+            if (cloud.grades) S.grades = cloud.grades;
+            if (cloud.att) S.att = cloud.att;
+            if (cloud.outlines) S.outlines = cloud.outlines;
+            if (cloud.tg) S.tg = cloud.tg;
+            if (cloud.tatt) S.tatt = cloud.tatt;
+            if (cloud.kpi) S.kpi = cloud.kpi;
+            if (cloud.projects) S.projects = cloud.projects;
+            if (cloud.worklog) S.worklog = cloud.worklog;
+            if (cloud.schedule) S.schedule = cloud.schedule;
+            if (cloud.about) S.about = cloud.about;
+            if (cloud.proposals) S.proposals = cloud.proposals;
+            try { localStorage.setItem('hvto-v2', JSON.stringify(S)); } catch(e) {}
+            render();
+            console.log('Realtime sync from another device:', cloudN, 'students');
+          } catch (e) { console.warn('Realtime apply failed', e); }
+        })
+        .subscribe((status) => console.log('Realtime status:', status));
+    }
+  } catch (e) { console.warn('Realtime setup failed', e); }
+
   render();
 })();
 </script>
