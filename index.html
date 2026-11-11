@@ -1726,6 +1726,11 @@ document.addEventListener('click',e=>{
   if(b.dataset.act==='sptab'){
     sponsorTab=b.dataset.tab||'list';
     if(sponsorTab==='list'){propDraft=null;propEdit=-1}
+    // Opening Create Proposal tab → start a new proposal form immediately
+    if(sponsorTab==='proposal' && !propDraft){
+      propEdit=-1;
+      propDraft=emptyProposal();
+    }
     view='sponsor';render();return
   }
   if(b.dataset.act==='propnew'){propEdit=-1;propDraft=emptyProposal();sponsorTab='proposal';view='sponsor';render();return}
@@ -2501,8 +2506,33 @@ function emptyProposal(){
     feeGrade:412,
     feeUni:800,
     feeNote:'All cost includes 13% for HVTO administration and communication',
-    cashFlow:'Sponsor → Student Trust Account (ABC) → Monthly Stipend → Sponsored Student → Balance',
-    cashFlowNote:'Sample cost of HVTO Sponsorship for Education — Cash Flow Example',
+    sampleCostRows:[
+      {grade:'Grade 7th',fee:412},{grade:'Grade 8th',fee:412},{grade:'Grade 9th',fee:412},
+      {grade:'Grade 10th',fee:412},{grade:'Grade 11th',fee:412},{grade:'Grade 12th',fee:412},
+      {grade:'University Year 1',fee:800},{grade:'University Year 2',fee:800},
+      {grade:'University Year 3',fee:800},{grade:'University Year 4',fee:800}
+    ],
+    cashFlow:'300900-Sponsor → 200900 ABC (Student Trust Account) → Monthly Stipend → Sponsored Student → Balance',
+    cashFlowNote:'',
+    cashFlowTitle:'HOMESTAY VOLUNTEER TEACHERS ORG',
+    cashFlowSubtitle:'Vendor Open Balance — All Transactions',
+    cashFlowAccount:'200900-ABC',
+    cashFlowTx:[
+      {type:'General Journal',date:'01/01/2024',memo:'Transfer from 300900 to 200900',open:800,amount:800,balance:800},
+      {type:'General Journal',date:'01/02/2024',memo:'Admin Cost 2024',open:-40,amount:-40,balance:760},
+      {type:'Check',date:'01/07/2024',memo:'Paid to ABC For January 2024',open:-30,amount:-30,balance:730},
+      {type:'Check',date:'02/04/2024',memo:'Paid to ABC For February 2024',open:-30,amount:-30,balance:700},
+      {type:'Check',date:'03/03/2024',memo:'Paid to ABC For March 2024',open:-30,amount:-30,balance:670},
+      {type:'Check',date:'04/04/2024',memo:'Paid to ABC For April 2024',open:-30,amount:-30,balance:640},
+      {type:'Check',date:'05/05/2024',memo:'Paid to ABC For May 2024',open:-30,amount:-30,balance:610},
+      {type:'Check',date:'06/09/2024',memo:'Paid to ABC For June 2024',open:-30,amount:-30,balance:580},
+      {type:'Check',date:'07/07/2024',memo:'Paid to ABC For July 2024',open:-30,amount:-30,balance:550},
+      {type:'Check',date:'08/11/2024',memo:'Paid to ABC For August 2024',open:-30,amount:-30,balance:520},
+      {type:'Check',date:'09/08/2024',memo:'Paid to ABC For September 2024',open:-30,amount:-30,balance:490},
+      {type:'Check',date:'10/06/2024',memo:'Paid to ABC For October 2024',open:-30,amount:-30,balance:460},
+      {type:'Check',date:'11/03/2024',memo:'Paid to ABC For November 2024',open:-30,amount:-30,balance:430},
+      {type:'Check',date:'12/08/2024',memo:'Paid to ABC For December 2024',open:-30,amount:-30,balance:400}
+    ],
     updated:new Date().toISOString()
   };
 }
