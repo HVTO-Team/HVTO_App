@@ -3113,30 +3113,226 @@ function openProposalPreview(P){
 }
 
 function exportProposalWord(P){
-  let html=proposalDocumentHTML(P);
-  // Strip on-screen print toolbar for cleaner Word file
-  html=html.replace(/<div class="no-print"[\s\S]*?<\/div>/i,'');
-  // Word-friendly wrapper
-  const wordHtml='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
-    +'<head><meta charset="utf-8"><meta name="ProgId" content="Word.Document">'
-    +'<meta name="Generator" content="Microsoft Word">'
-    +'<title>'+((P.title||'HVTO Sponsorship Proposal').replace(/</g,'&lt;'))+'</title>'
-    +'<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'
-    +'<style>'
-    +'body{font-family:"Times New Roman",Times,serif;font-size:12pt;line-height:1.4;color:#000}'
-    +'table{border-collapse:collapse}'
-    +'td,th{border:1px solid #333;padding:4pt 6pt}'
-    +'@page{size:A4;margin:2cm}'
-    +'</style></head><body>'
-    +html.replace(/^[\s\S]*<body[^>]*>/i,'').replace(/<\/body>[\s\S]*$/i,'')
-    +'</body></html>';
+  P=P||propDraft||emptyProposal();
+  const feeG=+(P.feeGrade!=null?P.feeGrade:412), feeU=+(P.feeUni!=null?P.feeUni:800);
+  const budget=buildBudgetRows(P.students||[], P.academicYear, feeG, feeU);
+  const nStu=(P.students||[]).length;
+  const today=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const logo=L1||L_SCHOOL||'';
+  const escW=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const cell='border:1px solid #333;padding:6pt 8pt;vertical-align:top;';
+  const th='border:1px solid #333;padding:6pt 8pt;background:#f0f0f0;font-weight:bold;';
+
+  // Student bios
+  let bios='';
+  (P.students||[]).forEach((s,i)=>{
+    const place=[s.village,s.commune,s.district,s.province,s.country||'Cambodia'].filter(Boolean).join(', ');
+    const photo=s.photo
+      ?`<img src="${s.photo}" width="90" height="110" style="width:90px;height:110px;object-fit:cover;border:1px solid #333;">`
+      :`<div style="width:90px;height:110px;border:1px solid #999;text-align:center;line-height:110px;color:#888;font-size:10pt;">Photo</div>`;
+    bios+=`
+    <table style="width:100%;border-collapse:collapse;margin:12pt 0;border:none;" cellspacing="0" cellpadding="0">
+      <tr>
+        <td style="width:100px;border:none;vertical-align:top;padding-right:12pt;">${photo}</td>
+        <td style="border:none;vertical-align:top;font-size:11pt;line-height:1.55;">
+          <b>Name</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${escW(s.name||'')}<br>
+          <b>Sex</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${escW(s.sex||'')}<br>
+          <b>Date of Birth</b>&nbsp;&nbsp;&nbsp;: ${escW(formatBdayProp?formatBdayProp(s.bday):s.bday||'')}<br>
+          <b>Place of Birth</b>&nbsp;&nbsp;: ${escW(place)}<br>
+          <b>Student in</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${escW(s.grade||'')}${s.note?' <i>('+escW(s.note)+')</i>':''}<br>
+          <b>Father's Name</b>&nbsp;&nbsp;&nbsp;: ${escW(s.father||'')}${s.fatherOcc?' <i>('+escW(s.fatherOcc)+')</i>':''}<br>
+          <b>Mother's Name</b>&nbsp;&nbsp;: ${escW(s.mother||'')}${s.motherOcc?' <i>('+escW(s.motherOcc)+')</i>':''}<br>
+          <b>Members in family</b>: ${escW(s.family||'')}<br>
+          <b>Free Time</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${escW(s.freetime||'')}<br>
+          <b>English Level</b>&nbsp;&nbsp;&nbsp;: ${escW(s.english||'')}<br>
+          <b>Goal</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${escW(s.goal||'')}
+        </td>
+      </tr>
+    </table>`;
+  });
+
+  // Sample cost rows
+  const scRows=(P.sampleCostRows&&P.sampleCostRows.length)?P.sampleCostRows:[
+    ...[7,8,9,10,11,12].map(g=>({grade:'Grade '+g+'th',fee:feeG})),
+    ...[1,2,3,4].map(y=>({grade:'University Year '+y,fee:feeU}))
+  ];
+  let scTable=`<table style="width:85%;margin:8pt auto;border-collapse:collapse;" cellspacing="0">
+    <tr><td colspan="2" style="${th}text-align:center;">Primary School/ Secondary School/ High School/ University</td></tr>
+    <tr><td style="${th}text-align:center;width:55%;">Grade</td><td style="${th}text-align:center;">Yearly fee in USD</td></tr>
+    ${scRows.map(r=>`<tr><td style="${cell}">${escW(r.grade)}</td><td style="${cell}text-align:right;">$ ${Number(r.fee||0).toLocaleString()}</td></tr>`).join('')}
+    <tr><td colspan="2" style="${cell}text-align:center;font-size:10pt;">${escW(P.feeNote||'All cost includes 13% for HVTO administration and communication')}</td></tr>
+  </table>`;
+
+  // Cash flow
+  const tx=(P.cashFlowTx&&P.cashFlowTx.length)?P.cashFlowTx:[];
+  let cfTable='';
+  if(tx.length){
+    const totOpen=tx.reduce((s,t)=>s+(+t.open||0),0);
+    const totAmt=tx.reduce((s,t)=>s+(+t.amount||0),0);
+    const lastBal=tx[tx.length-1]?tx[tx.length-1].balance:0;
+    cfTable=`
+    <p style="text-align:center;margin:14pt 0 4pt;"><b>${escW(P.cashFlowTitle||'HOMESTAY VOLUNTEER TEACHERS ORG')}</b><br>
+    <b>Vendor Open Balance</b><br>All Transactions</p>
+    <table style="width:100%;border-collapse:collapse;font-size:10pt;" cellspacing="0">
+      <tr>
+        <td style="${th}">Type</td><td style="${th}">Date</td><td style="${th}">Memo</td>
+        <td style="${th}">Open Balance</td><td style="${th}">Amount</td><td style="${th}">Balance</td>
+      </tr>
+      <tr><td colspan="6" style="${cell}background:#ddd;font-weight:bold;">${escW(P.cashFlowAccount||'200900-ABC')}</td></tr>
+      ${tx.map(t=>`<tr>
+        <td style="${cell}">${escW(t.type||'')}</td>
+        <td style="${cell}">${escW(t.date||'')}</td>
+        <td style="${cell}">${escW(t.memo||'')}</td>
+        <td style="${cell}text-align:right;">${Number(t.open||0).toFixed(2)}</td>
+        <td style="${cell}text-align:right;">${Number(t.amount||0).toFixed(2)}</td>
+        <td style="${cell}text-align:right;">${Number(t.balance||0).toFixed(2)}</td>
+      </tr>`).join('')}
+      <tr>
+        <td colspan="3" style="${cell}font-weight:bold;">Total ${escW(P.cashFlowAccount||'200900-ABC')}</td>
+        <td style="${cell}text-align:right;font-weight:bold;">${Number(totOpen).toFixed(2)}</td>
+        <td style="${cell}text-align:right;font-weight:bold;">${Number(totAmt).toFixed(2)}</td>
+        <td style="${cell}text-align:right;font-weight:bold;">${Number(lastBal).toFixed(2)}</td>
+      </tr>
+    </table>`;
+  }
+
+  // Budget table
+  let budgetHtml=`<table style="width:100%;border-collapse:collapse;margin:8pt 0;" cellspacing="0">
+    <tr>
+      <td style="${th}width:12%;">Year</td>
+      <td style="${th}">Grades</td>
+      <td style="${th}width:16%;text-align:center;">No. of Students</td>
+      <td style="${th}width:20%;text-align:right;">Yearly Fees in US</td>
+    </tr>`;
+  (budget.rows||[]).forEach(r=>{
+    if(r.isTotal){
+      budgetHtml+=`<tr>
+        <td style="${cell}"></td>
+        <td style="${cell}"><b>Total</b></td>
+        <td style="${cell}"></td>
+        <td style="${cell}text-align:right;color:#a63d2f;"><b>$ ${Number(r.fees||0).toLocaleString()}</b></td>
+      </tr>`;
+    } else {
+      budgetHtml+=`<tr>
+        <td style="${cell}">${r.year||''}</td>
+        <td style="${cell}">${escW(r.grades||'')}</td>
+        <td style="${cell}text-align:center;">${r.count}</td>
+        <td style="${cell}text-align:right;">$ ${Number(r.fees||0).toLocaleString()}</td>
+      </tr>`;
+    }
+  });
+  budgetHtml+=`<tr>
+    <td colspan="3" style="${cell}font-weight:bold;">GRAND TOTAL</td>
+    <td style="${cell}text-align:right;font-weight:bold;color:#a63d2f;">$ ${Number(budget.grand||0).toLocaleString()}</td>
+  </tr></table>`;
+
+  // Agreement text
+  const agreement=`
+  <p style="margin:12pt 0 6pt;"><b>Sponsorship Agreement between HVTO and Sponsor</b></p>
+  <p style="font-size:10.5pt;line-height:1.5;text-align:justify;">
+  This Sponsorship Agreement is entered into between Homestay Volunteer Teachers Organization (HVTO)
+  and the Sponsor(s) named below for the support of <b>${nStu}</b> student(s) under the HVTO Sponsorship Program for Education.
+  </p>
+  <p style="font-size:10.5pt;line-height:1.5;">${escW(P.note||'')}</p>
+  <ol style="font-size:10.5pt;line-height:1.55;">
+    <li>The Sponsor agrees to support the student(s) listed in this proposal according to the budget schedule.</li>
+    <li>Funds are managed through the HVTO student trust account for education-related costs.</li>
+    <li>HVTO will provide progress updates and maintain communication with the Sponsor.</li>
+    <li>The Sponsor may visit or communicate with sponsored students as arranged with HVTO.</li>
+    <li>Either party may discuss changes to the sponsorship period based on student progress and mutual agreement.</li>
+  </ol>`;
+
+  // Signature table blank for sponsor
+  const sig=`
+  <p style="text-align:center;margin:18pt 0 6pt;"><b><u>Signatures of Acceptance Sponsoring for ${nStu} Students</u></b></p>
+  <p style="text-align:center;font-size:10pt;font-style:italic;color:#555;">(To be completed by the Sponsor after accepting this proposal)</p>
+  <table style="width:55%;margin:10pt auto;border-collapse:collapse;" cellspacing="0">
+    <tr><td style="${cell}width:35%;font-weight:bold;">Name of Sponsor:</td><td style="${cell}height:22pt;">&nbsp;</td></tr>
+    <tr><td style="${cell}font-weight:bold;">Date:</td><td style="${cell}height:22pt;">&nbsp;</td></tr>
+    <tr><td style="${cell}font-weight:bold;">Signature:</td><td style="${cell}height:36pt;">&nbsp;</td></tr>
+    <tr><td style="${cell}font-weight:bold;">Full Name:</td><td style="${cell}height:22pt;">&nbsp;</td></tr>
+    <tr><td style="${cell}font-weight:bold;">Tel:</td><td style="${cell}height:22pt;">&nbsp;</td></tr>
+    <tr><td style="${cell}font-weight:bold;">Email:</td><td style="${cell}height:22pt;">&nbsp;</td></tr>
+    <tr><td style="${cell}font-weight:bold;">Address:</td><td style="${cell}height:36pt;">&nbsp;</td></tr>
+  </table>
+  <p style="text-align:center;margin-top:18pt;">
+    <img src="${logo}" width="70" height="70" style="width:70px;height:70px;"><br>
+    <b>HVTO Representative:</b><br>
+    Date: ${today}<br><br>
+    <b>Dr. Sim Piseth</b><br>
+    HVTO Founder &amp; Chairman of the Board of Directors<br>
+    Tel: +855974506969<br><br>
+    Homestay Volunteer Teachers Organization<br>
+    East Sreth village, Kontreang commune,<br>
+    Prasat Bakong district, Siem Reap province – Cambodia<br>
+    Tel: +855974506969 | Email: sim@hvto.org | Website: www.hvto.org
+  </p>`;
+
+  const wordHtml=`<html xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:w="urn:schemas-microsoft-com:office:word"
+ xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="Microsoft Word 15">
+<title>${escW(P.title||'HVTO Sponsorship Proposal')}</title>
+<!--[if gte mso 9]><xml>
+ <w:WordDocument>
+  <w:View>Print</w:View>
+  <w:Zoom>100</w:Zoom>
+  <w:DoNotOptimizeForBrowser/>
+ </w:WordDocument>
+</xml><![endif]-->
+<style>
+ <!--
+  body { font-family:"Times New Roman",Times,serif; font-size:12pt; line-height:1.4; color:#000; }
+  h1,h2,h3 { font-family:"Times New Roman",Times,serif; }
+  table { border-collapse:collapse; }
+  @page { size:A4; margin:2cm; }
+  @page Section1 { size:A4; margin:2cm; }
+  div.Section1 { page:Section1; }
+ -->
+</style>
+</head>
+<body>
+<div class="Section1">
+
+  <div style="text-align:center;margin-bottom:12pt;">
+    <img src="${logo}" width="90" height="90" style="width:90px;height:90px;"><br>
+    <div style="font-size:16pt;font-weight:bold;color:#1E563F;margin-top:4pt;">H.V.T.O</div>
+    <div style="font-size:12pt;color:#8B4513;font-family:'Noto Sans Khmer','Khmer OS',serif;">អង្គការស្នាក់នៅស្ម័គ្រចិត្តជួយបង្រៀន</div>
+    <div style="font-size:11pt;">Homestay Volunteer Teachers Organization</div>
+    <div style="font-size:13pt;font-weight:bold;text-decoration:underline;margin-top:8pt;">HVTO Sponsorship Program for Education</div>
+  </div>
+
+  <h2 style="text-align:center;font-size:13pt;text-decoration:underline;">Short Bio of Students</h2>
+  ${bios}
+
+  <h2 style="text-align:center;font-size:13pt;text-decoration:underline;margin-top:18pt;">Sample cost of HVTO Sponsorship for Education</h2>
+  ${scTable}
+
+  <h2 style="text-align:center;font-size:13pt;text-decoration:underline;margin-top:18pt;">Cash Flow Example</h2>
+  <p style="text-align:center;font-size:11pt;">${escW(P.cashFlow||'Sponsor → Student Trust Account (ABC) → Monthly Stipend → Sponsored Student → Balance')}</p>
+  ${cfTable}
+
+  <h2 style="text-align:center;font-size:13pt;text-decoration:underline;margin-top:18pt;">Basic Budget Proposal for ${nStu} Students Mentioned below</h2>
+  ${budgetHtml}
+
+  ${agreement}
+  ${sig}
+
+</div>
+</body>
+</html>`;
+
   const blob=new Blob(['\ufeff',wordHtml],{type:'application/msword'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=(P.title||'HVTO-Proposal').replace(/[^\w\-]+/g,'_')+'.doc';
+  a.download=(P.title||'HVTO-Proposal').replace(/[^\\w\\-]+/g,'_')+'.doc';
   a.click();
   setTimeout(function(){URL.revokeObjectURL(a.href)},800);
 }
+
 
 function openFillFromStudent(stuIndex){
   const sponsored=S.students.filter(s=>s.sponsored);
