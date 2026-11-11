@@ -404,6 +404,28 @@ const sb = (typeof supabase !== 'undefined')
   ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
+
+function applyCloudState(cloud){
+  if(!cloud||typeof cloud!=='object')return false;
+  const cloudN=(cloud.students&&cloud.students.length)||0;
+  if(cloudN===0 && (S.students&&S.students.length)>0) return false;
+  if(cloud.students) S.students=cloud.students;
+  if(cloud.teachers) S.teachers=cloud.teachers;
+  if(cloud.grades) S.grades=cloud.grades;
+  if(cloud.att) S.att=cloud.att;
+  if(cloud.outlines) S.outlines=cloud.outlines;
+  if(cloud.tg) S.tg=cloud.tg;
+  if(cloud.tatt) S.tatt=cloud.tatt;
+  if(cloud.kpi) S.kpi=cloud.kpi;
+  if(cloud.projects) S.projects=cloud.projects;
+  if(cloud.worklog) S.worklog=cloud.worklog;
+  if(cloud.schedule) S.schedule=cloud.schedule;
+  if(cloud.about) S.about=cloud.about;
+  if(cloud.proposals) S.proposals=cloud.proposals;
+  try{localStorage.setItem('hvto-v2',JSON.stringify(S))}catch(e){}
+  return true;
+}
+
 async function loadFromCloud() {
   if (!sb || SUPABASE_ANON_KEY.includes('YOUR_ANON')) return null;
   try {
@@ -413,16 +435,39 @@ async function loadFromCloud() {
   } catch (e) { console.warn('Supabase load failed', e); return null; }
 }
 
-async function saveToCloud(state) {
-  if (!sb || SUPABASE_ANON_KEY.includes('YOUR_ANON')) return;
+async function saveToCloud(state, force) {
+  if (!sb || SUPABASE_ANON_KEY.includes('YOUR_ANON')) return { ok:false, reason:'no-client' };
   try {
+    // Safety: never overwrite a large cloud dataset with a tiny local sample (unless force)
+    if (!force) {
+      try {
+        const { data: existing } = await sb.from('app_state').select('data').eq('id', 'main').maybeSingle();
+        const cloudN = (existing && existing.data && existing.data.students) ? existing.data.students.length : 0;
+        const localN = (state && state.students) ? state.students.length : 0;
+        if (cloudN > 20 && localN < Math.max(20, cloudN * 0.5)) {
+          console.warn('Blocked cloud overwrite: local ('+localN+') << cloud ('+cloudN+'). Use hvtoForceSaveToCloud() only if intentional.');
+          if (typeof setSyncStatus==='function') setSyncStatus('blocked');
+          return { blocked:true, cloudN, localN };
+        }
+      } catch (e) {}
+    }
     const { error } = await sb.from('app_state').upsert({
       id: 'main',
       data: state,
       updated_at: new Date().toISOString()
     });
-    if (error) console.warn('Supabase save error', error);
-  } catch (e) { console.warn('Supabase save failed', e); }
+    if (error) {
+      console.warn('Supabase save error', error);
+      if (typeof setSyncStatus==='function') setSyncStatus('error');
+      return { ok:false, error };
+    }
+    if (typeof setSyncStatus==='function') setSyncStatus('saved');
+    return { ok:true };
+  } catch (e) {
+    console.warn('Supabase save failed', e);
+    if (typeof setSyncStatus==='function') setSyncStatus('error');
+    return { ok:false, error:e };
+  }
 }
 
 let S={students:[mk('HV-004','Heng Sophea','ហេង សុភា','Female','2016-02-14',CN[2],'Dropped',false,true),mk('HV-003','Ly Vichet','លី វិចិត្រ','Male','2013-01-20',CN[1],'Active',false,false),mk('HV-002','Chan Sreypov','ចាន ស្រីពៅ','Female','2015-05-02',CN[0],'Active',true,false),mk('HV-001','Sok Makara','សុខ មករា','Male','2014-03-10',CN[0],'Active',true,false)],
@@ -445,25 +490,40 @@ const slimForLocal=obj=>{
     return o;
   }catch(e){return obj}
 };
+let _saveCloudTimer=null;
+const setSyncStatus=(st)=>{
+  try{
+    const el=document.getElementById('syncStatus');
+    if(!el)return;
+    const map={saving:['⏳ Saving…','#c9a227'],saved:['☁️ Synced','#2f9e6e'],error:['⚠️ Sync error','#c0392b'],blocked:['⚠️ Sync blocked','#c0392b'],loading:['⏳ Loading…','#c9a227'],live:['☁️ Live sync','#2f9e6e']};
+    const m=map[st]||['☁️ '+st,'#666'];
+    el.textContent=m[0];
+    el.style.color=m[1];
+  }catch(e){}
+};
 const save=()=>{
-  // Always try full cloud save first
-  try{saveToCloud(S)}catch(e){}
+  // Local first (fast), then debounced cloud save for team sync
   try{
     localStorage.setItem('hvto-v2',JSON.stringify(S));
     warned=0;
   }catch(e){
-    // Quota full: save slim local copy so roster/students still work offline-ish
     try{
       localStorage.setItem('hvto-v2',JSON.stringify(slimForLocal(S)));
       if(!warned){
         warned=1;
-        alert(TT('Browser storage is almost full. Large About Us files are kept in the cloud only. Delete big PDFs/photos in About Us if save still fails.'));
+        alert(TT('Browser storage is almost full. Large About Us files are kept in the cloud only. Delete big PDFs/photos in About Us if needed.'));
       }
     }catch(e2){
       try{localStorage.removeItem('hvto-v2')}catch(e3){}
-      if(!warned){warned=1;alert(TT('Could not save locally. Data was still sent to cloud if connected. Delete large About Us files (10MB PDF) to free space.'))}
+      if(!warned){
+        warned=1;
+        alert(TT('Could not save locally. Data was still sent to cloud if connected. Delete large About Us files to free space.'));
+      }
     }
   }
+  if(typeof setSyncStatus==='function') setSyncStatus('saving');
+  clearTimeout(_saveCloudTimer);
+  _saveCloudTimer=setTimeout(()=>{ try{saveToCloud(S)}catch(e){} }, 400);
 };
 let animDash=true,DF={from:'',to:''},sstu='enroll',sproj='order',ord='desc',grp='month',user=null,view='dash',campus='All',q='',edit=-1,photo='',sf=null,propEdit=-1,propDraft=null,sponsorTab='list',addrF={province:'',district:'',commune:'',village:''},onlySponsoredOutside=false,schCenterFilter='All',rosterQ='',rosterPerson='',calY=new Date().getFullYear(),calM=new Date().getMonth();
 const $=s=>document.querySelector(s);
@@ -3384,9 +3444,20 @@ window.hvtoRestoreFromCloud = async function(){
   alert('Restored from Supabase: '+(S.students||[]).length+' students');
 };
 window.hvtoForceSaveToCloud = async function(){
+  setSyncStatus('saving');
   const r = await saveToCloud(S, true);
-  alert(r && r.ok ? 'Force-saved to Supabase.' : 'Save failed or blocked. Check console.');
+  alert(r && r.ok ? ('Force-saved to Supabase: '+(S.students||[]).length+' students') : ('Save failed or blocked. '+(r&&r.blocked?('Cloud has '+r.cloudN+' students'):'Check console.')));
 };
+
+document.addEventListener('visibilitychange', async ()=>{
+  if(document.visibilityState!=='visible')return;
+  try{
+    const cloud=await loadFromCloud();
+    if(cloud && applyCloudState(cloud)){ render(); setSyncStatus('live'); }
+  }catch(e){}
+});
+window.hvtoVisibilitySync=true;
+
 (async function bootstrapCloud(){
   S.grades = S.grades || [];
   S.att = S.att || [];
@@ -3401,6 +3472,14 @@ window.hvtoForceSaveToCloud = async function(){
   S.about = S.about || {text:'',photos:[],files:[]};
   S.proposals = S.proposals || [];
 
+  // Sync status chip
+  if(!document.getElementById('syncStatus')){
+    const chip=document.createElement('div');
+    chip.id='syncStatus';
+    chip.style.cssText='position:fixed;bottom:12px;right:12px;z-index:9999;background:rgba(255,255,255,.92);border:1px solid #ddd;border-radius:20px;padding:6px 12px;font-size:12px;box-shadow:0 2px 10px rgba(0,0,0,.12);pointer-events:none';
+    chip.textContent='☁️ Sync';
+    document.body.appendChild(chip);
+  }
   // Show UI immediately from local data (no waiting for network)
   try{render();}catch(e){console.warn(e)}
 
@@ -3445,31 +3524,20 @@ window.hvtoForceSaveToCloud = async function(){
       sb.channel('app_state_sync')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state', filter: 'id=eq.main' }, async (payload) => {
           try {
-            const cloud = payload.new && payload.new.data ? payload.new.data : await loadFromCloud();
-            if (!cloud || !cloud.students) return;
-            const cloudN = cloud.students.length || 0;
-            const localN = (S.students && S.students.length) || 0;
-            // Only apply if cloud has data (avoid wiping with empty)
-            if (cloudN === 0 && localN > 0) return;
-            S.students = cloud.students || S.students;
-            if (cloud.teachers) S.teachers = cloud.teachers;
-            if (cloud.grades) S.grades = cloud.grades;
-            if (cloud.att) S.att = cloud.att;
-            if (cloud.outlines) S.outlines = cloud.outlines;
-            if (cloud.tg) S.tg = cloud.tg;
-            if (cloud.tatt) S.tatt = cloud.tatt;
-            if (cloud.kpi) S.kpi = cloud.kpi;
-            if (cloud.projects) S.projects = cloud.projects;
-            if (cloud.worklog) S.worklog = cloud.worklog;
-            if (cloud.schedule) S.schedule = cloud.schedule;
-            if (cloud.about) S.about = cloud.about;
-            if (cloud.proposals) S.proposals = cloud.proposals;
-            try { localStorage.setItem('hvto-v2', JSON.stringify(S)); } catch(e) {}
-            render();
-            console.log('Realtime sync from another device:', cloudN, 'students');
+            const cloud = (payload.new && payload.new.data) ? payload.new.data : await loadFromCloud();
+            if (!cloud) return;
+            const cloudN = (cloud.students && cloud.students.length) || 0;
+            if (applyCloudState(cloud)) {
+              render();
+              setSyncStatus('live');
+              console.log('Realtime sync from another device:', cloudN, 'students');
+            }
           } catch (e) { console.warn('Realtime apply failed', e); }
         })
-        .subscribe((status) => console.log('Realtime status:', status));
+        .subscribe((status) => {
+          console.log('Realtime status:', status);
+          if (status === 'SUBSCRIBED') setSyncStatus('live');
+        });
     }
   } catch (e) { console.warn('Realtime setup failed', e); }
 
