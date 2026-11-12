@@ -1793,6 +1793,7 @@ document.addEventListener('click',e=>{
     }
     view='sponsor';render();return
   }
+  if(b.dataset.act==='propclearcashimg'){if(propDraft)propDraft.cashImg='';render();return}
   if(b.dataset.act==='propnew'){propEdit=-1;propDraft=emptyProposal();sponsorTab='proposal';view='sponsor';render();return}
   if(b.dataset.act==='propedit'){propEdit=+b.dataset.i;propDraft=JSON.parse(JSON.stringify(S.proposals[propEdit]||emptyProposal()));sponsorTab='proposal';view='sponsor';render();return}
   if(b.dataset.act==='propcancel'){propEdit=-1;propDraft=null;sponsorTab='proposal';render();return}
@@ -2557,6 +2558,7 @@ function emptyPropStudent(){
 function emptyProposal(){
   return {
     title:'HVTO Sponsorship Proposal',
+    budgetTitle:'',
     status:'draft',
     academicYear:String(new Date().getFullYear()+1),
     note:'The sponsor will have the opportunity to become better acquainted with the students once they enrolled in the sponsorship program for their higher education. HVTO proposes a 10-year sponsorship; however, the sponsor may choose to extend or shorten this period based on the ongoing progress, communication, and development of the relationship between the sponsors and the students.',
@@ -2816,11 +2818,18 @@ function proposalEditor(){
     <p class="sub" style="margin-top:8px">${TT('Optional images')}</p>
     <div class="g">
       <label>${TT('Sample cost image')}<input type="file" id="propcostimg" accept="image/*" style="width:auto">${P.costImg?`<img src="${P.costImg}" style="max-width:100%;max-height:120px;margin-top:6px;border-radius:8px">`:''}</label>
-      <label>${TT('Cash flow image')}<input type="file" id="propcashimg" accept="image/*" style="width:auto">${P.cashImg?`<img src="${P.cashImg}" style="max-width:100%;max-height:120px;margin-top:6px;border-radius:8px">`:''}</label>
+      <label>${TT('Cash flow image')} <span class="sub">(${TT('Replaces table in PDF when set')})</span>
+        <input type="file" id="propcashimg" accept="image/*" style="width:auto">
+        ${P.cashImg?`<div style="margin-top:8px"><img src="${P.cashImg}" style="max-width:100%;max-height:160px;border:1px solid #ddd;border-radius:8px"><br>
+          <button type="button" class="link" data-act="propclearcashimg">${TT('Remove image — show table again')}</button></div>`:''}
+      </label>
     </div>
   </div>
     <div class="card" style="margin-bottom:14px">
     <h2 style="margin:0 0 8px">${TT('Basic Budget Proposal')} — ${stus.length} ${TT('students')}</h2>
+    <label class="w" style="display:block;margin:0 0 10px">${TT('Title on PDF / Word')}
+      <input id="propbudgettitle" type="text" value="${esc(P.budgetTitle||('Basic Budget Proposal for '+stus.length+' Students Mentioned below'))}">
+    </label>
     <p class="sub">${TT('Auto-calculated: Grade 1–12 = $412/year · University Year 1–4 = $800/year (includes 13% HVTO admin).')}</p>
     <div class="scroll"><table class="data"><thead><tr><th>${TT('Year')}</th><th>${TT('Grades')}</th><th>${TT('No. of Students')}</th><th>${TT('Yearly Fees USD')}</th></tr></thead>
     <tbody>${budRows||'<tr><td colspan="4" class="muted">Add students with grades to see budget</td></tr>'}
@@ -2843,6 +2852,7 @@ function collectPropDraftFromDOM(){
   if(!propDraft)propDraft=emptyProposal();
   const P=propDraft;
   const t=$('#proptitle'); if(t)P.title=t.value;
+  const bt=$('#propbudgettitle'); if(bt)P.budgetTitle=bt.value;
   const y=$('#propyear'); if(y)P.academicYear=y.value;
   const n=$('#propnote'); if(n)P.note=n.value;
   const st=$('#propstatus'); if(st)P.status=st.value;
@@ -3035,6 +3045,13 @@ function proposalDocumentHTML(P){
   <h2 class="sec">Cash Flow Example</h2>
   <p class="cash">${esc(cashFlow)}</p>
   ${(()=>{
+    // Uploaded image REPLACES the automatic table completely
+    if(P.cashImg){
+      return `<div style="text-align:center;margin:12px 0;page-break-inside:avoid">
+        <img src="${P.cashImg}" alt="Cash Flow Example"
+          style="width:100%;max-width:180mm;height:auto;max-height:230mm;object-fit:contain;display:block;margin:0 auto;border:1px solid #ccc">
+      </div>`;
+    }
     const defaultTx=[
       {type:'General Journal',date:'01/01/2024',memo:'Transfer from 300900 to 200900',open:800,amount:800,balance:800},
       {type:'General Journal',date:'01/02/2024',memo:'Admin Cost 2024',open:-40,amount:-40,balance:760},
@@ -3052,39 +3069,42 @@ function proposalDocumentHTML(P){
       {type:'Check',date:'12/08/2024',memo:'Paid to ABC For December 2024',open:-30,amount:-30,balance:400}
     ];
     const tx=(P.cashFlowTx&&P.cashFlowTx.length)?P.cashFlowTx:defaultTx;
-    let html='';
-    if(tx.length){
-      const totOpen=tx.reduce((s,t)=>s+(+t.open||0),0);
-      const totAmt=tx.reduce((s,t)=>s+(+t.amount||0),0);
-      const lastBal=tx.length?tx[tx.length-1].balance:0;
-      html+=`<div style="text-align:center;margin:14px 0 8px;line-height:1.35">
-          <div style="font-size:14px;font-weight:700;letter-spacing:0.5px">${esc(P.cashFlowTitle||'HOMESTAY VOLUNTEER TEACHERS ORG')}</div>
+    if(!tx.length) return '<p class="sub" style="text-align:center">No cash flow data</p>';
+    const totOpen=tx.reduce((s,t)=>s+(+t.open||0),0);
+    const totAmt=tx.reduce((s,t)=>s+(+t.amount||0),0);
+    const lastBal=tx[tx.length-1]?tx[tx.length-1].balance:0;
+    return `<div style="text-align:center;margin:14px 0 8px;line-height:1.35">
+          <div style="font-size:14px;font-weight:700">${esc(P.cashFlowTitle||'HOMESTAY VOLUNTEER TEACHERS ORG')}</div>
           <div style="font-size:15px;font-weight:700;margin-top:2px">Vendor Open Balance</div>
-          <div style="font-size:12px;margin-top:2px">All Transactions</div>
+          <div style="font-size:12px;color:#444">${esc(P.cashFlowSubtitle||'All Transactions')}</div>
         </div>
-        <table class="tbl" style="font-size:11px;width:100%">
-          <thead><tr style="background:#f3f3f3"><th>Type</th><th>Date</th><th>Memo</th><th>Open Balance</th><th>Amount</th><th>Balance</th></tr></thead>
+        <table class="tbl" style="font-size:11px">
+          <thead><tr><th>Type</th><th>Date</th><th>Memo</th><th>Open Balance</th><th>Amount</th><th>Balance</th></tr></thead>
           <tbody>
-            <tr style="background:#dcdcdc;font-weight:700"><td colspan="6">${esc(P.cashFlowAccount||'200900-ABC')}</td></tr>
-            ${tx.map(t=>`<tr>
-              <td>${esc(t.type||'')}</td><td>${esc(t.date||'')}</td><td>${esc(t.memo||'')}</td>
-              <td class="num">${Number(t.open||0).toFixed(2)}</td>
-              <td class="num">${Number(t.amount||0).toFixed(2)}</td>
-              <td class="num">${Number(t.balance||0).toFixed(2)}</td>
-            </tr>`).join('')}
-            <tr style="font-weight:700;background:#f5f5f5"><td colspan="3">Total ${esc(P.cashFlowAccount||'200900-ABC')}</td>
-              <td class="num">${Number(totOpen).toFixed(2)}</td><td class="num">${Number(totAmt).toFixed(2)}</td>
-              <td class="num">${Number(lastBal).toFixed(2)}</td></tr>
-            <tr style="font-weight:800"><td colspan="3">TOTAL</td>
-              <td class="num">${Number(totOpen).toFixed(2)}</td><td class="num">${Number(totAmt).toFixed(2)}</td>
-              <td class="num">${Number(lastBal).toFixed(2)}</td></tr>
+          <tr><td colspan="6" style="background:#ddd;font-weight:700">${esc(P.cashFlowAccount||'200900-ABC')}</td></tr>
+          ${tx.map(t=>`<tr>
+            <td>${esc(t.type||'')}</td><td>${esc(t.date||'')}</td><td>${esc(t.memo||'')}</td>
+            <td class="num">${Number(t.open||0).toFixed(2)}</td>
+            <td class="num">${Number(t.amount||0).toFixed(2)}</td>
+            <td class="num">${Number(t.balance||0).toFixed(2)}</td>
+          </tr>`).join('')}
+          <tr>
+            <td colspan="3"><b>Total ${esc(P.cashFlowAccount||'200900-ABC')}</b></td>
+            <td class="num"><b>${Number(totOpen).toFixed(2)}</b></td>
+            <td class="num"><b>${Number(totAmt).toFixed(2)}</b></td>
+            <td class="num"><b>${Number(lastBal).toFixed(2)}</b></td>
+          </tr>
+          <tr>
+            <td colspan="3"><b>TOTAL</b></td>
+            <td class="num"><b>${Number(totOpen).toFixed(2)}</b></td>
+            <td class="num"><b>${Number(totAmt).toFixed(2)}</b></td>
+            <td class="num"><b>${Number(lastBal).toFixed(2)}</b></td>
+          </tr>
           </tbody></table>`;
-    }
-    if(P.cashImg)html+=`<p style="text-align:center;margin-top:10px"><img src="${P.cashImg}" style="max-width:100%;max-height:320px"></p>`;
-    return html;
   })()}
 
-  <h2 class="sec">Basic Budget Proposal for ${nStu} Students Mentioned below</h2>
+  <h2 class="sec">${esc(P.budgetTitle || ('Basic Budget Proposal for ' + nStu + ' Students Mentioned below'))}</h2>
+
   <table class="tbl">
     <thead><tr><th>Year</th><th>Grades</th><th>No. of Students</th><th>Yearly Fees in US</th></tr></thead>
     <tbody>
