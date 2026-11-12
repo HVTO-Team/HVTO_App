@@ -1149,7 +1149,7 @@ const fmtAddr=o=>[o.village,o.commune,o.district,o.province,o.country].filter(Bo
 const nextId=(L,pre)=>{let m=0;L.forEach(x=>{const r=/(\d+)\s*$/.exec(x.id||'');if(r)m=Math.max(m,+r[1])});return pre+String(m+1).padStart(3,'0')};
 let tphoto='';
 const readPhoto=(f,cb)=>{const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,160/Math.max(i.width,i.height));c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.7))};i.src=r.result};r.readAsDataURL(f)};
-const CR={src:null,shape:'sq',zoom:1,ox:0,oy:0,cb:null,d:null},CRD={sq:[300,300],pt:[270,360],ls:[360,270]};
+const CR={src:null,shape:'sq',zoom:1,ox:0,oy:0,cb:null,d:null},CRD={sq:[300,300],pt:[270,378],ls:[360,270]};
 const crDims=()=>CRD[CR.shape],crBase=()=>Math.max(crDims()[0]/CR.src.width,crDims()[1]/CR.src.height);
 const CQ={s:[300,.8],m:[600,.85],l:[900,.88]},fmtB=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
 const crOut=()=>{const L=CQ[$('#cq').value][0];return CR.shape=='sq'?[L,L]:CR.shape=='pt'?[Math.round(L*.75),L]:[L,Math.round(L*.75)]};
@@ -1160,7 +1160,7 @@ function crDraw(){const[W,H]=crDims(),s=crBase()*CR.zoom,sw=CR.src.width*s,sh=CR
 function crReset(){const[W,H]=crDims(),c=$('#cv');CR.zoom=1;$('#czoom').value=1;c.width=W;c.height=H;const s=crBase();CR.ox=(W-CR.src.width*s)/2;CR.oy=(H-CR.src.height*s)/2;document.querySelectorAll('[data-sh]').forEach(b=>b.classList.toggle('on',b.dataset.sh==CR.shape));crDraw();crInfoD()}
 function crZoom(z){const[W,H]=crDims(),o=crBase()*CR.zoom,cx=(W/2-CR.ox)/o,cy=(H/2-CR.oy)/o;CR.zoom=z;const n=crBase()*z;CR.ox=W/2-cx*n;CR.oy=H/2-cy*n;$('#czoom').value=z;crDraw()}
 function crRot(d){const s=CR.src,c=document.createElement('canvas');c.width=s.height;c.height=s.width;const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(d*Math.PI/2);x.drawImage(s,-s.width/2,-s.height/2);CR.src=c;crReset()}
-function openCrop(f,cb){if(typeof f!='string'&&f.size>30*1048576){alert(TT('Photo is too large. Choose a photo under 30 MB.'));return}CR.fsize=typeof f=='string'?f.length*.75:f.size;const go=u=>{const im=new Image();im.onload=()=>{const k=Math.min(1,2400/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);CR.src=c;CR.cb=cb;crReset();trAll();$('#cd').showModal()};im.src=u};
+function openCrop(f,cb,shape){if(typeof f!='string'&&f.size>30*1048576){alert(TT('Photo is too large. Choose a photo under 30 MB.'));return}CR.fsize=typeof f=='string'?f.length*.75:f.size;if(shape==='pt'||shape==='sq'||shape==='ls')CR.shape=shape;const go=u=>{const im=new Image();im.onload=()=>{const k=Math.min(1,2400/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);CR.src=c;CR.cb=cb;crReset();trAll();$('#cd').showModal()};im.src=u};
  if(typeof f=='string')go(f);else{const r=new FileReader();r.onload=()=>go(r.result);r.readAsDataURL(f)}}
 $('#cv').onpointerdown=e=>{CR.d={x:e.clientX,y:e.clientY,ox:CR.ox,oy:CR.oy};e.target.setPointerCapture(e.pointerId)};
 $('#cv').onpointermove=e=>{if(!CR.d)return;const c=$('#cv'),k=c.width/c.clientWidth;CR.ox=CR.d.ox+(e.clientX-CR.d.x)*k;CR.oy=CR.d.oy+(e.clientY-CR.d.y)*k;crDraw()};
@@ -1844,7 +1844,7 @@ document.addEventListener('click',e=>{
     openCrop(ph, dataUrl=>{
       if(propDraft&&propDraft.students[i])propDraft.students[i].photo=dataUrl;
       render();
-    });
+    }, 'pt');
     return
   }
   if(b.dataset.act==='propscadd'){
@@ -1974,7 +1974,7 @@ document.addEventListener('change',e=>{
       collectPropDraftFromDOM();
       if(propDraft&&propDraft.students[i])propDraft.students[i].photo=dataUrl;
       render();
-    });
+    }, 'pt');
     return;
   }
   if(t.id=='propcostimg'||t.id=='propcashimg'){
@@ -2707,7 +2707,7 @@ function proposalEditor(){
       <div class="g">
         <label class="w">${TT('Photo')}
           <div class="photo" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            ${s.photo?`<img src="${s.photo}" alt="" style="width:90px;height:110px;object-fit:cover;border-radius:8px">`:'<span class="sub">No photo</span>'}
+            ${s.photo?`<img src="${s.photo}" alt="" style="width:150px;height:210px;object-fit:cover;object-position:center top;border:2px solid #333;display:block">`:'<span class="sub">No photo</span>'}
             <input type="file" accept="image/*" data-propphoto="${i}" style="width:auto">
             ${s.photo?`<button type="button" class="ghost" data-act="propcrop" data-i="${i}">${TT('Crop / Edit photo')}</button>`:''}
           </div>
@@ -2963,10 +2963,10 @@ function proposalDocumentHTML(P){
     h2.sec{font-size:15px;font-weight:700;text-align:center;margin:18px 0 12px;color:#111;text-decoration:underline}
     h2.sec-left{font-size:14px;font-weight:700;text-align:left;margin:18px 0 10px;color:#111;text-decoration:underline}
     .bio{display:flex;gap:14px;margin:0 0 16px;page-break-inside:avoid;align-items:flex-start}
-    .bio-photo img{width:105px;height:125px;object-fit:cover;border:1px solid #bbb;display:block}
-    .nophoto{width:105px;height:125px;background:#f0f0f0;border:1px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:11px;color:#888}
+    .bio-photo{flex-shrink:0;align-self:stretch}.bio-photo img{width:150px;height:210px;object-fit:cover;object-position:center top;border:1.5px solid #444;display:block;background:#fff}
+    .nophoto{width:150px;height:210px;background:#f0f0f0;border:1.5px solid #999;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888}
     .bio-text{flex:1;padding-top:2px}
-    .bio-text .row{display:flex;gap:6px;margin:1px 0;align-items:flex-start}
+    .bio-text .row{display:flex;gap:6px;margin:2px 0;align-items:flex-start;line-height:1.35;font-size:12.5px}
     .bio-text .lbl{width:130px;flex-shrink:0}
     .bio-text .col{width:10px;flex-shrink:0}
     .bio-text .val{flex:1}
@@ -3188,8 +3188,8 @@ function exportProposalWord(P){
   (P.students||[]).forEach((s,i)=>{
     const place=[s.village,s.commune,s.district,s.province,s.country||'Cambodia'].filter(Boolean).join(', ');
     const photo=s.photo
-      ?`<img src="${s.photo}" width="90" height="110" style="width:90px;height:110px;object-fit:cover;border:1px solid #333;">`
-      :`<div style="width:90px;height:110px;border:1px solid #999;text-align:center;line-height:110px;color:#888;font-size:10pt;">Photo</div>`;
+      ?`<img src="${s.photo}" width="150" height="210" style="width:150px;height:210px;object-fit:cover;object-position:center top;border:1.5px solid #333;">`
+      :`<div style="width:150px;height:210px;border:1.5px solid #999;text-align:center;line-height:210px;color:#888;font-size:10pt;">Photo</div>`;
     bios+=`
     <table style="width:100%;border-collapse:collapse;margin:12pt 0;border:none;" cellspacing="0" cellpadding="0">
       <tr>
@@ -3223,16 +3223,19 @@ function exportProposalWord(P){
     <tr><td colspan="2" style="${cell}text-align:center;font-size:10pt;">${escW(P.feeNote||'All cost includes 13% for HVTO administration and communication')}</td></tr>
   </table>`;
 
-  // Cash flow
-  const tx=(P.cashFlowTx&&P.cashFlowTx.length)?P.cashFlowTx:[];
+  // Cash flow — image replaces table when uploaded
   let cfTable='';
-  if(tx.length){
-    const totOpen=tx.reduce((s,t)=>s+(+t.open||0),0);
-    const totAmt=tx.reduce((s,t)=>s+(+t.amount||0),0);
-    const lastBal=tx[tx.length-1]?tx[tx.length-1].balance:0;
-    cfTable=`
+  if(P.cashImg){
+    cfTable=`<p style="text-align:center;margin:10pt 0"><img src="${P.cashImg}" width="640" style="width:100%;max-width:100%;height:auto;border:1px solid #ddd"></p>`;
+  } else {
+    const tx=(P.cashFlowTx&&P.cashFlowTx.length)?P.cashFlowTx:[];
+    if(tx.length){
+      const totOpen=tx.reduce((s,t)=>s+(+t.open||0),0);
+      const totAmt=tx.reduce((s,t)=>s+(+t.amount||0),0);
+      const lastBal=tx[tx.length-1]?tx[tx.length-1].balance:0;
+      cfTable=`
     <p style="text-align:center;margin:14pt 0 4pt;"><b>${escW(P.cashFlowTitle||'HOMESTAY VOLUNTEER TEACHERS ORG')}</b><br>
-    <b>Vendor Open Balance</b><br>All Transactions</p>
+    <b>Vendor Open Balance</b><br>${escW(P.cashFlowSubtitle||'All Transactions')}</p>
     <table style="width:100%;border-collapse:collapse;font-size:10pt;" cellspacing="0">
       <tr>
         <td style="${th}">Type</td><td style="${th}">Date</td><td style="${th}">Memo</td>
@@ -3254,6 +3257,7 @@ function exportProposalWord(P){
         <td style="${cell}text-align:right;font-weight:bold;">${Number(lastBal).toFixed(2)}</td>
       </tr>
     </table>`;
+    }
   }
 
   // Budget table
@@ -3375,7 +3379,7 @@ function exportProposalWord(P){
   <p style="text-align:center;font-size:11pt;">${escW(P.cashFlow||'Sponsor → Student Trust Account (ABC) → Monthly Stipend → Sponsored Student → Balance')}</p>
   ${cfTable}
 
-  <h2 style="text-align:center;font-size:13pt;text-decoration:underline;margin-top:18pt;">Basic Budget Proposal for ${nStu} Students Mentioned below</h2>
+  <h2 style="text-align:center;font-size:13pt;text-decoration:underline;margin-top:18pt;">${escW(P.budgetTitle||('Basic Budget Proposal for '+nStu+' Students Mentioned below'))}</h2>
   ${budgetHtml}
 
   ${agreement}
