@@ -2999,9 +2999,11 @@ function proposalDocumentHTML(P){
     .agree li{margin:4px 0}
     .sig-page{page-break-before:always;break-before:page;text-align:center;padding-top:12px}
     .sig-page .sec{text-align:center}
-    .sig-table{width:320px;border-collapse:collapse;margin:16px auto 8px}
-    .sig-table td{border:1px solid #333;padding:10px 12px;height:28px}
-    .sig-table td.lbl{width:120px;font-weight:600;background:#fafafa}
+    .sig-table{width:85%;max-width:160mm;border-collapse:collapse;margin:18px auto 10px;table-layout:fixed}
+    .sig-table td{border:1px solid #333;padding:12px 14px;height:32px;font-size:13px}
+    .sig-table td.lbl{width:32%;font-weight:600;background:#fafafa;vertical-align:middle}
+    .sig-table tr:nth-child(3) td{height:52px}
+    .sig-table tr:last-child td{height:56px}
     .rep{text-align:center;margin-top:28px;page-break-inside:avoid}
     .rep .logo-sm{width:70px;height:70px;object-fit:contain;margin:0 auto 6px;display:block}
     .page-top{font-size:11px;color:#666;margin-bottom:8px}
@@ -3328,16 +3330,16 @@ function exportProposalWord(P){
 
   // Signature table blank for sponsor
   const sig=`
-  <p style="text-align:center;margin:18pt 0 6pt;"><b><u>Signatures of Acceptance Sponsoring for ${nStu} Students</u></b></p>
+  <p style="text-align:center;margin:18pt 0 6pt;"><b><u>${escW(propSigTitle(P))}</u></b></p>
   <p style="text-align:center;font-size:10pt;font-style:italic;color:#555;">(To be completed by the Sponsor after accepting this proposal)</p>
-  <table style="width:55%;margin:10pt auto;border-collapse:collapse;" cellspacing="0">
-    <tr><td style="${cell}width:35%;font-weight:bold;">Name of Sponsor:</td><td style="${cell}height:22pt;">&nbsp;</td></tr>
+  <table style="width:85%;margin:14pt auto;border-collapse:collapse;" cellspacing="0">
+    <tr><td style="${cell}width:32%;font-weight:bold;">Name of Sponsor:</td><td style="${cell}height:22pt;">&nbsp;</td></tr>
     <tr><td style="${cell}font-weight:bold;">Date:</td><td style="${cell}height:22pt;">&nbsp;</td></tr>
-    <tr><td style="${cell}font-weight:bold;">Signature:</td><td style="${cell}height:36pt;">&nbsp;</td></tr>
-    <tr><td style="${cell}font-weight:bold;">Full Name:</td><td style="${cell}height:22pt;">&nbsp;</td></tr>
-    <tr><td style="${cell}font-weight:bold;">Tel:</td><td style="${cell}height:22pt;">&nbsp;</td></tr>
-    <tr><td style="${cell}font-weight:bold;">Email:</td><td style="${cell}height:22pt;">&nbsp;</td></tr>
-    <tr><td style="${cell}font-weight:bold;">Address:</td><td style="${cell}height:36pt;">&nbsp;</td></tr>
+    <tr><td style="${cell}font-weight:bold;">Signature:</td><td style="${cell}height:48pt;">&nbsp;</td></tr>
+    <tr><td style="${cell}font-weight:bold;">Full Name:</td><td style="${cell}height:26pt;">&nbsp;</td></tr>
+    <tr><td style="${cell}font-weight:bold;">Tel:</td><td style="${cell}height:26pt;">&nbsp;</td></tr>
+    <tr><td style="${cell}font-weight:bold;">Email:</td><td style="${cell}height:26pt;">&nbsp;</td></tr>
+    <tr><td style="${cell}font-weight:bold;">Address:</td><td style="${cell}height:48pt;">&nbsp;</td></tr>
   </table>
   <p style="text-align:center;margin-top:18pt;">
     <img src="${logo}" width="70" height="70" style="width:70px;height:70px;"><br>
