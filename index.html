@@ -430,45 +430,113 @@ async function loadFromCloud() {
   if (!sb || SUPABASE_ANON_KEY.includes('YOUR_ANON')) return null;
   try {
     const { data, error } = await sb.from('app_state').select('data').eq('id', 'main').maybeSingle();
-    if (error) { console.warn('Supabase load error', error); return null; }
+    if (error) {
+      console.warn('Supabase load error', error);
+      _lastSyncErr=(error.message||String(error))+' — Check RLS SELECT for anon on app_state';
+      if (typeof setSyncStatus==='function') setSyncStatus('error');
+      return null;
+    }
     return data && data.data ? data.data : null;
-  } catch (e) { console.warn('Supabase load failed', e); return null; }
+  } catch (e) {
+    console.warn('Supabase load failed', e);
+    _lastSyncErr=String(e&&e.message||e);
+    if (typeof setSyncStatus==='function') setSyncStatus('error');
+    return null;
+  }
 }
 
+function slimForLocal(state){
+  try{
+    const o=JSON.parse(JSON.stringify(state||{}));
+    if(o.about){
+      if(Array.isArray(o.about.files)) o.about.files=o.about.files.map(f=>({name:f.name,type:f.type,size:f.size}));
+      if(Array.isArray(o.about.photos)) o.about.photos=o.about.photos.slice(0,20);
+    }
+    if(Array.isArray(o.students)){
+      o.students=o.students.map(s=>{
+        const x=Object.assign({},s);
+        if(x.photo&&String(x.photo).length>8000) x.photo='';
+        return x;
+      });
+    }
+    return o;
+  }catch(e){return state}
+}
+function slimForCloud(state){
+  try{
+    const o=JSON.parse(JSON.stringify(state||{}));
+    if(o.about&&Array.isArray(o.about.files)){
+      o.about.files=o.about.files.map(f=>{
+        const copy=Object.assign({},f);
+        if(copy.data&&String(copy.data).length>100000){ copy.data=''; copy.skipped=true; }
+        return copy;
+      });
+    }
+    return o;
+  }catch(e){return state}
+}
+let _lastSyncErr='';
 async function saveToCloud(state, force) {
-  if (!sb || SUPABASE_ANON_KEY.includes('YOUR_ANON')) return { ok:false, reason:'no-client' };
+  if (!sb || SUPABASE_ANON_KEY.includes('YOUR_ANON')) {
+    _lastSyncErr='Supabase not configured';
+    return { ok:false, reason:'no-client' };
+  }
   try {
-    // Safety: never overwrite a large cloud dataset with a tiny local sample (unless force)
     if (!force) {
       try {
-        const { data: existing } = await sb.from('app_state').select('data').eq('id', 'main').maybeSingle();
+        const { data: existing, error: readErr } = await sb.from('app_state').select('data').eq('id', 'main').maybeSingle();
+        if (readErr) {
+          console.warn('Supabase read before save', readErr);
+          _lastSyncErr=(readErr.message||String(readErr))+' — Check RLS: allow anon SELECT, INSERT, UPDATE on app_state';
+          if (typeof setSyncStatus==='function') setSyncStatus('error');
+          return { ok:false, error:readErr };
+        }
         const cloudN = (existing && existing.data && existing.data.students) ? existing.data.students.length : 0;
         const localN = (state && state.students) ? state.students.length : 0;
         if (cloudN > 20 && localN < Math.max(20, cloudN * 0.5)) {
-          console.warn('Blocked cloud overwrite: local ('+localN+') << cloud ('+cloudN+'). Use hvtoForceSaveToCloud() only if intentional.');
+          _lastSyncErr='Blocked: this device has '+localN+' students but cloud has '+cloudN+'. On the device with full data run: await hvtoForceSaveToCloud()';
           if (typeof setSyncStatus==='function') setSyncStatus('blocked');
           return { blocked:true, cloudN, localN };
         }
       } catch (e) {}
     }
+    let payload = slimForCloud(state);
+    let payloadStr = '';
+    try { payloadStr = JSON.stringify(payload); } catch(e) { payload = slimForLocal(state); payloadStr = JSON.stringify(payload); }
+    if (payloadStr.length > 4.5e6) {
+      console.warn('Cloud payload large ('+Math.round(payloadStr.length/1e6)+'MB), stripping student photos for sync');
+      payload = JSON.parse(payloadStr);
+      if (Array.isArray(payload.students)) {
+        payload.students = payload.students.map(s=>{
+          const x=Object.assign({},s);
+          if (x.photo && String(x.photo).length > 500) x.photo = '';
+          return x;
+        });
+      }
+      payloadStr = JSON.stringify(payload);
+    }
     const { error } = await sb.from('app_state').upsert({
       id: 'main',
-      data: state,
+      data: payload,
       updated_at: new Date().toISOString()
     });
     if (error) {
       console.warn('Supabase save error', error);
+      _lastSyncErr = (error.message||JSON.stringify(error)) + (error.code?(' ['+error.code+']'):'') + ' — If RLS error, allow anon INSERT/UPDATE on app_state';
       if (typeof setSyncStatus==='function') setSyncStatus('error');
       return { ok:false, error };
     }
+    _lastSyncErr = '';
     if (typeof setSyncStatus==='function') setSyncStatus('saved');
-    return { ok:true };
+    return { ok:true, bytes: payloadStr.length };
   } catch (e) {
     console.warn('Supabase save failed', e);
+    _lastSyncErr = String(e && e.message || e);
     if (typeof setSyncStatus==='function') setSyncStatus('error');
     return { ok:false, error:e };
   }
 }
+
 
 let S={students:[mk('HV-004','Heng Sophea','ហេង សុភា','Female','2016-02-14',CN[2],'Dropped',false,true),mk('HV-003','Ly Vichet','លី វិចិត្រ','Male','2013-01-20',CN[1],'Active',false,false),mk('HV-002','Chan Sreypov','ចាន ស្រីពៅ','Female','2015-05-02',CN[0],'Active',true,false),mk('HV-001','Sok Makara','សុខ មករា','Male','2014-03-10',CN[0],'Active',true,false)],
 projects:PN.map(n=>({n,entries:[]}))};
@@ -477,19 +545,6 @@ try{const r=localStorage.getItem('hvto-v2')||localStorage.getItem('hvto-v1');if(
 /* Cloud load will run after DOM ready and may replace S */
 S.grades=S.grades||[];S.att=S.att||[];S.outlines=S.outlines||[];S.tg=S.tg||{};S.teachers=S.teachers||[];S.tatt=S.tatt||[];S.kpi=S.kpi||{crit:[{id:'k1',n:'Attendance & punctuality',w:20},{id:'k2',n:'Lesson preparation',w:20},{id:'k3',n:'Teaching quality',w:25},{id:'k4',n:'Student progress',w:20},{id:'k5',n:'Teamwork & conduct',w:15}],scores:{}};
 let warned=0;
-const slimForLocal=obj=>{
-  try{
-    const o=JSON.parse(JSON.stringify(obj));
-    // keep about metadata, drop huge base64 bodies in local cache only
-    if(o.about){
-      if(o.about.files)o.about.files=(o.about.files||[]).map(f=>({name:f.name,type:f.type,size:f.size,data:f.size>200000?(''): (f.data||'')}));
-      if(o.about.photos)o.about.photos=(o.about.photos||[]).map(p=>({name:p.name,type:p.type,size:p.size,data:(p.data&&p.data.length>300000)?'':(p.data||'')}));
-    }
-    // strip student photos if still too big later
-    if(o.students)o.students=o.students.map(s=>{const x={...s};if(x.photo&&String(x.photo).length>80000)x.photo='';return x});
-    return o;
-  }catch(e){return obj}
-};
 let _saveCloudTimer=null;
 const setSyncStatus=(st)=>{
   try{
@@ -499,8 +554,15 @@ const setSyncStatus=(st)=>{
     const m=map[st]||['☁️ '+st,'#666'];
     el.textContent=m[0];
     el.style.color=m[1];
+    el.title = _lastSyncErr || m[0];
+    el.style.pointerEvents='auto';
+    el.style.cursor='pointer';
   }catch(e){}
 };
+window.hvtoShowSyncError=function(){
+  alert(_lastSyncErr||'No sync error details. Open Console (F12) for logs.');
+};
+
 const save=()=>{
   // Local first (fast), then debounced cloud save for team sync
   try{
@@ -3514,6 +3576,16 @@ window.hvtoVisibilitySync=true;
     chip.id='syncStatus';
     chip.style.cssText='position:fixed;bottom:12px;right:12px;z-index:9999;background:rgba(255,255,255,.92);border:1px solid #ddd;border-radius:20px;padding:6px 12px;font-size:12px;box-shadow:0 2px 10px rgba(0,0,0,.12);pointer-events:none';
     chip.textContent='☁️ Sync';
+    chip.title='Tap for sync details / retry';
+    chip.style.pointerEvents='auto';
+    chip.style.cursor='pointer';
+    chip.onclick=async function(){
+      if(_lastSyncErr) alert('Last sync issue:\n'+_lastSyncErr);
+      setSyncStatus('saving');
+      const r=await saveToCloud(S, true);
+      if(r&&r.ok) alert('Synced OK — '+(S.students||[]).length+' students');
+      else alert('Still failing:\n'+(_lastSyncErr||'unknown'));
+    };
     document.body.appendChild(chip);
   }
   // Show UI immediately from local data (no waiting for network)
