@@ -405,11 +405,25 @@ const sb = (typeof supabase !== 'undefined')
   : null;
 
 
+function mergeStudentPhotos(cloudStudents, localStudents){
+  const localById={};
+  (localStudents||[]).forEach(s=>{ if(s&&s.id) localById[s.id]=s; });
+  return (cloudStudents||[]).map(cs=>{
+    if(!cs) return cs;
+    const ls=localById[cs.id];
+    if(ls && ls.photo && (!cs.photo || String(cs.photo).length<50)){
+      const x=Object.assign({},cs);
+      x.photo=ls.photo;
+      return x;
+    }
+    return cs;
+  });
+}
 function applyCloudState(cloud){
   if(!cloud||typeof cloud!=='object')return false;
   const cloudN=(cloud.students&&cloud.students.length)||0;
   if(cloudN===0 && (S.students&&S.students.length)>0) return false;
-  if(cloud.students) S.students=cloud.students;
+  if(cloud.students) S.students=mergeStudentPhotos(cloud.students, S.students);
   if(cloud.teachers) S.teachers=cloud.teachers;
   if(cloud.grades) S.grades=cloud.grades;
   if(cloud.att) S.att=cloud.att;
@@ -422,7 +436,9 @@ function applyCloudState(cloud){
   if(cloud.schedule) S.schedule=cloud.schedule;
   if(cloud.about) S.about=cloud.about;
   if(cloud.proposals) S.proposals=cloud.proposals;
-  try{localStorage.setItem('hvto-v2',JSON.stringify(S))}catch(e){}
+  try{localStorage.setItem('hvto-v2',JSON.stringify(S))}catch(e){
+    try{localStorage.setItem('hvto-v2',JSON.stringify(slimForLocal(S)))}catch(e2){}
+  }
   return true;
 }
 
@@ -448,16 +464,10 @@ async function loadFromCloud() {
 function slimForLocal(state){
   try{
     const o=JSON.parse(JSON.stringify(state||{}));
+    // Only shrink About Us blobs — never remove student photos
     if(o.about){
       if(Array.isArray(o.about.files)) o.about.files=o.about.files.map(f=>({name:f.name,type:f.type,size:f.size}));
-      if(Array.isArray(o.about.photos)) o.about.photos=o.about.photos.slice(0,20);
-    }
-    if(Array.isArray(o.students)){
-      o.students=o.students.map(s=>{
-        const x=Object.assign({},s);
-        if(x.photo&&String(x.photo).length>8000) x.photo='';
-        return x;
-      });
+      if(Array.isArray(o.about.photos)) o.about.photos=(o.about.photos||[]).map(p=>({name:p.name,type:p.type,size:p.size}));
     }
     return o;
   }catch(e){return state}
@@ -503,13 +513,15 @@ async function saveToCloud(state, force) {
     let payload = slimForCloud(state);
     let payloadStr = '';
     try { payloadStr = JSON.stringify(payload); } catch(e) { payload = slimForLocal(state); payloadStr = JSON.stringify(payload); }
-    if (payloadStr.length > 4.5e6) {
-      console.warn('Cloud payload large ('+Math.round(payloadStr.length/1e6)+'MB), stripping student photos for sync');
+    if (payloadStr.length > 8e6) {
+      // Only as last resort for extreme size: compress photos by clearing the largest ones first
+      console.warn('Cloud payload very large ('+Math.round(payloadStr.length/1e6)+'MB). Keeping smaller photos.');
       payload = JSON.parse(payloadStr);
       if (Array.isArray(payload.students)) {
         payload.students = payload.students.map(s=>{
           const x=Object.assign({},s);
-          if (x.photo && String(x.photo).length > 500) x.photo = '';
+          // Keep typical compressed JPEGs (~30–80KB). Clear only huge raw images.
+          if (x.photo && String(x.photo).length > 120000) x.photo = '';
           return x;
         });
       }
@@ -3524,7 +3536,7 @@ function openFillFromStudent(stuIndex){
 window.hvtoRestoreFromCloud = async function(){
   const cloud = await loadFromCloud();
   if (!cloud || !cloud.students) { alert('No student data found in Supabase.'); return; }
-  S.students = cloud.students;
+  S.students = mergeStudentPhotos(cloud.students, S.students);
   if (cloud.teachers) S.teachers = cloud.teachers;
   if (cloud.grades) S.grades = cloud.grades;
   if (cloud.att) S.att = cloud.att;
@@ -3597,7 +3609,7 @@ window.hvtoVisibilitySync=true;
     const localN = (S.students && S.students.length) || 0;
     // Prefer cloud when it has data (especially more students than local sample)
     if (cloudN > 0) {
-      S.students = cloud.students;
+      S.students = mergeStudentPhotos(cloud.students, S.students);
       if (cloud.teachers) S.teachers = cloud.teachers;
       if (cloud.grades) S.grades = cloud.grades;
       if (cloud.att) S.att = cloud.att;
