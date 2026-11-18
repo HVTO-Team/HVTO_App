@@ -1413,8 +1413,17 @@ function gradeSheetSubjects(stuIds, examType){
 }
 function gradeSheetData(){
   let list=S.students||[];
-  if(gSheetCampus && gSheetCampus!=='All') list=list.filter(s=>(s.center||'')===gSheetCampus);
-  if(gSheetCls) list=list.filter(s=>(s.cls||'')===gSheetCls);
+  if(gSheetCampus && gSheetCampus!=='All'){
+    const want=String(gSheetCampus).trim().toLowerCase();
+    list=list.filter(s=>String(s.center||s.campus||'').trim().toLowerCase()===want);
+  }
+  if(gSheetCls){
+    const want=String(gSheetCls).trim().toLowerCase();
+    list=list.filter(s=>{
+      const cls=String(s.cls||s.class||s.classroom||s.room||'').trim().toLowerCase();
+      return cls===want || cls.includes(want) || want.includes(cls);
+    });
+  }
   if(gSheetShift && gSheetShift!=='All'){
     const anyShift=(S.students||[]).some(s=>s.shift||s.time||s.period);
     if(anyShift){
@@ -2272,6 +2281,30 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
   const t=e.target;
+  if(t.id=='gsheetCampus'){gSheetCampus=t.value||'All';render();return}
+  if(t.id=='gsheetCls'){gSheetCls=t.value||'';render();return}
+  if(t.id=='gsheetExam'){gSheetExam=t.value||'All';render();return}
+  if(t.id=='gsheetShift'){gSheetShift=t.value||'All';render();return}
+  if(t.dataset&&t.dataset.gssTitle!=null){
+    const i=+t.dataset.gssTitle;S.gradeSheetSigners=S.gradeSheetSigners||[];
+    if(!S.gradeSheetSigners[i])S.gradeSheetSigners[i]={title:'',name:'',sign:''};
+    S.gradeSheetSigners[i].title=t.value;save();return
+  }
+  if(t.dataset&&t.dataset.gssName!=null){
+    const i=+t.dataset.gssName;S.gradeSheetSigners=S.gradeSheetSigners||[];
+    if(!S.gradeSheetSigners[i])S.gradeSheetSigners[i]={title:'',name:'',sign:''};
+    S.gradeSheetSigners[i].name=t.value;save();return
+  }
+  if(t.dataset&&t.dataset.gssSign!=null){
+    const i=+t.dataset.gssSign;const file=t.files&&t.files[0];if(!file)return;
+    const r=new FileReader();
+    r.onload=()=>{
+      S.gradeSheetSigners=S.gradeSheetSigners||[];
+      if(!S.gradeSheetSigners[i])S.gradeSheetSigners[i]={title:'',name:'',sign:''};
+      S.gradeSheetSigners[i].sign=r.result;save();render();
+    };
+    r.readAsDataURL(file);return
+  }
   if(t.id=='camp'){campus=t.value;render()}
   if(t.dataset&&t.dataset.prop==='grade'){collectPropDraftFromDOM();render();return}
   if(t.id=='propstatus'||t.id=='propyear'||t.id=='propfeeg'||t.id=='propfeeu'){collectPropDraftFromDOM();render();return}
