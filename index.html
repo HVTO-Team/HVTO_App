@@ -436,6 +436,7 @@ function applyCloudState(cloud){
   if(cloud.schedule) S.schedule=cloud.schedule;
   if(cloud.about) S.about=cloud.about;
   if(cloud.proposals) S.proposals=cloud.proposals;
+  if(cloud.gradeSheetSigners) S.gradeSheetSigners=cloud.gradeSheetSigners;
   try{localStorage.setItem('hvto-v2',JSON.stringify(S))}catch(e){
     try{localStorage.setItem('hvto-v2',JSON.stringify(slimForLocal(S)))}catch(e2){}
   }
@@ -896,10 +897,85 @@ sponsor(){
   <tbody id="tb">${rows}</tbody></table></div></div>`},
 teachers(){return `<h1><span class="ic" aria-hidden="true">👩‍🏫</span>Teachers</h1><p class="sub" style="margin:0 0 14px">Manage teachers: profiles, daily attendance and KPI evaluation.</p>
  <div class="tl" style="margin:0 0 14px;flex-wrap:wrap">${[['dir','Directory','👥'],['att','Attendance','🗓️'],['kpi','KPI','🎯']].map(([k,l,i])=>`<button class="ghost${ttab==k?' on':''}" data-act="tt" data-t="${k}"><span class="ic" aria-hidden="true">${i}</span>${l}</button>`).join('')}</div>${ttab=='dir'?tDir():ttab=='att'?tAttView():tKpi()}`},
-grades(){return `<h1><span class="ic" aria-hidden="true">📝</span>Gradebook</h1><p class="sub" style="margin:0 0 14px">Search a student, filter by class, then update scores and attendance.</p>${datebar()}
- <div class="card"><div class="bar"><input id="gq" type="search" placeholder="Search name, ID, sponsor, sponsor ID" value="${esc(gq)}" aria-label="Search students"><span class="tl" style="margin:0;flex-wrap:wrap"><label>Class <select id="gcls"><option value="">All classes</option>${classes().map(l=>`<option value="${esc(l)}"${gcls==l?' selected':''}>${esc(l)}</option>`).join('')}${S.students.some(s=>!s.cls)?`<option value="__none"${gcls=='__none'?' selected':''}>No class</option>`:''}</select></label><label>Sort by <select id="gsort">${[['name','Name'],['avg','Average'],['gpa','GPA'],['att','Attendance']].map(([v,l])=>`<option value="${v}"${gsort==v?' selected':''}>${l}</option>`).join('')}</select></label><label>Order <select id="gord"><option value="asc"${gord=='asc'?' selected':''}>Ascending</option><option value="desc"${gord=='desc'?' selected':''}>Descending</option></select></label>${xbtns('grd')}</span></div>
- <div class="scroll"><table><thead><tr><th>Student</th><th>Class</th><th>Average</th><th>GPA</th><th>GPA last year</th><th>Attendance</th><th></th></tr></thead><tbody id="gb">${gbRows()}</tbody></table></div>
- <p class="sub" style="font-size:13px;margin:10px 0 0">GPA scale: A 90–100 = 4, B 80–89 = 3, C 70–79 = 2, D 60–69 = 1, below 60 = 0. GPA is based on the average score. “GPA last year” uses the previous calendar year.</p></div>`},
+grades(){
+  const tabs=`<div class="tl" style="margin:0 0 14px">
+    <button type="button" class="ghost${gtab==='sc'?' on':''}" data-act="gtab" data-t="sc">${TT('Score list')}</button>
+    <button type="button" class="ghost${gtab==='sheet'?' on':''}" data-act="gtab" data-t="sheet">${TT('Results worksheet')}</button>
+  </div>`;
+  if(gtab==='sheet') return this.gradeSheet();
+  return `<h1><span class="ic" aria-hidden="true">📝</span>${TT('Gradebook')}</h1>
+  <p class="sub" style="margin:0 0 14px">${TT('Search a student, filter by class, then update scores and attendance.')}</p>
+  ${tabs}${datebar()}
+ <div class="card"><div class="bar"><input id="gq" type="search" placeholder="${TT('Search name, ID, sponsor, sponsor ID')}" value="${esc(gq)}" aria-label="Search students"><span class="tl" style="margin:0;flex-wrap:wrap"><label>${TT('Class')} <select id="gcls"><option value="">${TT('All classes')}</option>${classes().map(l=>`<option value="${esc(l)}"${gcls==l?' selected':''}>${esc(l)}</option>`).join('')}${S.students.some(s=>!s.cls)?`<option value="__none"${gcls=='__none'?' selected':''}>${TT('No class')}</option>`:''}</select></label><label>${TT('Sort by')} <select id="gsort">${[['name','Name'],['avg','Average'],['gpa','GPA'],['att','Attendance']].map(([v,l])=>`<option value="${v}"${gsort==v?' selected':''}>${l}</option>`).join('')}</select></label><label>${TT('Order')} <select id="gord"><option value="asc"${gord=='asc'?' selected':''}>${TT('Ascending')}</option><option value="desc"${gord=='desc'?' selected':''}>${TT('Descending')}</option></select></label>${xbtns('grd')}</span></div>
+ <div class="scroll"><table><thead><tr><th>${TT('Student')}</th><th>${TT('Class')}</th><th>${TT('Average')}</th><th>GPA</th><th>${TT('GPA last year')}</th><th>${TT('Attendance')}</th><th></th></tr></thead><tbody id="gb">${gbRows()}</tbody></table></div>
+ <p class="sub" style="font-size:13px;margin:10px 0 0">GPA scale: A 90–100 = 4, B 80–89 = 3, C 70–79 = 2, D 60–69 = 1, below 60 = 0.</p></div>`},
+gradeSheet(){
+  const data=gradeSheetData();
+  const {rows, subjects, examLabel}=data;
+  const centers=['All',...CN];
+  const classOpts=['',...classes()];
+  const examOpts=['All','Monthly test','Mid-term test','Final exam'];
+  const shiftOpts=['All','Morning','Afternoon','Evening'];
+  const signers=(S.gradeSheetSigners&&S.gradeSheetSigners.length)?S.gradeSheetSigners:[
+    {title:'គ្រូបង្រៀន / Teacher',name:'',sign:''},
+    {title:'ប្រធានផ្នែក / Department Head',name:'',sign:''},
+    {title:'នាយក / Director',name:'',sign:''}
+  ];
+  const headCols=subjects.map(s=>`<th>${esc(s)}</th>`).join('')+`<th>${TT('Average')}</th><th>${TT('Grade')}</th>`;
+  const body=rows.length?rows.map((r,i)=>`<tr>
+    <td>${i+1}</td>
+    <td>${esc(r.km||'')}</td>
+    <td style="color:#c0392b;font-weight:600">${esc(r.en||'')}</td>
+    <td>${esc(r.sex||'')}</td>
+    ${subjects.map(sub=>{const sc=r.scores[sub];return `<td style="text-align:center">${sc==null||sc===''?'–':(+sc).toFixed(sc%1?1:0)}</td>`}).join('')}
+    <td style="text-align:center;font-weight:600">${r.avg==null?'–':r.avg.toFixed(1)}</td>
+    <td style="text-align:center;background:${r.fail?'#fde8e8':'transparent'};color:${r.fail?'#c0392b':'inherit'};font-weight:600">${esc(r.letter)}${r.fail?' (fail)':''}</td>
+  </tr>`).join(''):`<tr><td colspan="${4+subjects.length+2}" style="text-align:center;color:var(--muted)">${TT('No students match filters')}</td></tr>`;
+  const signHtml=signers.map((sg,i)=>`<div class="card" style="flex:1;min-width:180px;text-align:center;padding:12px">
+    <label class="sub" style="display:block;margin-bottom:4px">${TT('Position title')}</label>
+    <input data-gss-title="${i}" value="${esc(sg.title||'')}" style="text-align:center;margin-bottom:8px">
+    <label class="sub" style="display:block;margin-bottom:4px">${TT('Name')}</label>
+    <input data-gss-name="${i}" value="${esc(sg.name||'')}" style="text-align:center;margin-bottom:8px">
+    <label class="sub" style="display:block;margin-bottom:4px">${TT('Signature image')}</label>
+    <input type="file" accept="image/*" data-gss-sign="${i}" style="width:auto;margin:0 auto 8px">
+    ${sg.sign?`<div style="margin:8px 0"><img src="${sg.sign}" alt="sign" style="max-height:60px;max-width:140px"><br>
+      <button type="button" class="link" data-act="gss-clear" data-i="${i}">${TT('Clear signature')}</button></div>`:`<p class="sub">${TT('No signature yet')}</p>`}
+  </div>`).join('');
+  return `<h1><span class="ic" aria-hidden="true">📝</span>${TT('Gradebook')} — ${TT('Results worksheet')}</h1>
+  <p class="sub" style="margin:0 0 14px">${TT('Filter by campus, classroom and exam. Subject columns follow scores in the gradebook. Export Excel or Word.')}</p>
+  <div class="tl" style="margin:0 0 14px">
+    <button type="button" class="ghost${gtab==='sc'?' on':''}" data-act="gtab" data-t="sc">${TT('Score list')}</button>
+    <button type="button" class="ghost${gtab==='sheet'?' on':''}" data-act="gtab" data-t="sheet">${TT('Results worksheet')}</button>
+  </div>
+  <div class="card">
+    <div class="bar" style="flex-wrap:wrap;gap:10px">
+      <label>${TT('Campus')} <select id="gsheetCampus">${centers.map(x=>`<option value="${esc(x)}"${gSheetCampus===x?' selected':''}>${esc(x==='All'?TT('All campuses'):x)}</option>`).join('')}</select></label>
+      <label>${TT('Classroom')} <select id="gsheetCls"><option value="">${TT('All classes')}</option>${classOpts.filter(Boolean).map(l=>`<option value="${esc(l)}"${gSheetCls===l?' selected':''}>${esc(l)}</option>`).join('')}</select></label>
+      <label>${TT('Exam')} <select id="gsheetExam">${examOpts.map(x=>`<option value="${esc(x)}"${gSheetExam===x?' selected':''}>${esc(x==='All'?TT('All exams'):x)}</option>`).join('')}</select></label>
+      <label>${TT('Shift')} <select id="gsheetShift">${shiftOpts.map(x=>`<option value="${esc(x)}"${gSheetShift===x?' selected':''}>${esc(x==='All'?TT('All shifts'):x)}</option>`).join('')}</select></label>
+      <button type="button" class="ghost" data-act="gsheet-xlsx">📗 ${TT('Export Excel')}</button>
+      <button type="button" class="ghost" data-act="gsheet-word">📄 ${TT('Export Word')}</button>
+      <button type="button" class="ghost" data-act="gsheet-print">🖨️ ${TT('Print')}</button>
+    </div>
+    <p class="sub" style="margin:8px 0">${TT('Subjects shown')}: ${subjects.length?subjects.map(s=>esc(s)).join(', '):TT('none — add scores in Gradebook first')} · ${rows.length} ${TT('students')} · ${esc(examLabel)}</p>
+    <div class="scroll" id="gradeSheetPrintArea">
+      <table class="data" style="min-width:100%">
+        <thead><tr>
+          <th>#</th><th>${TT('Khmer name')}</th><th>${TT('English name')}</th><th>${TT('Sex')}</th>
+          ${headCols}
+        </tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <h2 style="margin:0 0 8px">${TT('Signature footer (3 positions)')}</h2>
+    <p class="sub" style="margin:0 0 12px">${TT('Teachers can edit name and upload signature. Saved with the app data.')}</p>
+    <div style="display:flex;flex-wrap:wrap;gap:12px">${signHtml}</div>
+    <div class="bar" style="margin-top:12px;justify-content:flex-end">
+      <button type="button" class="btn" data-act="gss-save">${TT('Save signers')}</button>
+    </div>
+  </div>`},
 msgs(){return `<h1><span class="ic" aria-hidden="true">💬</span>Messages</h1><p class="sub" style="margin:0 0 14px">Paste the invite link of each parent group (starts with https://t.me/). Replies are sent inside Telegram.</p>
  <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">${Object.keys(CENTERS).map(c=>{const l=S.tg[c]||'',ok=/^https:\/\/(t|telegram)\.me\//i.test(l);return `<div class="card"><h2 style="font-size:19px;margin-bottom:10px">${c}</h2><label class="sub" style="display:block;font-size:14px;margin-bottom:4px">Group link</label><input data-tg="${esc(c)}" value="${esc(l)}" placeholder="https://t.me/..." aria-label="Group link"><p class="err"></p>${ok?`<a class="btn" href="${esc(l)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;text-decoration:none"><span class="ic" aria-hidden="true">✈️</span>Open in Telegram</a>`:'<small>Link not set</small>'}</div>`}).join('')}</div>
  <div class="card"><p class="sub" style="margin:0">Reading and replying to parents inside this app needs a small server that keeps the Telegram bot key safe. It is not set up yet.</p></div>`},
@@ -1281,7 +1357,7 @@ document.addEventListener('keydown',e=>{if(e.key=='Enter'&&e.target.dataset&&e.t
 /* gradebook */
 const classes=()=>[...new Set(S.students.map(s=>(s.cls||'').trim()).filter(Boolean))].sort();
 const TYPES=['Monthly test','Mid-term test','Final exam','Quiz','Homework','Other'],SUBJ=['English','Computer','Workshop','Library'],STS=['Present','Absent','Late','Excused'];
-let gq='',gcls='',gsort='name',gord='asc',gi=-1,gtab='sc';
+let gq='',gcls='',gsort='name',gord='asc',gi=-1,gtab='sc',gSheetCampus='All',gSheetCls='',gSheetExam='All',gSheetShift='All';
 const uid=()=>Math.random().toString(36).slice(2,9);
 const pct=g=>g.max?g.score/g.max*100:0,gp=a=>a>=90?4:a>=80?3:a>=70?2:a>=60?1:0,letter=a=>a>=90?'A':a>=80?'B':a>=70?'C':a>=60?'D':a>=50?'E':'F';
 function gstats(sid,f,x,yr){const G=S.grades.filter(g=>g.sid==sid&&inR(g.date,f,x)&&(!yr||g.date.slice(0,4)==yr)),n=G.length,avg=n?G.reduce((s,g)=>s+pct(g),0)/n:null;return{n,avg,gpa:avg==null?null:gp(avg)}}
@@ -1295,6 +1371,156 @@ function gbRows(){const L=gbData();return L.length?L.map(({s,i,g,ly,a})=>`<tr da
 
 /* ========== STUDENT RESULT POSTER ========== */
 let posterExam='All', posterStu=-1;
+
+
+function collectGradeSheetSigners(){
+  S.gradeSheetSigners=S.gradeSheetSigners||[{title:'',name:'',sign:''},{title:'',name:'',sign:''},{title:'',name:'',sign:''}];
+  document.querySelectorAll('[data-gss-title]').forEach(el=>{
+    const i=+el.dataset.gssTitle; if(!S.gradeSheetSigners[i])S.gradeSheetSigners[i]={title:'',name:'',sign:''};
+    S.gradeSheetSigners[i].title=el.value;
+  });
+  document.querySelectorAll('[data-gss-name]').forEach(el=>{
+    const i=+el.dataset.gssName; if(!S.gradeSheetSigners[i])S.gradeSheetSigners[i]={title:'',name:'',sign:''};
+    S.gradeSheetSigners[i].name=el.value;
+  });
+}
+
+function gradeSheetSubjects(stuIds, examType){
+  let G=S.grades||[];
+  if(stuIds) G=G.filter(g=>stuIds.has(g.sid));
+  if(examType && examType!=='All'){
+    const t=examType.toLowerCase();
+    G=G.filter(g=>{
+      const ty=String(g.type||'').toLowerCase();
+      if(t.includes('month'))return /month/i.test(ty);
+      if(t.includes('mid'))return /mid/i.test(ty);
+      if(t.includes('final'))return /final/i.test(ty);
+      return ty.includes(t);
+    });
+  }
+  const set=new Set();
+  G.forEach(g=>{
+    const sub=String(g.subj||g.subject||'').trim();
+    if(sub) set.add(sub);
+  });
+  // Prefer known SUBJ order if defined
+  let ordered=[];
+  if(typeof SUBJ!=='undefined' && Array.isArray(SUBJ)){
+    SUBJ.forEach(s=>{ if(set.has(s)){ ordered.push(s); set.delete(s);} });
+  }
+  ordered=ordered.concat([...set].sort());
+  return ordered;
+}
+function gradeSheetData(){
+  let list=S.students||[];
+  if(gSheetCampus && gSheetCampus!=='All') list=list.filter(s=>(s.center||'')===gSheetCampus);
+  if(gSheetCls) list=list.filter(s=>(s.cls||'')===gSheetCls);
+  if(gSheetShift && gSheetShift!=='All'){
+    const anyShift=(S.students||[]).some(s=>s.shift||s.time||s.period);
+    if(anyShift){
+      list=list.filter(s=>{
+        const sh=String(s.shift||s.time||s.period||'').toLowerCase();
+        return sh.includes(gSheetShift.toLowerCase());
+      });
+    }
+  }
+  const ids=new Set(list.map(s=>s.id));
+  const subjects=gradeSheetSubjects(ids, gSheetExam);
+  const rows=list.map(s=>{
+    let G=(S.grades||[]).filter(g=>g.sid===s.id);
+    if(gSheetExam && gSheetExam!=='All'){
+      const t=gSheetExam.toLowerCase();
+      G=G.filter(g=>{
+        const ty=String(g.type||'').toLowerCase();
+        if(t.includes('month'))return /month/i.test(ty);
+        if(t.includes('mid'))return /mid/i.test(ty);
+        if(t.includes('final'))return /final/i.test(ty);
+        return ty.includes(t);
+      });
+    }
+    const scores={};
+    subjects.forEach(sub=>{
+      const listG=G.filter(g=>String(g.subj||g.subject||'').trim()===sub);
+      if(listG.length){
+        const avg=listG.reduce((n,g)=>n+pct(g),0)/listG.length;
+        scores[sub]=Math.round(avg*10)/10;
+      } else scores[sub]=null;
+    });
+    const vals=subjects.map(sub=>scores[sub]).filter(v=>v!=null);
+    const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+    const L=avg==null?'–':letter(avg);
+    return {
+      id:s.id, km:s.km, en:s.en, sex:s.sex==='Female'?'F':(s.sex==='Male'?'M':(s.sex||'')),
+      scores, avg:avg==null?null:Math.round(avg*10)/10, letter:L, fail:L==='F'
+    };
+  }).sort((a,b)=>(a.en||'').localeCompare(b.en||''));
+  return {rows, subjects, examLabel:gSheetExam==='All'?TT('All exams'):gSheetExam};
+}
+function exportGradeSheetXlsx(){
+  const {rows, subjects, examLabel}=gradeSheetData();
+  if(typeof XLSX==='undefined'){ alert(TT('Excel library still loading. Try again in a moment.')); return; }
+  const header=['#', TT('Khmer name'), TT('English name'), TT('Sex'), ...subjects, TT('Average'), TT('Grade')];
+  const data=rows.map((r,i)=>[i+1, r.km||'', r.en||'', r.sex||'', ...subjects.map(sub=>r.scores[sub]==null?'':r.scores[sub]), r.avg==null?'':r.avg, r.fail?(r.letter+' (fail)'):r.letter]);
+  const ws=XLSX.utils.aoa_to_sheet([header, ...data, [], [TT('Exam')+': '+examLabel], [TT('Campus')+': '+gSheetCampus], [TT('Classroom')+': '+(gSheetCls||TT('All classes'))]]);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Results');
+  XLSX.writeFile(wb, 'HVTO_Grade_Results.xlsx');
+}
+function exportGradeSheetWord(){
+  const {rows, subjects, examLabel}=gradeSheetData();
+  const signers=(S.gradeSheetSigners&&S.gradeSheetSigners.length)?S.gradeSheetSigners:[];
+  const th='border:1px solid #333;padding:4pt 6pt;background:#f5f5f5;font-weight:bold;';
+  const td='border:1px solid #333;padding:4pt 6pt;';
+  let head='<tr><td style="'+th+'">#</td><td style="'+th+'">Khmer</td><td style="'+th+'">English</td><td style="'+th+'">Sex</td>';
+  subjects.forEach(s=>{ head+='<td style="'+th+'">'+esc(s)+'</td>'; });
+  head+='<td style="'+th+'">Avg</td><td style="'+th+'">Grade</td></tr>';
+  const body=rows.map((r,i)=>{
+    let row='<tr><td style="'+td+'">'+(i+1)+'</td><td style="'+td+'">'+esc(r.km||'')+'</td><td style="'+td+'color:#c0392b;">'+esc(r.en||'')+'</td><td style="'+td+'">'+esc(r.sex||'')+'</td>';
+    subjects.forEach(sub=>{ const sc=r.scores[sub]; row+='<td style="'+td+'text-align:center;">'+(sc==null?'–':sc)+'</td>'; });
+    row+='<td style="'+td+'text-align:center;">'+(r.avg==null?'–':r.avg)+'</td>';
+    row+='<td style="'+td+'text-align:center;'+(r.fail?'background:#fde8e8;color:#c0392b;':'')+'">'+(r.fail?r.letter+' (fail)':r.letter)+'</td></tr>';
+    return row;
+  }).join('');
+  const today=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const sigBlock=signers.map(sg=>`<td style="width:33%;text-align:center;vertical-align:top;padding:12pt 8pt">
+    <div style="min-height:48pt">${sg.sign?`<img src="${sg.sign}" style="max-height:48pt;max-width:120pt">`:'&nbsp;'}</div>
+    <div style="border-top:1px solid #333;margin-top:4pt;padding-top:4pt;font-size:11pt"><b>${esc(sg.name||'................')}</b></div>
+    <div style="font-size:10pt">${esc(sg.title||'')}</div>
+    <div style="font-size:9pt;color:#555">${today}</div>
+  </td>`).join('');
+  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>HVTO Grade Results</title></head><body style="font-family:Times New Roman,serif;font-size:11pt">
+  <h2 style="text-align:center">HVTO Free Education Center — Results Worksheet</h2>
+  <p style="text-align:center">${esc(examLabel)} · Campus: ${esc(gSheetCampus)} · Class: ${esc(gSheetCls||'All')}</p>
+  <table style="border-collapse:collapse;width:100%">${head}${body}</table>
+  <br/><table style="width:100%;margin-top:36pt"><tr>${sigBlock}</tr></table>
+  </body></html>`;
+  const blob=new Blob(['\ufeff',html],{type:'application/msword'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='HVTO_Grade_Results.doc'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),800);
+}
+function printGradeSheet(){
+  const area=document.getElementById('gradeSheetPrintArea');
+  if(!area)return;
+  const {examLabel}=gradeSheetData();
+  const signers=(S.gradeSheetSigners&&S.gradeSheetSigners.length)?S.gradeSheetSigners:[];
+  const sig=signers.map(sg=>`<div style="flex:1;text-align:center;padding:8px">
+    <div style="min-height:50px">${sg.sign?`<img src="${sg.sign}" style="max-height:50px">`:'&nbsp;'}</div>
+    <div style="border-top:1px solid #333;margin-top:6px;padding-top:4px"><b>${esc(sg.name||'....')}</b><br><span style="font-size:12px">${esc(sg.title||'')}</span></div>
+  </div>`).join('');
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>Results</title><style>
+    body{font-family:Times New Roman,serif;padding:16px} table{border-collapse:collapse;width:100%;font-size:12px}
+    th,td{border:1px solid #333;padding:4px 6px} th{background:#f0f0f0}
+    @media print{body{padding:0}}
+  </style></head><body>
+  <h2 style="text-align:center">HVTO Free Education Center — Results Worksheet</h2>
+  <p style="text-align:center">${esc(examLabel)}</p>
+  ${area.innerHTML}
+  <div style="display:flex;gap:12px;margin-top:40px">${sig}</div>
+  </body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>w.print(),300);
+}
+
 function posterGradeData(sid, examType){
   let G=S.grades.filter(g=>g.sid==sid);
   if(examType && examType!=='All'){
@@ -1845,6 +2071,16 @@ function stRows(){const v=sorted(vis());return v.length?v.map(s=>{const i=S.stud
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-v],[data-act]');if(!b){const r=e.target.closest('[data-det]'),g=e.target.closest('[data-gb]'),w=e.target.closest('[data-trow]');if(r)showDet(+r.dataset.det);else if(g)openGB(+g.dataset.gb);else if(w)openT(+w.dataset.trow);return}
   if(b.dataset.act==='gposter'){openResultPoster(+b.dataset.i);return}
+  if(b.dataset.act==='gtab'){gtab=b.dataset.t||'sc';render();return}
+  if(b.dataset.act==='gsheet-xlsx'){exportGradeSheetXlsx();return}
+  if(b.dataset.act==='gsheet-word'){exportGradeSheetWord();return}
+  if(b.dataset.act==='gsheet-print'){printGradeSheet();return}
+  if(b.dataset.act==='gss-clear'){
+    const i=+b.dataset.i;S.gradeSheetSigners=S.gradeSheetSigners||[];
+    if(S.gradeSheetSigners[i])S.gradeSheetSigners[i].sign='';
+    save();render();return
+  }
+  if(b.dataset.act==='gss-save'){collectGradeSheetSigners();save();alert(TT('Signers saved'));return}
   if(b.dataset.v){view=b.dataset.v;animDash=true;closeMenu();render();return}
   if(b.dataset.act==='sf'){
     const kind=b.dataset.kind,val=b.dataset.val;
@@ -3581,6 +3817,11 @@ window.hvtoVisibilitySync=true;
   S.schedule = S.schedule || [];
   S.about = S.about || {text:'',photos:[],files:[]};
   S.proposals = S.proposals || [];
+  S.gradeSheetSigners = S.gradeSheetSigners || [
+    {title:'គ្រូបង្រៀន / Teacher',name:'',sign:''},
+    {title:'ប្រធានផ្នែក / Department Head',name:'',sign:''},
+    {title:'នាយក / Director',name:'',sign:''}
+  ];
 
   // Sync status chip
   if(!document.getElementById('syncStatus')){
