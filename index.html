@@ -922,7 +922,7 @@ gradeSheet(){
     {title:'នាយក / Director',name:'',sign:''}
   ];
   const headCols=subjects.map(s=>`<th>${esc(s)}</th>`).join('')+`<th>${TT('Average')}</th><th>${TT('Grade')}</th>`;
-  const body=rows.length?rows.map((r,i)=>`<tr>
+  const body=rows.length?rows.map((r,i)=>`<tr data-act="gsheet-stu" data-i="${r.idx}" style="cursor:pointer" title="${TT('Open student detail')}">
     <td>${i+1}</td>
     <td>${esc(r.km||'')}</td>
     <td style="color:#c0392b;font-weight:600">${esc(r.en||'')}</td>
@@ -957,7 +957,8 @@ gradeSheet(){
       <button type="button" class="ghost" data-act="gsheet-word">📄 ${TT('Export Word')}</button>
       <button type="button" class="ghost" data-act="gsheet-print">🖨️ ${TT('Print')}</button>
     </div>
-    <p class="sub" style="margin:8px 0">${TT('Subjects shown')}: ${subjects.length?subjects.map(s=>esc(s)).join(', '):TT('none — add scores in Gradebook first')} · ${rows.length} ${TT('students')} · ${esc(examLabel)}</p>
+    <p class="sub" style="margin:8px 0">${TT('Subjects shown')}: ${subjects.length?subjects.map(s=>esc(s)).join(', '):TT('none — add scores in Gradebook first')} · <b>${rows.length}</b> ${TT('students')}${gSheetCls?` · ${TT('Classroom')}: <b>${esc(gSheetCls)}</b>`:''}${gSheetCampus&&gSheetCampus!=='All'?` · ${esc(gSheetCampus)}`:''} · ${esc(examLabel)}
+    ${gSheetCls && rows.length===0?`<br><span style="color:#c0392b">${TT('No students have this classroom in their profile. Edit the student and set Class to match (e.g. Room A).')}</span>`:''}</p>
     <div class="scroll" id="gradeSheetPrintArea">
       <table class="data" style="min-width:100%">
         <thead><tr>
@@ -1436,6 +1437,7 @@ function gradeSheetData(){
   const ids=new Set(list.map(s=>s.id));
   const subjects=gradeSheetSubjects(ids, gSheetExam);
   const rows=list.map(s=>{
+    const idx=S.students.indexOf(s);
     let G=(S.grades||[]).filter(g=>g.sid===s.id);
     if(gSheetExam && gSheetExam!=='All'){
       const t=gSheetExam.toLowerCase();
@@ -1459,7 +1461,8 @@ function gradeSheetData(){
     const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
     const L=avg==null?'–':letter(avg);
     return {
-      id:s.id, km:s.km, en:s.en, sex:s.sex==='Female'?'F':(s.sex==='Male'?'M':(s.sex||'')),
+      id:s.id, idx:idx, km:s.km, en:s.en, sex:s.sex==='Female'?'F':(s.sex==='Male'?'M':(s.sex||'')),
+      center:s.center||'', cls:s.cls||'',
       scores, avg:avg==null?null:Math.round(avg*10)/10, letter:L, fail:L==='F'
     };
   }).sort((a,b)=>(a.en||'').localeCompare(b.en||''));
@@ -2080,6 +2083,11 @@ function stRows(){const v=sorted(vis());return v.length?v.map(s=>{const i=S.stud
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-v],[data-act]');if(!b){const r=e.target.closest('[data-det]'),g=e.target.closest('[data-gb]'),w=e.target.closest('[data-trow]');if(r)showDet(+r.dataset.det);else if(g)openGB(+g.dataset.gb);else if(w)openT(+w.dataset.trow);return}
   if(b.dataset.act==='gposter'){openResultPoster(+b.dataset.i);return}
+  if(b.dataset.act==='gsheet-stu'){
+    const i=+b.dataset.i;
+    if(i>=0 && S.students[i]) openForm(i);
+    return;
+  }
   if(b.dataset.act==='gtab'){gtab=b.dataset.t||'sc';render();return}
   if(b.dataset.act==='gsheet-xlsx'){exportGradeSheetXlsx();return}
   if(b.dataset.act==='gsheet-word'){exportGradeSheetWord();return}
